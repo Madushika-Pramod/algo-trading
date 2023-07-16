@@ -1,0 +1,8 @@
+
+[project]
+name = "algo_trading.strategies"
+version = "0.1"
+description = ""
+
+[tool.pdm]
+src_layout = true

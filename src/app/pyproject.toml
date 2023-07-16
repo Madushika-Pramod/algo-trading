@@ -1,0 +1,11 @@
+
+[project]
+name = "algo_trading.app"
+version = "0.1"
+description = ""
+dependencies = [
+    "algo-trading.strategies=*",
+]
+
+[tool.pdm]
+src_layout = true
