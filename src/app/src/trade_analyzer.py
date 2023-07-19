@@ -32,7 +32,7 @@ class TradeAnalyzer(bt.Analyzer):
         win_rate = self.win_count / self.trade_count if self.trade_count else 0.0
 
         return {
-            "strategy": str(self.strategy).split('.')[1],
+            "strategy": str(self.strategy).split('.')[2],
             "trade_count": self.trade_count,
             "win_count": self.win_count,
             "loss_count": self.loss_count,

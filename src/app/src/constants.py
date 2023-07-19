@@ -7,10 +7,10 @@ parent_dir = os.path.dirname(os.path.dirname(current_dir))
 
 # Construct the full path to the data file
 
-symbol = "AAPL"
+symbol = "appl2"
 time_frame = "minute"  # hour
 period_in_days = 1
-cash = 1000000
+cash = 5_000
 csv_file_path = os.path.join(parent_dir, 'datas', '{}.csv'.format(symbol))
 data_download = 0
 time_for_rate_limit = 3
