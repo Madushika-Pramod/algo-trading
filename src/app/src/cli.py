@@ -9,14 +9,16 @@ from strategies import TrendLineStrategy
 
 def run_single():
     strategy = (
-        TrendLineStrategy, dict(period=10, poly_degree=2, fast=3, slow=14, predicted_line_length=2, line_degree=1))
+        TrendLineStrategy,
+        dict(period=20, fast=1, slow=20, poly_degree=3, predicted_line_length=2, line_degree=1, devfactor=1.0))
     score = BacktraderStrategy().add_strategy(strategy).run()
     print(score)
 
 
 def run_multi():
     strategies = [
-        (TrendLineStrategy, dict(period=10, poly_degree=2, fast=3, slow=10, predicted_line_length=2, line_degree=1)),
+        (TrendLineStrategy,
+         dict(period=10, poly_degree=2, fast=3, slow=10, predicted_line_length=2, line_degree=1, devfactor=1.0)),
         (SmaCrossStrategy, dict(pfast=10, pslow=30))]
     for strategy in strategies:
         score = BacktraderStrategy().add_strategy(strategy).run()
@@ -35,34 +37,43 @@ def get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3, ):
                     print(f"Best ROI: {best_roi}\nSlow: {s}\nFast: {f}")
 
 
-def get_trend_line_strategy_optimum_params(best_roi=0.033, period=3, degree=3, slow=4, fast=3, predicted_line_length=2,
-                                           line_degree=1):
+def get_trend_line_strategy_optimum_params(best_roi=0.0, period=3, degree=3, slow=4, fast=3, predicted_line_length=2,
+                                           line_degree=1, b_band_period=2):
     for d in range(degree, 4):
         print(f"degree :{d}")
         for p in range(period, 31):
+            if p == 3: break
             if p > d:
                 print(p)
                 for ld in range(line_degree, 3):
                     for ll in range(predicted_line_length, 11, 2):
+                        for bp in range(b_band_period, 41):
+                            for f in range(fast, 11):
+                                print(f"fast ma: {f}")
+                                for s in range(slow, 41):
+                                    print(f"slow ma: {s}")
 
-                        for f in range(fast, 41):
-                            for s in range(slow, 10):
-                                if f < s:
-                                    score = BacktraderStrategy(
-                                    ).add_strategy((TrendLineStrategy,
-                                                    dict(period=p, poly_degree=d, fast=f, slow=s,
-                                                         predicted_line_length=ll,
-                                                         line_degree=ld))).run()
-                                    if score > best_roi:
-                                        best_roi = score
-                                        print(
-                                            f"Best ROI: {best_roi:.2f}\nPeriod: {p}\nDegree: {d}\nSlow: {s}\nFast: {f}\nLine Length: {ll}\nLine Degree: {ld}")
+                                    if f < s:
+                                        for df in range(2, 7):
+                                            df /= 2
+                                            score = BacktraderStrategy(
+                                            ).add_strategy((TrendLineStrategy,
+                                                            dict(period=p, poly_degree=d, fast=f, slow=s,
+                                                                 predicted_line_length=ll,
+                                                                 line_degree=ld, devfactor=df, b_band_period=bp))).run()
+                                            if score > best_roi:
+                                                best_roi = score
+                                                print(
+                                                    f"Best ROI: {best_roi:.2f}\nPeriod: {p}\nDegree: {d}\nSlow: {s}\nFast: {f}\nLine Length: {ll}\nLine Degree: {ld}\nDev Factor: {df}\n Bollinger Period: {bp}")
 
 
 def config_process_1():
-    return get_trend_line_strategy_optimum_params(best_roi=0.033, period=3, degree=3, slow=4, fast=3,
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=1, slow=1, fast=1,
                                                   predicted_line_length=2,
-                                                  line_degree=1)
+                                                  line_degree=1, b_band_period=2)
+
+
+# for period =3 slow ma = 15 fast = 1
 
 
 def config_process_2():
@@ -86,7 +97,8 @@ def run_parallel():
 
 
 if __name__ == "__main__":
-    run_single()
+    config_process_1()
+    # get_trend_line_strategy_optimum_params()
 
     # import csv
     # import plotly.graph_objects as go
