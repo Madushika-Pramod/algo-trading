@@ -37,24 +37,26 @@ def get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3, ):
                     print(f"Best ROI: {best_roi}\nSlow: {s}\nFast: {f}")
 
 
-def get_trend_line_strategy_optimum_params(best_roi=0.0, period=3, degree=3, slow=4, fast=3, predicted_line_length=2,
+def get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=3, slow=4, fast=3, predicted_line_length=2,
                                            line_degree=1, b_band_period=2):
     for d in range(degree, 4):
         print(f"degree :{d}")
-        for p in range(period, 31):
-            if p == 3: break
+        # range(period, 31)
+        for p in range(period, 3):
+            # if p == 3: break
             if p > d:
                 print(p)
                 for ld in range(line_degree, 3):
                     for ll in range(predicted_line_length, 11, 2):
                         for bp in range(b_band_period, 41):
+                            print(f"Bollinger Period: {bp}")
                             for f in range(fast, 11):
                                 print(f"fast ma: {f}")
                                 for s in range(slow, 41):
                                     print(f"slow ma: {s}")
 
                                     if f < s:
-                                        for df in range(2, 7):
+                                        for df in range(2, 5):
                                             df /= 2
                                             score = BacktraderStrategy(
                                             ).add_strategy((TrendLineStrategy,
@@ -77,8 +79,15 @@ def config_process_1():
 
 
 def config_process_2():
-    return get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3)
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=3, degree=1, slow=1, fast=1,
+                                                  predicted_line_length=2,
+                                                  line_degree=1, b_band_period=2)
 
+    # return get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3)
+def config_process_3():
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=1, slow=1, fast=1,
+                                                  predicted_line_length=2,
+                                                  line_degree=1, b_band_period=2)
 
 def run_parallel():
     # Create processes
