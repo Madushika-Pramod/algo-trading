@@ -3,17 +3,17 @@ import numpy as np
 
 
 class TrendLine(bt.Indicator):
-    lines = ('slope_predicted', 'slope_diff',)
+    lines = ('slope_predicted', 'real_slope',)
     params = dict(period=None, poly_degree=None, predicted_line_length=None, line_degree=None)
     plotinfo = dict(subplot=False)
     plotlines = dict(
         trend=dict(_name='slope_predicted'),
-        slop_diff=dict(_name='slope_diff'),
+        slop_diff=dict(_name='real_slope'),
     )
 
     def __init__(self):
         self.addminperiod(self.p.period)
-        self.adx = bt.ind.AverageDirectionalMovementIndex()
+        # self.adx = bt.ind.AverageDirectionalMovementIndex()
 
     def plotlabel(self):
         return 'TrendLine Indicator'
@@ -24,20 +24,29 @@ class TrendLine(bt.Indicator):
         coefs = np.polyfit(xs, ys, self.p.poly_degree)
 
         if self.p.predicted_line_length % 2 != 0:
+            # get nearest even number
             self.p.predicted_line_length -= 1
 
-        x = np.array([x for x in range(self.p.predicted_line_length)])
+# here I'm going to get last values from predicted line and compare them with real line
+# to do so, I get last points of predicted curve and plot them to get a line
+# do then same for real curve
 
+        # get x values for 2 lines
+        x = np.array([x for x in range(self.p.predicted_line_length)])
+        # this spans from the middle of the observed data ('ys') to the same length into the future.
+        # Therefore, for a 'predicted_line_length' of L, it includes the last L/2 observed data points and predicts the next L/2 future data points.
         predicted_values = np.array([np.polyval(coefs, x) for x in
                                      range(len(ys) - int(self.p.predicted_line_length / 2),
                                            len(ys) + int(self.p.predicted_line_length / 2))])
-
+        # This code retrieves the actual data values ('self.data') corresponding to the range used for prediction.
+        # The range for actual data is determined by the 'predicted_line_length' parameter.
+        # It starts from the point '- predicted_line_length + 1' from the end and goes up to the last data point in 'self.data' to get the same range as predicted_values
         real_values = np.array([self.data[x] for x in range(-1 * self.p.predicted_line_length + 1, 1)])
 
         predicted_slope = np.polyfit(x, predicted_values, self.p.line_degree)[0]
         real_slope = np.polyfit(x, real_values, self.p.line_degree)[0]
 
-        self.lines.slope_diff[0] = predicted_slope - real_slope
+        self.lines.real_slope[0] = real_slope
         self.lines.slope_predicted[0] = predicted_slope
 
 
@@ -58,8 +67,8 @@ class TrendLineStrategy(bt.Strategy):
         self.trend_line = TrendLine(self.data, period=self.p.period, poly_degree=self.p.poly_degree,
                                     predicted_line_length=self.p.predicted_line_length, line_degree=self.p.line_degree)
 
-        sma1 = bt.ind.MovingAverageSimple(period=self.p.fast)  # fast moving average
-        sma2 = bt.ind.MovingAverageSimple(period=self.p.slow)  # slow moving average
+        self.f_sma = bt.ind.MovingAverageSimple(period=self.p.fast)  # fast moving average
+        self.s_sma = bt.ind.MovingAverageSimple(period=self.p.slow)  # slow moving average
         # add Bollinger Bands indicator and track the buy/sell signals
         self.b_band = bt.ind.BollingerBands(self.datas[0],
                                             period=self.p.b_band_period,
@@ -69,19 +78,20 @@ class TrendLineStrategy(bt.Strategy):
         self.b_band_sell_signal = bt.ind.CrossOver(self.datas[0],
                                                    self.b_band.lines.top)
 
-        self.sma_crossover = bt.ind.CrossOver(sma1, sma2)
+        # self.sma_crossover = bt.ind.CrossOver(sma1, sma2)
         self.order = None
-        self.position_size = False
+        self.position_size = False  # if no buy orders
 
     def next(self):
-        slope_diff = self.trend_line.lines.slope_diff[0]
+        real_slope = self.trend_line.lines.real_slope[0]
         slope_predicted = self.trend_line.lines.slope_predicted[0]
+        # todo improve with slope difference
 
-        if self.position_size and self.sma_crossover < 0 < slope_predicted < slope_diff and self.b_band_sell_signal < 0:
+        if self.position_size and real_slope > 0 > slope_predicted and 0 > self.b_band_sell_signal and self.f_sma < self.s_sma:
             self.sell()
             self.position_size = False
 
-        elif not self.position_size and self.sma_crossover > 0 > slope_predicted > slope_diff and self.b_band_buy_signal > 0:
+        elif not self.position_size and real_slope < 0 < slope_predicted and 0 < self.b_band_buy_signal and self.f_sma > self.s_sma:
             self.order = self.buy()
             self.position_size = True
 
