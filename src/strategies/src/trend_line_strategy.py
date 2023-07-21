@@ -52,8 +52,6 @@ class TrendLine(bt.Indicator):
 
 class TrendLineStrategy(bt.Strategy):
     params = dict(
-        fast=None,
-        slow=None,
         period=None,
         poly_degree=None,
         predicted_line_length=None,
@@ -67,8 +65,6 @@ class TrendLineStrategy(bt.Strategy):
         self.trend_line = TrendLine(self.data, period=self.p.period, poly_degree=self.p.poly_degree,
                                     predicted_line_length=self.p.predicted_line_length, line_degree=self.p.line_degree)
 
-        self.f_sma = bt.ind.MovingAverageSimple(period=self.p.fast)  # fast moving average
-        self.s_sma = bt.ind.MovingAverageSimple(period=self.p.slow)  # slow moving average
         # add Bollinger Bands indicator and track the buy/sell signals
         self.b_band = bt.ind.BollingerBands(self.datas[0],
                                             period=self.p.b_band_period,
@@ -87,11 +83,11 @@ class TrendLineStrategy(bt.Strategy):
         slope_predicted = self.trend_line.lines.slope_predicted[0]
         # todo improve with slope difference
 
-        if self.position_size and real_slope > 0 > slope_predicted and 0 > self.b_band_sell_signal and self.f_sma < self.s_sma:
+        if self.position_size and real_slope > 0 > slope_predicted and 0 > self.b_band_sell_signal:
             self.sell()
             self.position_size = False
 
-        elif not self.position_size and real_slope < 0 < slope_predicted and 0 < self.b_band_buy_signal and self.f_sma > self.s_sma:
+        elif not self.position_size and real_slope < 0 < slope_predicted and 0 < self.b_band_buy_signal:
             self.order = self.buy()
             self.position_size = True
 
