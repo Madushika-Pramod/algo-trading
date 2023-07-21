@@ -1,4 +1,5 @@
 import multiprocessing
+import threading
 import time
 
 from app.src.back_trader import BacktraderStrategy
@@ -41,98 +42,129 @@ def get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3, ):
 def get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, curve_degree=3, slow=4, fast=3,
                                            predicted_line_length=2,
                                            line_degree=1, b_band_period=2):
-    start_time = time.time()
-    for d in range(curve_degree, 4):
-        # print(f"degree :{d}")
-        # range(period, 31)
-        for p in range(period, 31):
-            # if p == 3: break
-            # print(p)
-            for ld in range(line_degree, 3):
-                for ll in range(predicted_line_length, 11, 2):
-                    for bp in range(b_band_period, 41):
-                        if bp == b_band_period + 1:
-                            # todo reset fma
-                            print(
-                                f"exit at Period: {p}===Degree: {d}===Line Length: {ll}===Line Degree: {ld}===Last Bollinger Period: {bp}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
-                            raise Exception()
-                        print(f"Bollinger Period: {bp}")
-                        for f in range(fast, 11):
-                            print(f"fast ma: {f}")
-                            for s in range(slow, 41):
-                                if f < s and p > d > ld and p > ll:
-                                    print(f"slow ma: {s}")
+    count = 0
 
-                                    for df in range(2, 5):
-                                        # Dev-Factor from 1, 1.5, 2
-                                        df /= 2
-                                        try:
-                                            score = BacktraderStrategy(
-                                            ).add_strategy((TrendLineStrategy,
-                                                            dict(period=p, poly_degree=d, fast=f, slow=s,
-                                                                 predicted_line_length=ll,
-                                                                 line_degree=ld, devfactor=df,
-                                                                 b_band_period=bp))).run()
-                                        except Exception as e:
-                                            raise e
+    best_roi2 = 0
+    period2 = 0
+    curve_degree2 = 0
+    slow2 = 0
+    fast2 = 0
+    predicted_line_length2 = 0
+    line_degree2 = 0
+    b_band_period2 = 0
+    deviation_factor = 0
+    try:
 
-                                        if score > best_roi:
-                                            best_roi = score
-                                            print(
-                                                f"Best ROI: {best_roi:.2f}\nPeriod: {p}\nDegree: {d}\nSlow: {s}\nFast: {f}\nLine Length: {ll}\nLine Degree: {ld}\nDev Factor: {df}\n Bollinger Period: {bp}")
+        for bp in range(b_band_period, 41):
+            if bp == b_band_period + 1:
+                # print(
+                #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
+                print(bp - 1, threading.get_ident())
+                print(f"Total Count: {count}")
+                raise Exception("===xxxxxx===")
+            for s in range(slow, 41):
+                for f in range(fast, 21):
+                    for p in range(period, 31):
+                        for d in range(curve_degree, 4):
+
+                            # print(f"degree :{d}")
+                            # range(period, 31)
+                            # if p == 3: break
+                            # print(p)
+                            for ld in range(line_degree, 3):
+
+                                # print(f"{p}line_degree{ld}")
+                                for ll in range(predicted_line_length, 11, 2):
+                                    # print(f"{ld}predicted_line_length{ll}")
+
+                                    if f < s and p > d > ld and p > ll > ld:
+                                        # print(f"slow ma: {s}", end="_")
+
+                                        for df in range(2, 5):
+                                            # Dev-Factor from 1, 1.5, 2
+                                            df /= 2
+                                            # start_time = time.time()
+                                            # score = BacktraderStrategy(
+                                            # ).add_strategy((TrendLineStrategy,
+                                            #                 dict(period=p, poly_degree=d, fast=f, slow=s,
+                                            #                      predicted_line_length=ll,
+                                            #                      line_degree=ld, devfactor=df,
+                                            #                      b_band_period=bp))).run()
+
+                                        count += 1
+                                        # print(count)
+                                        # print(f"time diff ={time.time()-start_time}")
+
+                                        period2 = p
+                                        curve_degree2 = d
+                                        slow2 = s
+                                        fast2 = f
+                                        predicted_line_length2 = ll
+                                        line_degree2 = ld
+                                        b_band_period2 = bp
+                                        deviation_factor = df
+                                        # if score > best_roi:
+                                        #     best_roi2 = best_roi = score
+                                        #     print(
+                                        #         f"Best ROI: {best_roi:.2f}\nPeriod: {p}\nDegree: {d}\nSlow: {s}\nFast: {f}\nLine Length: {ll}\nLine Degree: {ld}\nDev Factor: {df}\n Bollinger Period: {bp}")
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt received. Performing cleanup...")
+        print(
+            f"Best ROI: {best_roi2:.2f}\nPeriod: {period2}\nDegree: {curve_degree2}\nSlow: {slow2}\nFast: {fast2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
 
 
 def config_process_1():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=3, curve_degree=2, slow=2, fast=1,
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2, slow=2, fast=1,
+                                                  predicted_line_length=2,
+                                                  line_degree=1, b_band_period=1)
+
+
+# for period 5 slow ma = 15 fast = 1
+
+
+def config_process_2():
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2, slow=2, fast=1,
                                                   predicted_line_length=2,
                                                   line_degree=1, b_band_period=2)
 
 
-# for period =3 slow ma = 15 fast = 1
-
-
-def config_process_2():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=3, curve_degree=2, slow=2, fast=1,
+# return get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=2, fast=3)
+def config_process_3():
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2, slow=2, fast=1,
                                                   predicted_line_length=2,
                                                   line_degree=1, b_band_period=3)
 
-    # return get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3)
 
-
-def config_process_3():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=3, curve_degree=2, slow=2, fast=1,
+def config_process_4():
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2, slow=2, fast=1,
                                                   predicted_line_length=2,
                                                   line_degree=1, b_band_period=4)
 
 
-def config_process_4():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=3, curve_degree=2, slow=2, fast=1,
+def config_process_5():
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2, slow=2, fast=1,
                                                   predicted_line_length=2,
                                                   line_degree=1, b_band_period=5)
 
 
-# def config_process_5():
-#     return get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=1, slow=2, fast=1,
-#                                                   predicted_line_length=2,
-#                                                   line_degree=1, b_band_period=10)
-#
-#
-# def config_process_6():
-#     return get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=1, slow=2, fast=1,
-#                                                   predicted_line_length=2,
-#                                                   line_degree=1, b_band_period=11)
-#
-#
-# def config_process_7():
-#     return get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=1, slow=2, fast=1,
-#                                                   predicted_line_length=2,
-#                                                   line_degree=1, b_band_period=12)
-#
-#
-# def config_process_8():
-#     return get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=1, slow=2, fast=1,
-#                                                   predicted_line_length=2,
-#                                                   line_degree=1, b_band_period=13)
+def config_process_6():
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2, slow=2, fast=1,
+                                                  predicted_line_length=2,
+                                                  line_degree=1, b_band_period=6)
+
+
+def config_process_7():
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2, slow=2, fast=1,
+                                                  predicted_line_length=2,
+                                                  line_degree=1, b_band_period=7)
+
+
+def config_process_8():
+    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2, slow=2, fast=1,
+                                                  predicted_line_length=2,
+                                                  line_degree=1, b_band_period=8)
+
+
 
 
 def run_parallel():
