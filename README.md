@@ -31,8 +31,8 @@ Please be informed of the potential financial risks associated with algorithmic 
     ```
     brew install pdm
     pdm install  
-    ```
-
+    ``
+   pdm add <package name>
 ## 🔐 API Configuration
 
 Add your Alpaca API_KEY and SECRET_KEY to your environment variables. If you need assistance in obtaining these values, refer to the [Alpaca API documentation](https://alpaca.markets/docs/api-documentation/).
