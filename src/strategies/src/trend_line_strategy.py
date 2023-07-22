@@ -3,12 +3,13 @@ import numpy as np
 
 
 class TrendLine(bt.Indicator):
-    lines = ('slope_predicted', 'real_slope',)
+    lines = ('slope_predicted', 'real_slope', 'predicted_curve',)
     params = dict(period=None, poly_degree=None, predicted_line_length=None, line_degree=None)
     plotinfo = dict(subplot=False)
     plotlines = dict(
-        trend=dict(_name='slope_predicted'),
-        slop_diff=dict(_name='real_slope'),
+        slope_predicted=dict(_name='slope_predicted', _plotskip=False),
+        real_slope=dict(_name='real_slope', _plotskip=False ),
+        predicted_curve=dict(_name='predicted_curve', _plotskip=False),
     )
 
     def __init__(self):
@@ -19,6 +20,7 @@ class TrendLine(bt.Indicator):
         return 'TrendLine Indicator'
 
     def next(self):
+
         ys = self.data.get(size=self.p.period)
         xs = np.arange(len(ys))
         coefs = np.polyfit(xs, ys, self.p.poly_degree)
@@ -48,6 +50,8 @@ class TrendLine(bt.Indicator):
 
         self.lines.real_slope[0] = real_slope
         self.lines.slope_predicted[0] = predicted_slope
+        self.lines.predicted_curve[0] = predicted_values[-1]  # Storing the last predicted value
+
 
 
 class TrendLineStrategy(bt.Strategy):
@@ -62,6 +66,7 @@ class TrendLineStrategy(bt.Strategy):
     )
 
     def __init__(self):
+        self.order = None
         self.trend_line = TrendLine(self.data, period=self.p.period, poly_degree=self.p.poly_degree,
                                     predicted_line_length=self.p.predicted_line_length, line_degree=self.p.line_degree)
 
@@ -75,7 +80,6 @@ class TrendLineStrategy(bt.Strategy):
                                                    self.b_band.lines.top)
 
         # self.sma_crossover = bt.ind.CrossOver(sma1, sma2)
-        self.order = None
         self.position_size = False  # if no buy orders
 
     def next(self):
@@ -88,13 +92,13 @@ class TrendLineStrategy(bt.Strategy):
             self.position_size = False
 
         elif not self.position_size and real_slope < 0 < slope_predicted and 0 < self.b_band_buy_signal:
-            self.order = self.buy()
+            self.buy()
             self.position_size = True
 
     def log(self, txt, dt=None):
         ''' Logging function for this strategy'''
         dt = dt or self.datas[0].datetime.date(0)
-        # print(f'{dt.isoformat()}, {txt}')  # Print date and log message
+        print(f'{dt.isoformat()}, {txt}')  # Print date and log message
 
     def notify_order(self, order):
         if order.status in [order.Completed]:

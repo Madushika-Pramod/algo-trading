@@ -1,19 +1,24 @@
 import multiprocessing
-import threading
 
 from app.src.back_trader import BacktraderStrategy
-from strategies import SmaCrossStrategy
-from strategies import TrendLineStrategy
+from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy
 
 
 # from .back_trader import BacktraderStrategy
 
 def run_single():
+    # with 0.5% commission
     strategy = (
-        TrendLineStrategy,
-        dict(period=34, poly_degree=3, predicted_line_length=2, line_degree=2, devfactor=2.0, b_band_period=12))
+        BollingerRSIStrategy,
+        dict(bbperiod=13, bbdev=1, rsiperiod=14, rsi_low=30, rsi_high=70, gain_value=0.0))
     score = BacktraderStrategy().add_strategy(strategy).run()
     print(score)
+
+    # strategy = (
+    #     TrendLineStrategy,
+    #     dict(period=34, poly_degree=3, predicted_line_length=4, line_degree=2, devfactor=1.0, b_band_period=13))
+    # score = BacktraderStrategy().add_strategy(strategy).run()
+    # print(score)
 
 
 def run_multi():
@@ -24,6 +29,48 @@ def run_multi():
     for strategy in strategies:
         score = BacktraderStrategy().add_strategy(strategy).run()
         print(score)
+
+
+def get_bollinger_rsi_strategy_optimum_params(best_roi=-1, bbperiod=13, rsiperiod=14, rsi_low=30, rsi_high=70,
+                                              gain_value=0):
+    if rsi_low > 50 or rsi_high < 50:
+        return
+    bp2 = None
+    count = 0
+    try:
+        for bp in range(bbperiod, 21):
+            bp2 = bp
+            if bp == bbperiod + 1:
+                # print(
+                #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
+                print(bp - 1)
+                print(f"Total Count: {count}")
+                print(
+                    f"Best ROI: {best_roi}")
+
+                raise Exception("===xxxxxx===")
+            for rp in range(rsiperiod, 31):  # typically it's between 5 and 30
+                for rl in range(rsi_low, 30):  # range of 0-50
+                    for rh in range(rsi_high, 80):  # 50-100
+                        # for x in range(2, 5):
+                        #     # Dev-Factor from 1, 1.5, 2
+                        #     df = x/2
+                        #     for y in range(gain_value *2 , 5):
+                        #         gv = y/2
+                        score = BacktraderStrategy(
+                        ).add_strategy((BollingerRSIStrategy,
+                                        dict(bbperiod=bp, bbdev=1, rsiperiod=rp, rsi_low=rl, rsi_high=rh,
+                                             gain_value=gain_value))).run()
+                        if score > best_roi:
+                            best_roi = score
+                            print(
+                                f"Best ROI: {best_roi}\n Rsi period: {rp}\n Rsi low: {rl}\n Rsi high: {rh}\n Bollinger Period: {bp}\n Gain value: {gain_value}")
+
+                        count += 1
+                        print(count)
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt received. Performing cleanup...")
+        print(f"Bollinger Period: {bp2}")
 
 
 def get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3, ):
@@ -57,10 +104,10 @@ def get_trend_line_strategy_optimum_params(best_roi=-9999990.0, period=2, curve_
             if bp == b_band_period + 1:
                 # print(
                 #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
-                print(bp - 1, threading.get_ident())
+                print(bp - 1)
                 print(f"Total Count: {count}")
                 print(
-                    f"Best ROI: {best_roi:.2f}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
+                    f"Best ROI: {best_roi}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
 
                 raise Exception("===xxxxxx===")
 
@@ -112,25 +159,47 @@ def get_trend_line_strategy_optimum_params(best_roi=-9999990.0, period=2, curve_
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...")
         print(
-            f"Best ROI: {best_roi2:.2f}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
+            f"Best ROI: {best_roi2}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
 
 
-configurations = [
-    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1, "b_band_period": 10},
-    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1, "b_band_period": 11},
-    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1, "b_band_period": 12},
-    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1, "b_band_period": 13},
-    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1, "b_band_period": 14},
-    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1, "b_band_period": 15},
-    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1, "b_band_period": 16},
+configurations_for_bollinger = [
+    dict(bbperiod=2, rsiperiod=5, rsi_low=20, rsi_high=70, gain_value=0),
+    dict(bbperiod=3, rsiperiod=14, rsi_low=30, rsi_high=70, gain_value=0),
+    dict(bbperiod=4, rsiperiod=14, rsi_low=30, rsi_high=70, gain_value=0),
+    dict(bbperiod=5, rsiperiod=14, rsi_low=30, rsi_high=70, gain_value=0),
+    dict(bbperiod=6, rsiperiod=14, rsi_low=30, rsi_high=70, gain_value=0),
+    dict(bbperiod=7, rsiperiod=14, rsi_low=30, rsi_high=70, gain_value=0),
+    dict(bbperiod=8, rsiperiod=14, rsi_low=30, rsi_high=70, gain_value=0),
+    dict(bbperiod=9, rsiperiod=14, rsi_low=30, rsi_high=70, gain_value=0)
+]
+
+configurations_for_trend_line = [
+    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 10},
+    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 11},
+    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 12},
+    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 13},
+    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 14},
+    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 15},
+    {"best_roi": -999999.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 16},
 ]
 
 
-def config_process(config):
+def trend_line_config_process(config):
     return get_trend_line_strategy_optimum_params(**config)
 
 
-def run_parallel():
+def bollinger_config_process(config):
+    return get_bollinger_rsi_strategy_optimum_params(**config)
+
+
+def run_parallel(config_process, configurations):
     # Create processes
     processes = [multiprocessing.Process(target=config_process, args=(config,)) for config in configurations]
 
@@ -146,7 +215,7 @@ def run_parallel():
 
 
 if __name__ == "__main__":
-    run_parallel()
+    run_parallel(bollinger_config_process, configurations_for_bollinger)
     # get_trend_line_strategy_optimum_params()
 
     # import csv
