@@ -92,7 +92,7 @@ class BacktraderStrategy:
         # self.cerebro.broker.setcommission(commission=0.01)
         if self.live:
             self.cerebro.run(live=True)
-            return 0.0
+            return 0.00
         else:
             strategies = self.cerebro.run()
             # self.cerebro.plot(style='candle')

@@ -5,14 +5,22 @@ import time
 from app.src.back_trader import BacktraderStrategy
 from strategies import SmaCrossStrategy
 from strategies import TrendLineStrategy
+from strategies import SmaRsiMacdStrategy
 
 
 # from .back_trader import BacktraderStrategy
 
 def run_single():
+    # strategy = (
+    #     TrendLineStrategy,
+    #     dict(period=20, poly_degree=3, predicted_line_length=2, line_degree=1, devfactor=1.0))
+    # score = BacktraderStrategy().add_strategy(strategy).run()
     strategy = (
-        TrendLineStrategy,
-        dict(period=20, poly_degree=3, predicted_line_length=2, line_degree=1, devfactor=1.0))
+        SmaRsiMacdStrategy,
+        dict(sma_period=50, macd1=12, macd2=26, macdsig=9, rsi_period=14,
+             rsi_lower=30,
+             rsi_upper=70)
+    )
     score = BacktraderStrategy().add_strategy(strategy).run()
     print(score)
 
@@ -37,6 +45,28 @@ def get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3, ):
                     best_roi = score
 
                     print(f"Best ROI: {best_roi}\nSlow: {s}\nFast: {f}")
+
+
+def get_sma_rsi_macd_strategy_optimum_params(best_roi=0.0,sma_period=50,
+                                             macd1=12, macd2=26, macdsig=9, rsi_period=14, rsi_lower=30, rsi_upper=70):
+    count = 0
+    for sma in range(sma_period, 50):
+        for macd_i in range(macd1, 16):
+            for macd2_i in range(macd2, 31):
+                for macdsig_i in range(macdsig, 11):
+                    for rsi_p in range(rsi_period, 31):
+                        for rsi_l in range(rsi_lower, 31):
+                            for rsi_u in range(rsi_lower, 81):
+                                score = BacktraderStrategy(
+                                ).add_strategy((SmaRsiMacdStrategy,
+                                                dict(sma_period=sma, macd1=macd_i, macd2=macd2_i, macdsig=macdsig_i, rsi_period=rsi_p,
+                                                     rsi_lower=rsi_l,
+                                                     rsi_upper=rsi_u))).run()
+                                count += 1
+                                if score > best_roi:
+                                    best_roi = score
+                                    print(
+                                        f"Best ROI: {best_roi:.2f}\nSma_period: {sma}\nMacd1: {macd_i}\nMacd2: {macd2_i}\nMacdsig: {macdsig_i}\nRsi_period: {rsi_p}\n Rsi_lower: {rsi_l}\n")
 
 
 def get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, curve_degree=3,
@@ -90,7 +120,7 @@ def get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, curve_degree=
 
                                 count += 1
                                 print(count)
-                                print(f"time diff ={time.time()-start_time}")
+                                print(f"time diff ={time.time() - start_time}")
 
                                 period2 = p
                                 curve_degree2 = d
@@ -161,8 +191,6 @@ def config_process_8():
                                                   line_degree=1, b_band_period=8)
 
 
-
-
 def run_parallel():
     # Create processes
     p1 = multiprocessing.Process(target=config_process_1)
@@ -198,7 +226,7 @@ def run_parallel():
 
 
 if __name__ == "__main__":
-    run_parallel()
+    run_single()
     # get_trend_line_strategy_optimum_params()
 
     # import csv
