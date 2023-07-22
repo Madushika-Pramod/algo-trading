@@ -1,11 +1,11 @@
 import multiprocessing
 import threading
-import time
 
 from app.src.back_trader import BacktraderStrategy
+from strategies import ArimaStrategy
 from strategies import SmaCrossStrategy
-from strategies import TrendLineStrategy
 from strategies import SmaRsiMacdStrategy
+from strategies import TrendLineStrategy
 
 
 # from .back_trader import BacktraderStrategy
@@ -13,14 +13,19 @@ from strategies import SmaRsiMacdStrategy
 def run_single():
     # strategy = (
     #     TrendLineStrategy,
-    #     dict(period=20, poly_degree=3, predicted_line_length=2, line_degree=1, devfactor=1.0))
+    #     dict(period=25, poly_degree=3, predicted_line_length=4, line_degree=2, devfactor=2.0,b_band_period=10))
     # score = BacktraderStrategy().add_strategy(strategy).run()
-    strategy = (
-        SmaRsiMacdStrategy,
-        dict(sma_period=50, macd1=12, macd2=26, macdsig=9, rsi_period=14,
-             rsi_lower=30,
-             rsi_upper=70)
-    )
+    # print(score)
+
+
+# not succes
+    # strategy = (SmaRsiMacdStrategy,
+    #             dict(sma_period=50, macd1=12, macd2=26, macdsig=9, rsi_period=14, rsi_lower=30, rsi_upper=70))
+    # score = BacktraderStrategy().add_strategy(strategy).run()
+    # print(score)
+
+    strategy = (ArimaStrategy,
+                dict(arima_p=5, arima_d=1, arima_q=0))
     score = BacktraderStrategy().add_strategy(strategy).run()
     print(score)
 
@@ -47,29 +52,7 @@ def get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3, ):
                     print(f"Best ROI: {best_roi}\nSlow: {s}\nFast: {f}")
 
 
-def get_sma_rsi_macd_strategy_optimum_params(best_roi=0.0,sma_period=50,
-                                             macd1=12, macd2=26, macdsig=9, rsi_period=14, rsi_lower=30, rsi_upper=70):
-    count = 0
-    for sma in range(sma_period, 50):
-        for macd_i in range(macd1, 16):
-            for macd2_i in range(macd2, 31):
-                for macdsig_i in range(macdsig, 11):
-                    for rsi_p in range(rsi_period, 31):
-                        for rsi_l in range(rsi_lower, 31):
-                            for rsi_u in range(rsi_lower, 81):
-                                score = BacktraderStrategy(
-                                ).add_strategy((SmaRsiMacdStrategy,
-                                                dict(sma_period=sma, macd1=macd_i, macd2=macd2_i, macdsig=macdsig_i, rsi_period=rsi_p,
-                                                     rsi_lower=rsi_l,
-                                                     rsi_upper=rsi_u))).run()
-                                count += 1
-                                if score > best_roi:
-                                    best_roi = score
-                                    print(
-                                        f"Best ROI: {best_roi:.2f}\nSma_period: {sma}\nMacd1: {macd_i}\nMacd2: {macd2_i}\nMacdsig: {macdsig_i}\nRsi_period: {rsi_p}\n Rsi_lower: {rsi_l}\n")
-
-
-def get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, curve_degree=3,
+def get_trend_line_strategy_optimum_params(best_roi=-9999990.0, period=2, curve_degree=3,
                                            predicted_line_length=2,
                                            line_degree=1, b_band_period=2):
     count = 0
@@ -81,6 +64,7 @@ def get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, curve_degree=
     line_degree2 = 0
     b_band_period2 = 0
     deviation_factor = 0
+
     try:
 
         for bp in range(b_band_period, 41):
@@ -89,9 +73,11 @@ def get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, curve_degree=
                 #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
                 print(bp - 1, threading.get_ident())
                 print(f"Total Count: {count}")
+                print(f"Best ROI: {best_roi:.2f}")
+
                 raise Exception("===xxxxxx===")
 
-            for p in range(period, 31):
+            for p in range(period, 51):
                 for d in range(curve_degree, 4):
 
                     # print(f"degree :{d}")
@@ -110,85 +96,87 @@ def get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, curve_degree=
                                 for df in range(2, 5):
                                     # Dev-Factor from 1, 1.5, 2
                                     df /= 2
-                                    start_time = time.time()
+                                    # start_time = time.time()
+
                                     score = BacktraderStrategy(
                                     ).add_strategy((TrendLineStrategy,
                                                     dict(period=p, poly_degree=d,
                                                          predicted_line_length=ll,
                                                          line_degree=ld, devfactor=df,
                                                          b_band_period=bp))).run()
+                                    if score > best_roi:
+                                        best_roi2 = best_roi = score
+                                        print(
+                                            f"Best ROI: {best_roi2:.2f}\nPeriod: {p}\nDegree: {d}\nLine Length: {ll}\nLine Degree: {ld}\nDev Factor: {df}\n Bollinger Period: {bp}")
 
-                                count += 1
-                                print(count)
-                                print(f"time diff ={time.time() - start_time}")
+                            count += 1
+                            print(count)
+                            # print(f"time diff ={time.time()-start_time}")
 
-                                period2 = p
-                                curve_degree2 = d
+                            period2 = p
+                            curve_degree2 = d
 
-                                predicted_line_length2 = ll
-                                line_degree2 = ld
-                                b_band_period2 = bp
-                                deviation_factor = df
-                                if score > best_roi:
-                                    best_roi2 = best_roi = score
-                                    print(
-                                        f"Best ROI: {best_roi:.2f}\nPeriod: {p}\nDegree: {d}\nLine Length: {ll}\nLine Degree: {ld}\nDev Factor: {df}\n Bollinger Period: {bp}")
+                            predicted_line_length2 = ll
+                            line_degree2 = ld
+                            b_band_period2 = bp
+                            deviation_factor = df
+
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...")
         print(
-            f"Best ROI: {best_roi2:.2f}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
+            f"previous RoI: {best_roi2:.2f}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
 
 
 def config_process_1():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2,
+    return get_trend_line_strategy_optimum_params(best_roi=-999999.0, period=5, curve_degree=2,
                                                   predicted_line_length=2,
-                                                  line_degree=1, b_band_period=1)
+                                                  line_degree=1, b_band_period=9)
 
 
 # for period 5 slow ma = 15 fast = 1
 
 
 def config_process_2():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2,
+    return get_trend_line_strategy_optimum_params(best_roi=-999999.0, period=5, curve_degree=2,
                                                   predicted_line_length=2,
-                                                  line_degree=1, b_band_period=2)
+                                                  line_degree=1, b_band_period=10)
 
 
-# return get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=2, fast=3)
+# return get_sma_cross_strategy_optimum_params(best_roi=-999999.033, slow=2, fast=3)
 def config_process_3():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2,
+    return get_trend_line_strategy_optimum_params(best_roi=-999999.0, period=5, curve_degree=2,
                                                   predicted_line_length=2,
-                                                  line_degree=1, b_band_period=3)
+                                                  line_degree=1, b_band_period=11)
 
 
 def config_process_4():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2,
+    return get_trend_line_strategy_optimum_params(best_roi=-999999.0, period=5, curve_degree=2,
                                                   predicted_line_length=2,
-                                                  line_degree=1, b_band_period=4)
+                                                  line_degree=1, b_band_period=12)
 
 
 def config_process_5():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2,
+    return get_trend_line_strategy_optimum_params(best_roi=-999999.0, period=5, curve_degree=2,
                                                   predicted_line_length=2,
-                                                  line_degree=1, b_band_period=5)
+                                                  line_degree=1, b_band_period=13)
 
 
 def config_process_6():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2,
+    return get_trend_line_strategy_optimum_params(best_roi=-999999.0, period=5, curve_degree=2,
                                                   predicted_line_length=2,
-                                                  line_degree=1, b_band_period=6)
+                                                  line_degree=1, b_band_period=14)
 
 
 def config_process_7():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2,
+    return get_trend_line_strategy_optimum_params(best_roi=-999999.0, period=5, curve_degree=2,
                                                   predicted_line_length=2,
-                                                  line_degree=1, b_band_period=7)
+                                                  line_degree=1, b_band_period=15)
 
 
 def config_process_8():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=5, curve_degree=2,
+    return get_trend_line_strategy_optimum_params(best_roi=-999999.0, period=5, curve_degree=2,
                                                   predicted_line_length=2,
-                                                  line_degree=1, b_band_period=8)
+                                                  line_degree=1, b_band_period=16)
 
 
 def run_parallel():
@@ -197,30 +185,30 @@ def run_parallel():
     p2 = multiprocessing.Process(target=config_process_2)
     p3 = multiprocessing.Process(target=config_process_3)
     p4 = multiprocessing.Process(target=config_process_4)
-    # p5 = multiprocessing.Process(target=config_process_5)
-    # p6 = multiprocessing.Process(target=config_process_6)
-    # p7 = multiprocessing.Process(target=config_process_7)
-    # p8 = multiprocessing.Process(target=config_process_8)
+    p5 = multiprocessing.Process(target=config_process_5)
+    p6 = multiprocessing.Process(target=config_process_6)
+    p7 = multiprocessing.Process(target=config_process_7)
+    p8 = multiprocessing.Process(target=config_process_8)
 
     # Start processes
     p1.start()
     p2.start()
     p3.start()
     p4.start()
-    # p5.start()
-    # p6.start()
-    # p7.start()
-    # p8.start()
+    p5.start()
+    p6.start()
+    p7.start()
+    p8.start()
 
     # Wait for both processes to finish
     p1.join()
     p2.join()
     p3.join()
     p4.join()
-    # p5.join()
-    # p6.join()
-    # p7.join()
-    # p8.join()
+    p5.join()
+    p6.join()
+    p7.join()
+    p8.join()
 
     print('Both functions have finished executing')
 
