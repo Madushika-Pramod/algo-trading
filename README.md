@@ -1,21 +1,21 @@
-# Alpaca-Backtrader Trading Bot
+# Alpaca-Backtrader Algorithmic Trading Bot
 
-This repository hosts a Python-based trading bot developed to leverage Alpaca's API and backtrader. The bot supports both backtesting and live trading of algorithmic strategies.
+Welcome to our algorithmic trading bot, designed to harness the power of Alpaca's API and backtrader in Python. This trading bot seamlessly supports both backtesting and live trading of custom strategies.
 
-## 🎯 Key Features
+## 🎯 Core Capabilities
 
-- **Backtesting:** Facilitates quick testing against historical market data.
-- **Live Trading:** Enables real-time automated trading through Alpaca's commission-free API.
-- **Customizable Strategies:** Offers an intuitive implementation of strategies via Python.
+- **Efficient Backtesting:** Rapidly test your strategies against historical market data for quick evaluations.
+- **Real-time Live Trading:** Harness Alpaca's commission-free API to implement automated trading in real time.
+- **Strategies Customization:** The bot allows for an intuitive implementation of strategies using Python, tailoring the bot to your trading approach.
 
-Please be informed of the potential financial risks associated with algorithmic trading. It is strongly advised to conduct comprehensive backtesting before moving on to live deployment.
+We strongly advise understanding the potential financial risks associated with algorithmic trading. Thorough backtesting is recommended before proceeding to live trading.
 
-## 🔧 Prerequisites
+## 🔧 System Requirements
 
 - Python 3.9
 - Pdm ([Installation Guide](https://pdm.fming.dev/latest/))
 
-## 💻 Installation and Setup
+## 💻 Installation & Configuration Steps
 
 1. Clone the repository:
     ```
@@ -27,25 +27,26 @@ Please be informed of the potential financial risks associated with algorithmic 
     cd Alpaca-Backtrader
     ```
 
-3. Install requirements:
+3. Install necessary requirements:
     ```
     brew install pdm
-    pdm install  
-    ``
-   pdm add <package name>
-## 🔐 API Configuration
+    pdm install
+    ```
+   Use `pdm add <package name>` to add new packages.
 
-Add your Alpaca API_KEY and SECRET_KEY to your environment variables. If you need assistance in obtaining these values, refer to the [Alpaca API documentation](https://alpaca.markets/docs/api-documentation/).
+## 🔐 Alpaca API Keys Setup
 
-## ⚙️ Constant Configuration
+Input your Alpaca API_KEY and SECRET_KEY in your environment variables. If you require assistance in acquiring these keys, please refer to the [Alpaca API documentation](https://alpaca.markets/docs/api-documentation/).
 
-You can customize the bot's operation by modifying the constant values in the `Constant.py` file.
+## ⚙️ Customizing Your Bot
 
-## 🚀 Usage
+The bot's operational parameters can be adjusted by modifying the constant values in the `Constant.py` file.
 
-To execute the trading bot, run `main.py`.
+## 🚀 Execution
 
-## 🤝 Contribution
+To initiate the trading bot, execute `cli.py`.
+
+## 🤝 How to Contribute
 
 1. Fork the repository.
 2. Create a new branch: `git checkout -b <branch_name>`.
@@ -53,10 +54,10 @@ To execute the trading bot, run `main.py`.
 4. Push to the original branch: `git push origin <project_name>/<location>`
 5. Create a pull request.
 
-## 📬 Contact
+## 📬 Get in Touch
 
-For any queries or issues, feel free to reach out via email at `madushika4@gmail.com`.
+If you encounter any issues or have queries, feel free to contact us via email at `madushika4@gmail.com`.
 
-## 📜 License
+## 📜 Licensing
 
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+This project operates under the [MIT License](https://opensource.org/licenses/MIT).
