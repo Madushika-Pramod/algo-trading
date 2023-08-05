@@ -1,9 +1,11 @@
 import backtrader as bt
 import pandas
-
+import queue
 import constants
+from app.src.alpaca_data import AlpacaStreamData, AlpacaWebSocket
 # from app.src.alpaca_data import AlpacaHistoricalData
 from app.src.trade_analyzer import TradeAnalyzer
+from strategies import BollingerRSIStrategy, SmaCrossStrategy
 
 
 # from .alpaca_data import AlpacaHistoricalData
@@ -43,9 +45,11 @@ class DataHandler:
                              skiprows=skip_rows,
                              header=header,
                              parse_dates=True)
-
+        # todo change here t => timestamp for python sdk
+        # df['timestamp'] = pandas.to_datetime(df['t'])
         df['timestamp'] = pandas.to_datetime(df['timestamp'])
         df.set_index(df['timestamp'], inplace=True)
+        # del df['t']
 
         return df
 
@@ -70,39 +74,74 @@ class BacktraderStrategy:
         self.cash = cash
         # self.strategy_class = strategy_class
         self.cerebro = bt.Cerebro()
-        if not live:
-            self.data_handler = DataHandler()
-            self.df = self.data_handler.load_data()
-            self._add_historical_data()
+        self.df = DataHandler().load_data()
+        if live:
+
+            data = self._historical_and_live_data()
+            self.cerebro.adddata(data)
+            # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
+
+        else:
+            data = bt.feeds.PandasData(dataname=self.df)
+            self.cerebro.adddata(data)
             self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
-        # self.cerebro.addstrategy(strategy_class, period=20, degree=3, fast=1, slow=20)
+
         self.cerebro.broker.setcash(self.cash)
         self.cerebro.addsizer(AllInSizer)
+
+    def _historical_and_live_data(self):
+        q = queue.Queue()
+        for row in self.df.to_dict(orient='records'):
+            # Insert each row (a Series) into the queue
+            row['timestamp'] = row['timestamp'].to_pydatetime()
+            q.put(row)
+
+        data = AlpacaStreamData(q=q)
+        return data
 
     def add_strategy(self, strategy_with_params):
         strategy_class, params = strategy_with_params
         self.cerebro.addstrategy(strategy_class, **params)
         return self
 
-    def _add_historical_data(self):
-        data = bt.feeds.PandasData(dataname=self.df)
-        self.cerebro.adddata(data)
-
     def run(self):
-        # self.cerebro.broker.setcommission(commission=0.01)
+        self.cerebro.broker.setcommission(commission=0.005)
         if self.live:
             self.cerebro.run(live=True)
-            return 0.0
+            # todo
+            return 0.00
         else:
+            # startcash = self.cerebro.broker.getvalue()
+
             strategies = self.cerebro.run()
+            # endcash = self.cerebro.broker.getvalue()
+            # roi = (endcash - startcash) / startcash
+
+            # print('ROI not from strategy: {:.2f}%'.format(100.0 * roi))
+
             # self.cerebro.plot(style='candle')
             # self.cerebro.plot()
-            strat = strategies[0]
-            analysis = strat.analyzers.trade_analyzer.get_analysis()
+            # strat = strategies[0]
+            # analysis = strat.analyzers.trade_analyzer.get_analysis()
             # display_statistics(analysis)
-            return analysis["total_roi"]
+            # print("roi2:", strategies[0].roi2)
+            return strategies[0].roi
 
 
 def back_test(strategies):
     for strategy in strategies:
         BacktraderStrategy(strategy).run()
+
+# DataHandler().load_data()
+
+# strategy = (
+#         SmaCrossStrategy,
+#         dict(
+#             pfast=2,  # 50 period for the fast moving average
+#             pslow=23,  # 200 period for the slow moving average
+#             high_low_period=8,
+#             high_low_error=0.5,
+#             gain_value=3.0
+#         ))
+# score = BacktraderStrategy(live=True).add_strategy(strategy).run()
+# print(score)

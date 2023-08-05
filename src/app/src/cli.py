@@ -1,168 +1,293 @@
+import csv
 import multiprocessing
+import os
 
+from app.src import constants
 from app.src.back_trader import BacktraderStrategy
-from strategies import SmaCrossStrategy
-from strategies import TrendLineStrategy
+from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, DemoStrategy
 
-
-# from .back_trader import BacktraderStrategy
 
 def run_single():
+
     strategy = (
-        TrendLineStrategy,
-        dict(period=20, fast=1, slow=20, poly_degree=3, predicted_line_length=2, line_degree=1, devfactor=1.0))
-    score = BacktraderStrategy().add_strategy(strategy).run()
+        SmaCrossStrategy,
+        dict(
+            pfast=2,  # 50 period for the fast moving average
+            pslow=23,  # 200 period for the slow moving average
+            high_low_period=8,
+            high_low_error=0.5,
+            gain_value=3.0
+        ))
+
+    # strategy = (DemoStrategy, {})
+    score = BacktraderStrategy(live=True).add_strategy(strategy).run()
     print(score)
 
 
 def run_multi():
     strategies = [
         (TrendLineStrategy,
-         dict(period=10, poly_degree=2, fast=3, slow=10, predicted_line_length=2, line_degree=1, devfactor=1.0)),
+         dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0)),
         (SmaCrossStrategy, dict(pfast=10, pslow=30))]
     for strategy in strategies:
         score = BacktraderStrategy().add_strategy(strategy).run()
         print(score)
 
 
-def get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3, ):
-    for f in range(fast, 41):
-        print(f"sma cross fast: {f}")
-        for s in range(slow, 10):
-            if f < s:
-                score = BacktraderStrategy().add_strategy((SmaCrossStrategy, dict(pfast=f, pslow=s))).run()
-                if score > best_roi:
-                    best_roi = score
+def get_sma_cross_strategy_optimum_params(best_roi=0, p_fast=None, p_slow=None, high_low_period=None,
+                                          high_low_error=None,
+                                          gain_value=None):
+    p2 = None
+    count = 0
+    roi_count = 0
+    statistics = [["Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error", "Gain Value"]]
+    try:
+        for p in range(high_low_period, 30):
+            p2 = p
+            if p == high_low_period + 1:
+                # print(
+                #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
+                print(p - 1)
+                print(f"Total Count: {count}")
+                print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
+                write_csv(statistics)
+                for x in range(10):
+                    os.system('afplay /System/Library/Sounds/Ping.aiff')
 
-                    print(f"Best ROI: {best_roi}\nSlow: {s}\nFast: {f}")
+                raise Exception("===xxxxxx===")
+            for pf in range(p_fast, 9):
+                for ps in range(p_slow, 24):
+                    if pf > ps:
+                        continue
+                    # for x in range(high_low_error, 10):
+                    #     # Dev-Factor from 1, 1.5, 2
+                    #     error = x / 10
+                        # for y in range(gain_value, 9):
+                        #     gv = y / 2
+                    # if count > 625:
+
+                    score = BacktraderStrategy(
+                    ).add_strategy((SmaCrossStrategy,
+                                    dict(pfast=pf, pslow=ps, high_low_period=p, high_low_error=0.1,
+                                         gain_value=3.0))).run()
+                    statistics.append([score, pf, ps, p, 0.1, 3.0])
+                    if score > best_roi:
+                        best_roi = score
+                        roi_count = count
+                        print(
+                            f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {0.1}\nGain value: {gv}")
+                    print(count)
+                    count += 1
+
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt received. Performing cleanup...")
+        print(f"high_low_period: {p2}-Total Count: {count}-Best ROI: {best_roi * 100}%")
+        write_csv(statistics)
 
 
-def get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=3, slow=4, fast=3, predicted_line_length=2,
+configurations_for_sma_cross = [
+    dict(p_fast=2, p_slow=20, high_low_period=14, high_low_error=1, gain_value=3),
+    dict(p_fast=2, p_slow=20, high_low_period=15, high_low_error=1, gain_value=3),
+    dict(p_fast=2, p_slow=20, high_low_period=16, high_low_error=1, gain_value=3),
+    dict(p_fast=2, p_slow=20, high_low_period=17, high_low_error=1, gain_value=3),
+    dict(p_fast=2, p_slow=20, high_low_period=18, high_low_error=1, gain_value=3),
+    dict(p_fast=2, p_slow=20, high_low_period=20, high_low_error=1, gain_value=3),
+    dict(p_fast=2, p_slow=20, high_low_period=19, high_low_error=1, gain_value=3)
+]
+
+
+def get_bollinger_rsi_strategy_optimum_params(best_roi=0.0, bbperiod=13, rsiperiod=14, rsi_low=30, rsi_high=70,
+                                              gain_value=0):
+    # todo use dev factor as 1.5 remove loop
+    # give more space to rsi and bollinger
+
+    if rsi_low > 50 or rsi_high < 50:
+        return
+    bp2 = None
+    count = 0
+    roi_count = 0
+    statistics = []
+    try:
+        for bp in range(bbperiod, 30):
+            bp2 = bp
+            if bp == bbperiod + 1:
+                print(bp - 1)
+                print(f"Total Count: {count}")
+                print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
+                write_csv(statistics)
+                for x in range(10):
+                    os.system('afplay /System/Library/Sounds/Ping.aiff')
+
+                raise Exception("===xxxxxx===")
+            for rp in range(rsiperiod, 46):  # typically it's between 5 and 30
+                for rl in range(rsi_low, 46):  # range of 0-50
+                    for rh in range(rsi_high, 61):  # 50-100
+                        for x in range(3, 4):
+                            # Dev-Factor from 1, 1.5, 2
+                            df = x / 2
+                            for y in range(gain_value, 4):
+                                # gv = y / 2
+                                # if count > count_continue:
+
+                                score = BacktraderStrategy(
+                                ).add_strategy((BollingerRSIStrategy,
+                                                dict(bbperiod=bp, bbdev=df, rsiperiod=rp, rsi_low=rl, rsi_high=rh,
+                                                     gain_value=y))).run()
+                                statistics.append([score, df, rp, rl, rh, bp, y])
+                                if score > best_roi:
+                                    best_roi = score
+                                    roi_count = count
+                                    print(
+                                        f"Best ROI: {best_roi * 100}%\nDev-Factor:{df}\n Rsi period: {rp}\n Rsi low: {rl}\n Rsi high: {rh}\n Bollinger Period: {bp}\n Gain value: {y}")
+                                print(count)
+                                count += 1
+
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt received. Performing cleanup...")
+        print(f"Bollinger Period: {bp2}-Total Count: {count}-Best ROI: {best_roi * 100}%")
+        write_csv(statistics)
+
+
+def write_csv(statistics):
+    # header = ["ROI", "Dev Factor", "Rsi period", "Rsi low", "Rsi high", "Bollinger Period", "Gain value"]
+
+    with open(constants.stat_file_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        # writer.writerow(header)  # writing the header
+
+        for entry in statistics:
+            writer.writerow(entry)  # writing each entry as a row
+
+
+configurations_for_bollinger = [
+    # dict(bbperiod=5, rsiperiod=33, rsi_low=30, rsi_high=55, gain_value=3, count_continue=6954),
+    dict(bbperiod=7, rsiperiod=33, rsi_low=40, rsi_high=60, gain_value=3, count_continue=7029),
+    # dict(bbperiod=9, rsiperiod=33, rsi_low=30, rsi_high=55, gain_value=3, count_continue=6952),
+    # dict(bbperiod=11, rsiperiod=33, rsi_low=30, rsi_high=55, gain_value=3, count_continue=7004),
+    # dict(bbperiod=13, rsiperiod=33, rsi_low=30, rsi_high=55, gain_value=3, count_continue=6983),
+    # dict(bbperiod=15, rsiperiod=33, rsi_low=30, rsi_high=55, gain_value=3, count_continue=6927),
+    # dict(bbperiod=17, rsiperiod=33, rsi_low=30, rsi_high=55, gain_value=3, count_continue=7020),
+    # dict(bbperiod=19, rsiperiod=5, rsi_low=0, rsi_high=55, gain_value=5)
+]
+
+
+def get_trend_line_strategy_optimum_params(best_roi=-1.0, period=2, curve_degree=3,
+                                           predicted_line_length=2,
                                            line_degree=1, b_band_period=2):
-    for d in range(degree, 4):
-        print(f"degree :{d}")
-        # range(period, 31)
-        for p in range(period, 3):
-            # if p == 3: break
-            if p > d:
-                print(p)
-                for ld in range(line_degree, 3):
-                    for ll in range(predicted_line_length, 11, 2):
-                        for bp in range(b_band_period, 41):
-                            print(f"Bollinger Period: {bp}")
-                            for f in range(fast, 11):
-                                print(f"fast ma: {f}")
-                                for s in range(slow, 41):
-                                    print(f"slow ma: {s}")
+    count = 0
 
-                                    if f < s:
-                                        for df in range(2, 5):
-                                            df /= 2
-                                            score = BacktraderStrategy(
-                                            ).add_strategy((TrendLineStrategy,
-                                                            dict(period=p, poly_degree=d, fast=f, slow=s,
-                                                                 predicted_line_length=ll,
-                                                                 line_degree=ld, devfactor=df, b_band_period=bp))).run()
-                                            if score > best_roi:
-                                                best_roi = score
-                                                print(
-                                                    f"Best ROI: {best_roi:.2f}\nPeriod: {p}\nDegree: {d}\nSlow: {s}\nFast: {f}\nLine Length: {ll}\nLine Degree: {ld}\nDev Factor: {df}\n Bollinger Period: {bp}")
+    best_roi2 = 0
+    period2 = 0
+    curve_degree2 = 0
+    predicted_line_length2 = 0
+    line_degree2 = 0
+    b_band_period2 = 0
+    deviation_factor = 0
+    df = 0
+
+    try:
+
+        for bp in range(b_band_period, 41):
+            if bp == b_band_period + 1:
+                # print(
+                #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
+                print(bp - 1)
+                print(f"Total Count: {count}")
+                print(
+                    f"Best ROI: {best_roi}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
+                for x in range(10):
+                    os.system('say "task completed"')
+                raise Exception("===xxxxxx===")
+
+            for p in range(period, 51):
+                for d in range(curve_degree, 4):
+
+                    for ld in range(line_degree, 3):
+                        # line_degree max 2
+
+                        # print(f"{p}line_degree{ld}")
+                        for ll in range(predicted_line_length, 11, 2):
+                            # print(f"{ld}predicted_line_length{ll}")
+
+                            if p > d > ld and p > ll > ld:
+                                # print(f"slow ma: {s}", end="_")
+
+                                for x in range(2, 5):
+                                    # Dev-Factor from 1, 1.5, 2
+                                    df = x / 2
+                                    score = BacktraderStrategy(
+                                    ).add_strategy((TrendLineStrategy,
+                                                    dict(period=p, poly_degree=d,
+                                                         predicted_line_length=ll,
+                                                         line_degree=ld, devfactor=df,
+                                                         b_band_period=bp))).run()
+                                    if score > best_roi:
+                                        best_roi2 = best_roi = score
+                                        print(
+                                            f"Best ROI: {best_roi2}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
+
+                            count += 1
+                            print(count)
+                            period2 = p
+                            curve_degree2 = d
+                            predicted_line_length2 = ll
+                            line_degree2 = ld
+                            b_band_period2 = bp
+                            deviation_factor = df
+
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt received. Performing cleanup...")
+        print(
+            f"Best ROI: {best_roi2}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
 
 
-def config_process_1():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=1, slow=1, fast=1,
-                                                  predicted_line_length=2,
-                                                  line_degree=1, b_band_period=2)
+configurations_for_trend_line = [
+    {"best_roi": -1.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 10},
+    {"best_roi": -1.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 11},
+    {"best_roi": -1.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 12},
+    {"best_roi": -1.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 13},
+    {"best_roi": -1.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 14},
+    {"best_roi": -1.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 15},
+    {"best_roi": -1.0, "period": 5, "curve_degree": 2, "predicted_line_length": 2, "line_degree": 1,
+     "b_band_period": 16},
+]
 
 
-# for period =3 slow ma = 15 fast = 1
+def sma_cross_config_process(config):
+    return get_sma_cross_strategy_optimum_params(**config)
 
 
-def config_process_2():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=3, degree=1, slow=1, fast=1,
-                                                  predicted_line_length=2,
-                                                  line_degree=1, b_band_period=2)
+def trend_line_config_process(config):
+    return get_trend_line_strategy_optimum_params(**config)
 
-    # return get_sma_cross_strategy_optimum_params(best_roi=0.033, slow=4, fast=3)
-def config_process_3():
-    return get_trend_line_strategy_optimum_params(best_roi=0.0, period=2, degree=1, slow=1, fast=1,
-                                                  predicted_line_length=2,
-                                                  line_degree=1, b_band_period=2)
 
-def run_parallel():
+def bollinger_config_process(config):
+    return get_bollinger_rsi_strategy_optimum_params(**config)
+
+
+def run_parallel(config_process, configurations):
     # Create processes
-    p1 = multiprocessing.Process(target=config_process_1)
-    p2 = multiprocessing.Process(target=config_process_2)
+    processes = [multiprocessing.Process(target=config_process, args=(config,)) for config in configurations]
 
     # Start processes
-    p1.start()
-    p2.start()
+    for p in processes:
+        p.start()
 
-    # Wait for both processes to finish
-    p1.join()
-    p2.join()
+    # Wait for all processes to finish
+    for p in processes:
+        p.join()
 
-    print('Both functions have finished executing')
+    print('All functions have finished executing')
 
 
 if __name__ == "__main__":
-    config_process_1()
-    # get_trend_line_strategy_optimum_params()
+    run_single()
+    # run_parallel(bollinger_config_process, configurations_for_bollinger)
+    # run_parallel(sma_cross_config_process, configurations_for_sma_cross)
 
-    # import csv
-    # import plotly.graph_objects as go
-    # import os
-    # from app.src.constants import parent_dir
-    #
-    # # Read CSV file
-    # # csv_file_path = os.path.join(parent_dir, 'datas', 'slopes.csv')
-    # # with open(csv_file_path, 'r') as file:
-    # #     reader_1 = csv.reader(file)
-    # #     data_1 = list(reader_1)
-    #
-    # # Get 3rd column as y and column number as x
-    # # x = list(range(len(data_1)))  # column numbers
-    # #
-    # # y = [float(row[2]) for row in data_1 if
-    # #      (float(row[1]) > 0 and float(row[1]) > float(row[2]) or (float(row[1]) < 0 and float(row[1]) < float(row[2])))]
-    # # third column data
-    #
-    # csv_file_path = os.path.join(parent_dir, 'datas', 'SPA.csv')
-    # with open(csv_file_path, 'r') as file:
-    #     reader_2 = csv.reader(file)
-    #     data_2 = list(reader_2)
-    #
-    # x2 = list(range(len(data_2)))  # column numbers
-    #
-    # y2 = [float(data_2[i][5]) for i in range(1, len(data_2))]
-    #
-    # line_trace_price = go.Scatter(
-    #     x=x2,
-    #     y=y2,
-    #     mode='lines',
-    #     name='Price line'
-    # )
-    #
-    # # Create a scatter trace with markers
-    # scatter_market = go.Scatter(
-    #     x=x2,
-    #     y=y2,
-    #     mode='markers',
-    #     name='Markers'
-    # )
-    #
-    # # Create a line trace
-    # # line_trace = go.Scatter(
-    # #     x=x,
-    # #     y=y,
-    # #     mode='lines',
-    # #     name='Line'
-    # # )
-    #
-    # # Create the figure and add the traces
-    # fig = go.Figure(data=[line_trace_price, scatter_market])
-    # # Create plot
-    # # fig = go.Figure(data=go.Scatter(x=x, y=y, mode='markers',name='Markers'))
-    #
-    # # Show plot
-    # fig.show()
