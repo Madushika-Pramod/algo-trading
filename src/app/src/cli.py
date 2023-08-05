@@ -75,7 +75,7 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, p_fast=None, p_slow=None, 
                         best_roi = score
                         roi_count = count
                         print(
-                            f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {0.1}\nGain value: {gv}")
+                            f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {0.1}\nGain value: {3.0}")
                     print(count)
                     count += 1
 
