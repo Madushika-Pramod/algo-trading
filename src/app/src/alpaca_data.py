@@ -7,6 +7,9 @@ import queue
 import threading
 import json
 import backtrader as bt
+from alpaca.data import StockHistoricalDataClient, StockBarsRequest, TimeFrame
+
+from app.src import constants
 
 
 class AlpacaWebSocket:
@@ -120,6 +123,48 @@ class AlpacaHistoricalData:
         self.csv_file_path = csv_file_path
         self.symbol = symbol
         self.days = period_in_days
+        self.client = StockHistoricalDataClient(api_key or os.environ.get("API_KEY"),
+                                                secret_key or os.environ.get("SECRET_KEY"))
+
+    def get_stock_historical_data(self, period=constants.time_frame):
+        t_frame = TimeFrame.Minute
+        if period == "hour":
+            t_frame = TimeFrame.Hour
+        elif period == "minute":
+            t_frame = TimeFrame.Minute
+
+        start_date = datetime.now() - timedelta(days=self.days)
+        #  Sri lanka is 5 hours and 30 minutes ahead of UTC + 15 min
+        # todo check this on none trading time
+        end_date = datetime.now() - timedelta(minutes=345)
+        request_params = StockBarsRequest(
+            symbol_or_symbols=self.symbol,
+            timeframe=t_frame,
+            start=start_date.isoformat(),
+            end=end_date.isoformat())
+
+        return self.client.get_stock_bars(request_params).data
+
+    def save_to_csv(self):
+        bars = self.get_stock_historical_data()
+        header = list(dict(bars[self.symbol][0]).keys())
+
+        with open(self.csv_file_path, 'w', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=header)
+            writer.writeheader()
+
+            for entry in bars[self.symbol]:
+                writer.writerow(dict(entry))
+
+        print("Data has been written to '{}' file.".format(self.csv_file_path))
+
+
+class AlpacaHistoricalDataApi:
+    def __init__(self, symbol, period_in_days, csv_file_path, api_key=None,
+                 secret_key=None):
+        self.csv_file_path = csv_file_path
+        self.symbol = symbol
+        self.days = period_in_days
         self.url = f"https://data.alpaca.markets/v2/stocks/bars?symbols={self.symbol}&timeframe=1T"
 
         self.headers = {
@@ -128,7 +173,7 @@ class AlpacaHistoricalData:
             "APCA-API-SECRET-KEY": f'{secret_key or os.environ.get("SECRET_KEY")}'
         }
 
-    def get_stock_historical_data(self):
+    def _get_stock_historical_data(self):
 
         def request_data(token=None):
             if token is not None:
@@ -152,7 +197,7 @@ class AlpacaHistoricalData:
         return json_list
 
     def save_to_csv(self):
-        bars = self.get_stock_historical_data()
+        bars = self._get_stock_historical_data()
 
         fieldnames = list(dict(bars[0]['bars'][self.symbol][0]).keys())
         header = ["timestamp", "open", "high", "low", "close", "volume", "trade count", "vwap"]
@@ -165,4 +210,7 @@ class AlpacaHistoricalData:
                 for entry in bar['bars'][self.symbol]:
                     writer.writerow(dict(entry))
 
-        print("Data has been written to '{}' file.".format(self.csv_file_path))
+        print(f"Data has been written to '{self.csv_file_path}' file.")
+
+# AlpacaHistoricalData(constants.symbol, constants.period_in_days, constants.csv_file_path, "PK9KYDPO031HRWMDNBNB",
+#                      "VNNEYMyacOOpBr3HqdkOuIVdPQTzRS6EXnVJmelc").save_to_csv()

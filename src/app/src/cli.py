@@ -4,23 +4,22 @@ import os
 
 from app.src import constants
 from app.src.back_trader import BacktraderStrategy
-from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, DemoStrategy
+from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy
 
 
 def run_single():
-
     strategy = (
         SmaCrossStrategy,
         dict(
-            pfast=2,  # 50 period for the fast moving average
-            pslow=23,  # 200 period for the slow moving average
-            high_low_period=8,
-            high_low_error=0.5,
-            gain_value=3.0
+            fast_ma_period=10,
+            slow_ma_period=34,
+            high_low_period=20,
+            high_low_tolerance=0.3,
+            profit_threshold=3.0
         ))
 
     # strategy = (DemoStrategy, {})
-    score = BacktraderStrategy(live=True).add_strategy(strategy).run()
+    score = BacktraderStrategy().add_strategy(strategy).run()
     print(score)
 
 
@@ -34,13 +33,14 @@ def run_multi():
         print(score)
 
 
-def get_sma_cross_strategy_optimum_params(best_roi=0, p_fast=None, p_slow=None, high_low_period=None,
-                                          high_low_error=None,
-                                          gain_value=None):
+def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
+                                          high_low_tolerance=None,
+                                          profit_threshold=None):
     p2 = None
     count = 0
     roi_count = 0
-    statistics = [["Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error", "Gain Value"]]
+    statistics = [
+        ["Trading Count", "Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error", "Gain Value"]]
     try:
         for p in range(high_low_period, 30):
             p2 = p
@@ -55,29 +55,30 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, p_fast=None, p_slow=None, 
                     os.system('afplay /System/Library/Sounds/Ping.aiff')
 
                 raise Exception("===xxxxxx===")
-            for pf in range(p_fast, 9):
-                for ps in range(p_slow, 24):
+            for pf in range(fast_ma_period, 31):
+                for ps in range(slow_ma_period, 61):
                     if pf > ps:
                         continue
-                    # for x in range(high_low_error, 10):
-                    #     # Dev-Factor from 1, 1.5, 2
-                    #     error = x / 10
-                        # for y in range(gain_value, 9):
-                        #     gv = y / 2
-                    # if count > 625:
+                    for x in range(high_low_tolerance, 10):
+                        # Dev-Factor from 1, 1.5, 2
+                        e = x / 10
+                        for y in range(profit_threshold, 9):
+                            gv = y / 2
+                            if count > 8600:
 
-                    score = BacktraderStrategy(
-                    ).add_strategy((SmaCrossStrategy,
-                                    dict(pfast=pf, pslow=ps, high_low_period=p, high_low_error=0.1,
-                                         gain_value=3.0))).run()
-                    statistics.append([score, pf, ps, p, 0.1, 3.0])
-                    if score > best_roi:
-                        best_roi = score
-                        roi_count = count
-                        print(
-                            f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {0.1}\nGain value: {3.0}")
-                    print(count)
-                    count += 1
+                                result = BacktraderStrategy(
+                                ).add_strategy((SmaCrossStrategy,
+                                                dict(fast_ma_period=pf, slow_ma_period=ps, high_low_period=p,
+                                                     high_low_tolerance=e, profit_threshold=gv))).run()
+                                statistics.append(
+                                    [result.trading_count, result.total_return_on_investment, pf, ps, p, e, gv])
+                                if result.total_return_on_investment > best_roi:
+                                    best_roi = result.total_return_on_investment
+                                    roi_count = count
+                                    print(
+                                        f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\nGain value: {gv}")
+                                print(count)
+                            count += 1
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...")
@@ -86,13 +87,15 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, p_fast=None, p_slow=None, 
 
 
 configurations_for_sma_cross = [
-    dict(p_fast=2, p_slow=20, high_low_period=14, high_low_error=1, gain_value=3),
-    dict(p_fast=2, p_slow=20, high_low_period=15, high_low_error=1, gain_value=3),
-    dict(p_fast=2, p_slow=20, high_low_period=16, high_low_error=1, gain_value=3),
-    dict(p_fast=2, p_slow=20, high_low_period=17, high_low_error=1, gain_value=3),
-    dict(p_fast=2, p_slow=20, high_low_period=18, high_low_error=1, gain_value=3),
-    dict(p_fast=2, p_slow=20, high_low_period=20, high_low_error=1, gain_value=3),
-    dict(p_fast=2, p_slow=20, high_low_period=19, high_low_error=1, gain_value=3)
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=14, high_low_tolerance=2, profit_threshold=3),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=15, high_low_tolerance=2, profit_threshold=3),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=2, profit_threshold=3),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=17, high_low_tolerance=2, profit_threshold=3),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=18, high_low_tolerance=2, profit_threshold=3),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=20, high_low_tolerance=2, profit_threshold=3),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=19, high_low_tolerance=2, profit_threshold=3),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=21, high_low_tolerance=2, profit_threshold=3)
+
 ]
 
 
@@ -290,4 +293,3 @@ if __name__ == "__main__":
     run_single()
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)
-

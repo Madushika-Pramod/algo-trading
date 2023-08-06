@@ -1,11 +1,12 @@
+import queue
+
 import backtrader as bt
 import pandas
-import queue
+
 import constants
-from app.src.alpaca_data import AlpacaStreamData, AlpacaWebSocket
+from app.src.alpaca_data import AlpacaStreamData
 # from app.src.alpaca_data import AlpacaHistoricalData
 from app.src.trade_analyzer import TradeAnalyzer
-from strategies import BollingerRSIStrategy, SmaCrossStrategy
 
 
 # from .alpaca_data import AlpacaHistoricalData
@@ -13,12 +14,13 @@ from strategies import BollingerRSIStrategy, SmaCrossStrategy
 
 
 class AllInSizer(bt.Sizer):
-    params = (('stake', 1),)
+    # params = (('stake', 1),)
 
     def _getsizing(self, comminfo, cash, data, isbuy):
         if isbuy:
             # Divide all available cash by the closing price to get the number of shares we can buy
-            size = cash // data.close[0]
+            size = int(cash / (data.close[0] * (1 + constants.commission)))
+            print(size)
         else:
             # If we're selling, sell all shares
             size = self.broker.getposition(data).size
@@ -105,7 +107,7 @@ class BacktraderStrategy:
         return self
 
     def run(self):
-        self.cerebro.broker.setcommission(commission=0.005)
+        self.cerebro.broker.setcommission(commission=constants.commission)
         if self.live:
             self.cerebro.run(live=True)
             # todo
@@ -125,14 +127,15 @@ class BacktraderStrategy:
             # analysis = strat.analyzers.trade_analyzer.get_analysis()
             # display_statistics(analysis)
             # print("roi2:", strategies[0].roi2)
-            return strategies[0].roi
+            return strategies[0]
 
 
 def back_test(strategies):
     for strategy in strategies:
         BacktraderStrategy(strategy).run()
 
-# DataHandler().load_data()
+
+DataHandler().load_data()
 
 # strategy = (
 #         SmaCrossStrategy,
