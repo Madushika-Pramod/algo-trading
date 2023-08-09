@@ -1,8 +1,6 @@
-# from alpaca.data import
 import json
 import os
 
-import requests
 import websockets
 from alpaca.data.historical.stock import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestTradeRequest
@@ -14,11 +12,10 @@ from app.src import constants
 
 API_KEY = "PK167PR8HAC3D9G2XMLS"
 API_SECRET = "by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA"
-URL = "wss://paper-api.alpaca.markets/stream"  # Use the appropriate URL (paper or live)
 
 
 async def alpaca_ws():
-    async with websockets.connect(URL) as ws:
+    async with websockets.connect(constants.trade_stream_wss) as ws:
         # Authenticate
         auth_data = {
             "action": "auth",
@@ -59,24 +56,13 @@ def get_last_trade_from_sdk():
 
 class AlpacaTrader:
     def __init__(self, api_key=None, secret_key=None):
-        # self.orders = []
         self.order_id = None
         self.algo_price = None
         self.trading_client = TradingClient(api_key or os.environ.get("API_KEY"),
                                             secret_key or os.environ.get("SECRET_KEY"), paper=True)
-        # self.live = False
-
-    # def buy(self):
-    #     if self.live:
-    #         self._buy()
-    #
-    # def sell(self):
-    #     if self.live:
-    #         self._sell()
 
     def buy(self, price):
         self.algo_price = price
-        # preparing order data
         trailing_stop_order_data = TrailingStopOrderRequest(
             symbol=constants.symbol,
             qty=self._buy_quantity(),
@@ -107,7 +93,6 @@ class AlpacaTrader:
             trail_percent=0.1,
         )
 
-        # self.current_price = self.get_last_trade()['trade']['p']
         current_price = get_last_trade_from_sdk()[constants.symbol].price
 
         if current_price < self.algo_price:  # price decreasing
@@ -126,20 +111,6 @@ class AlpacaTrader:
         # Calculate maximum shares factoring in the commission
         return int(float(cash) / (self.algo_price + constants.commission))
 
-    def _get_last_trade(self):
-
-        url = "https://data.alpaca.markets/v2/stocks/googl/trades/latest?feed=iex"
-        headers = {
-            "accept": "application/json",
-            "APCA-API-KEY-ID": "PK167PR8HAC3D9G2XMLS",
-            "APCA-API-SECRET-KEY": "by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA"
-        }
-
-        response = requests.get(url, headers=headers)
-
-        return response.json()
-
-
 # asyncio.get_event_loop().run_until_complete(alpaca_ws())
 
 # trader = AlpacaTrader(api_key='PK167PR8HAC3D9G2XMLS', secret_key='by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA')
@@ -147,4 +118,4 @@ class AlpacaTrader:
 
 # v = trader.get_last_trade()
 # x = trader.get_last_trade_From_sdk()
-c = 2
+# c = 2
