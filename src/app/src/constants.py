@@ -7,6 +7,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(current_dir))
 
 # Construct the full path to the data file
+GOOGLE_ORDER = None
 
 symbol = "GOOGL"
 commission = 0.005
@@ -27,5 +28,7 @@ csv_file_path = os.path.join(parent_dir, 'datas', f'{symbol}{period_in_days}.csv
 
 data_download = 0
 time_for_rate_limit = 3
-market_data_url = "https://data.alpaca.markets/v2/stocks/"
+market_data_url = 'https://data.alpaca.markets/v2/stocks/'
+trade_stream_wss = 'wss://paper-api.alpaca.markets/stream'
+data_stream_wss = 'wss://stream.data.alpaca.markets/v2/iex'
 # best_strategy = MovingAverageADXStrategy

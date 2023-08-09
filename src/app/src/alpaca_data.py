@@ -75,7 +75,7 @@ class AlpacaStreamData(bt.feed.DataBase):
 
     def start(self):
         self.ws = AlpacaWebSocket('PK9KYDPO031HRWMDNBNB', 'VNNEYMyacOOpBr3HqdkOuIVdPQTzRS6EXnVJmelc',
-                                  'wss://stream.data.alpaca.markets/v2/iex', self.data_queue)
+                                  constants.data_stream_wss, self.data_queue)
         self.ws.start()
 
     def stop(self):

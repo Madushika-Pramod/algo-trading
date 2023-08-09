@@ -77,6 +77,8 @@ class BacktraderStrategy:
         # self.strategy_class = strategy_class
         self.cerebro = bt.Cerebro()
         self.df = DataHandler().load_data()
+        self.cerebro.cheat_on_close = True  # can execute Market orders on the close of the current bar
+        self.cerebro.broker.setcommission(commission=constants.commission)
         if live:
 
             data = self._historical_and_live_data()
@@ -107,7 +109,7 @@ class BacktraderStrategy:
         return self
 
     def run(self):
-        self.cerebro.broker.setcommission(commission=constants.commission)
+
         if self.live:
             self.cerebro.run(live=True)
             # todo
