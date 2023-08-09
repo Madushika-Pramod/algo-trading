@@ -1,18 +1,59 @@
+# from alpaca.data import
+import json
 import os
 
+import requests
+import websockets
+from alpaca.data.historical.stock import StockHistoricalDataClient
+from alpaca.data.requests import StockLatestTradeRequest
 from alpaca.trading import OrderSide, TimeInForce
 from alpaca.trading.client import TradingClient
-from alpaca.data import CLi
 from alpaca.trading.requests import TrailingStopOrderRequest
 
 from app.src import constants
 
+API_KEY = "PK167PR8HAC3D9G2XMLS"
+API_SECRET = "by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA"
+URL = "wss://paper-api.alpaca.markets/stream"  # Use the appropriate URL (paper or live)
 
-# from alpaca.data import
+
+async def alpaca_ws():
+    async with websockets.connect(URL) as ws:
+        # Authenticate
+        auth_data = {
+            "action": "auth",
+            "key": API_KEY,
+            "secret": API_SECRET
+        }
+        await ws.send(json.dumps(auth_data))
+
+        # Listen to trade updates
+        listen_data = {
+            "action": "listen",
+            "data": {
+                "streams": ["trade_updates"]
+            }
+        }
+        await ws.send(json.dumps(listen_data))
+
+        for _ in range(2):
+            message = await ws.recv()
+            print(message)
+
+        # Receive messages
+        while True:
+            message = await ws.recv()
+            constants.GOOGLE_ORDER = True  # todo order id
+            # q.put(message)
+
+
+# asyncio.get_event_loop().run_until_complete(alpaca_ws())
 
 
 class AlpacaTrader:
     def __init__(self, api_key=None, secret_key=None):
+        # self.orders = []
+        self.order_id = None
         self.algo_price = None
         self.trading_client = TradingClient(api_key or os.environ.get("API_KEY"),
                                             secret_key or os.environ.get("SECRET_KEY"), paper=True)
@@ -36,80 +77,74 @@ class AlpacaTrader:
             time_in_force=TimeInForce.DAY,
             trail_percent=0.1,
         )
-        self.current_price = self.trading_client..get(
-            f"https://data.alpaca.markets/v2/stocks/{constants.symbol}/trades/latest")
+        current_price = self.get_last_trade_From_sdk()[constants.symbol].price
 
-        if self.current_price > self.algo_price:  # price increasing
-            return False
-        #cancel any pending buys
-
+        if current_price > self.algo_price:  # price increasing
+            return None
+        # cancel any pending buys
+        self.trading_client.cancel_order_by_id(self.order_id)
         # trailing stop order
-        self.trading_client.submit_order(order_data=trailing_stop_order_data)
-        return True
+        self.order_id = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
+        # self.orders.append(order.id)
+        return self.order_id
 
-    def _sell(self, price):
-        # preparing order data
+    def sell(self, price):
         self.algo_price = price
-        """
-symbol – The symbol identifier for the asset being traded
-qty – The number of shares to trade. Fractional qty for stocks only with market orders.
-notional – The base currency value of the shares to trade. For stocks, only works with MarketOrders. Does not work with qty.
-side – Whether the order will buy or sell the asset.
-type – The execution logic type of the order (market, limit, etc).
-time_in_force – The expiration logic of the order.
-extended_hours – Whether the order can be executed during regular market hours.
-client_order_id – A string to identify which client submitted the order.
-order_class – The class of the order. Simple orders have no other legs.
-take_profit – For orders with multiple legs, an order to exit a profitable trade.
-stop_loss – For orders with multiple legs, an order to exit a losing trade.
-trail_price – The absolute price difference by which the trailing stop will trail.
-trail_percent – The percent price difference by which the trailing stop will trail."""
 
-        #cancel any pending sells
         trailing_stop_order_data = TrailingStopOrderRequest(
             symbol=constants.symbol,
-            # qty=self._quantity(price),
-            national=self._national_buy(),
+            qty=self.trading_client.get_open_position(constants.symbol).qty,
             side=OrderSide.SELL,
             time_in_force=TimeInForce.DAY,
             trail_percent=1,
         )
 
-        # ..automethod:: alpaca.data.historical.stock.StockHistoricalDataClient.get_stock_latest_trade
-        # ..autoclass:: alpaca.data.requests.StockLatestTradeRequest
+        # self.current_price = self.get_last_trade()['trade']['p']
+        current_price = self.get_last_trade_From_sdk()[constants.symbol].price
 
-        self.current_price = self.trading_client.get(
-            f"https://data.alpaca.markets/v2/stocks/{constants.symbol}/trades/latest")
-
-        if self.current_price < self.algo_price:  # price decreasing
-            return False
+        if current_price < self.algo_price:  # price decreasing
+            return None
+        # cancel any pending sells
 
         # trailing stop order
-        self.trading_client.submit_order(order_data=trailing_stop_order_data)
-        return True
+        order = self.trading_client.submit_order(order_data=trailing_stop_order_data)
+        return order.id
+
+    # def cancel_orders(self):
+    #     for order_id in self.orders:
+    #         self.trading_client.cancel_order_by_id(order_id)
 
     def _buy_quantity(self):
-        cash = self.trading_client.get_account().cash
 
+        cash = self.trading_client.get_account().buying_power
         # Calculate maximum shares factoring in the commission
         return int(float(cash) / (self.algo_price + constants.commission))
 
-    def _sell_quantity(self, price):
+    def get_last_trade_From_sdk(self):
+        client = StockHistoricalDataClient(api_key='PK167PR8HAC3D9G2XMLS',
+                                           secret_key='by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA')
+        request = StockLatestTradeRequest(symbol_or_symbols=constants.symbol)
+        return client.get_stock_latest_trade(request)
 
-        return len(self.trading_client.get_all_positions())
+    def get_last_trade(self):
 
-    def _national_buy(self):
-        return self.trading_client.get_account().cash
+        url = "https://data.alpaca.markets/v2/stocks/googl/trades/latest?feed=iex"
+        headers = {
+            "accept": "application/json",
+            "APCA-API-KEY-ID": "PK167PR8HAC3D9G2XMLS",
+            "APCA-API-SECRET-KEY": "by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA"
+        }
 
-    def _national_sell(self):
-        return self.trading_client.get_account().long_market_value
-        # positions = self.trading_client.get_all_positions()
-        # return sum(float(position.market_value) for position in positions)
+        response = requests.get(url, headers=headers)
+
+        return response.json()
 
 
-trader = AlpacaTrader(api_key='PK167PR8HAC3D9G2XMLS',secret_key='by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA')
-# trader.trading_client.get_account()
+# asyncio.get_event_loop().run_until_complete(alpaca_ws())
 
+# trader = AlpacaTrader(api_key='PK167PR8HAC3D9G2XMLS', secret_key='by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA')
+# print(trader.buy(132))
 
-v = trader.buy(131.3)
-c=2
+# v = trader.get_last_trade()
+# x = trader.get_last_trade_From_sdk()
+c = 2
