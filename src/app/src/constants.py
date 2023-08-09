@@ -7,7 +7,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(current_dir))
 
 # Construct the full path to the data file
-GOOGLE_ORDER = None
+GOOGLE_ORDER = 0
 
 symbol = "GOOGL"
 commission = 0.005
