@@ -50,6 +50,13 @@ async def alpaca_ws():
 # asyncio.get_event_loop().run_until_complete(alpaca_ws())
 
 
+def get_last_trade_from_sdk():
+    client = StockHistoricalDataClient(api_key='PK167PR8HAC3D9G2XMLS',
+                                       secret_key='by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA')
+    request = StockLatestTradeRequest(symbol_or_symbols=constants.symbol)
+    return client.get_stock_latest_trade(request)
+
+
 class AlpacaTrader:
     def __init__(self, api_key=None, secret_key=None):
         # self.orders = []
@@ -77,13 +84,14 @@ class AlpacaTrader:
             time_in_force=TimeInForce.DAY,
             trail_percent=0.1,
         )
-        current_price = self.get_last_trade_From_sdk()[constants.symbol].price
+        current_price = get_last_trade_from_sdk()[constants.symbol].price
 
         if current_price > self.algo_price:  # price increasing
             return None
-        # cancel any pending buys
-        self.trading_client.cancel_order_by_id(self.order_id)
-        # trailing stop order
+        # cancel any pending buys because they have not been executed
+        if self.order_id is not None:
+            self.trading_client.cancel_order_by_id(self.order_id)
+        # execute new trailing stop order
         self.order_id = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
         # self.orders.append(order.id)
         return self.order_id
@@ -96,23 +104,21 @@ class AlpacaTrader:
             qty=self.trading_client.get_open_position(constants.symbol).qty,
             side=OrderSide.SELL,
             time_in_force=TimeInForce.DAY,
-            trail_percent=1,
+            trail_percent=0.1,
         )
 
         # self.current_price = self.get_last_trade()['trade']['p']
-        current_price = self.get_last_trade_From_sdk()[constants.symbol].price
+        current_price = get_last_trade_from_sdk()[constants.symbol].price
 
         if current_price < self.algo_price:  # price decreasing
             return None
-        # cancel any pending sells
+        # cancel any pending sells because they have not been executed
+        if self.order_id is not None:
+            self.trading_client.cancel_order_by_id(self.order_id)
 
-        # trailing stop order
-        order = self.trading_client.submit_order(order_data=trailing_stop_order_data)
-        return order.id
-
-    # def cancel_orders(self):
-    #     for order_id in self.orders:
-    #         self.trading_client.cancel_order_by_id(order_id)
+        # execute new trailing stop order
+        self.order_id = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
+        return self.order_id
 
     def _buy_quantity(self):
 
@@ -120,13 +126,7 @@ class AlpacaTrader:
         # Calculate maximum shares factoring in the commission
         return int(float(cash) / (self.algo_price + constants.commission))
 
-    def get_last_trade_From_sdk(self):
-        client = StockHistoricalDataClient(api_key='PK167PR8HAC3D9G2XMLS',
-                                           secret_key='by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA')
-        request = StockLatestTradeRequest(symbol_or_symbols=constants.symbol)
-        return client.get_stock_latest_trade(request)
-
-    def get_last_trade(self):
+    def _get_last_trade(self):
 
         url = "https://data.alpaca.markets/v2/stocks/googl/trades/latest?feed=iex"
         headers = {
