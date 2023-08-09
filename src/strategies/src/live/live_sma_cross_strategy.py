@@ -14,14 +14,12 @@ class LiveSmaCrossStrategy(SmaCrossStrategy):
 
     def next(self):
         # 11. buy only if when order has been executed on alpaca
-        if self.buy_order is not None and constants.GOOGLE_ORDER == self.buy_order:
+        if constants.GOOGLE_ORDER == self.buy_order:
             self.buy()
             self.trader.order_id = None
-            constants.GOOGLE_ORDER = None
         # 12. sell only if when order has been executed on alpaca
-        elif self.sell_order is not None and constants.GOOGLE_ORDER == self.sell_order:
+        elif constants.GOOGLE_ORDER == self.sell_order:
             self.sell()
-            constants.GOOGLE_ORDER = None
             self.trader.order_id = None
 
         # 1. If the price drops more than 'profit_threshold' from the bought price,
