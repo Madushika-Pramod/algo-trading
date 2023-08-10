@@ -3,7 +3,7 @@ import queue
 import unittest
 from unittest import mock
 
-from app.src.configurations import constants
+from app.src import constants
 from app.src.alpaca_data import AlpacaStreamData
 
 

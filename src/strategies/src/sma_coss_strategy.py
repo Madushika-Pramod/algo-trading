@@ -1,5 +1,23 @@
+import asyncio
+import threading
+
 import backtrader as bt
-from app.src.configurations.constants import average_volume, min_price
+
+from app.src.alpaca_trader import alpaca_trade_ws, AlpacaTrader
+from app.src import constants
+from app.src.constants import average_volume, min_price
+
+
+def run_in_thread():
+    # Create a new loop for the current thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        # Now use this loop to run your async function
+        loop.run_until_complete(alpaca_trade_ws())
+    finally:
+        print("close alpaca_ws")
+        loop.close()
 
 
 class SmaCrossStrategy(bt.Strategy):
@@ -14,6 +32,10 @@ class SmaCrossStrategy(bt.Strategy):
     )
 
     def __init__(self):
+        self.live_mode = False
+        self.trader = None
+        self.sell_order = None
+        self.buy_order = None
         # Initial attributes to track trades, profits, and orders
 
         self.order_active = None
@@ -36,6 +58,153 @@ class SmaCrossStrategy(bt.Strategy):
         self.moving_avg_crossover_indicator.plotinfo.plot = False
         self.recorded_highest_price = bt.indicators.Highest(self.data.close, period=self.p.high_low_period)
         self.recorded_lowest_price = bt.indicators.Lowest(self.data.close, period=self.p.high_low_period)
+
+    def back_test(self):
+        # 1. If the price drops more than 'profit_threshold' from the bought price,
+        # sell immediately and stop trading
+        if self.price_of_last_purchase is not None and self.p.profit_threshold < self.price_of_last_purchase - \
+                self.data.close[0]:
+            self.sell()
+            self.stop()
+            return
+
+        # 2. If there's no existing buy order, consider buying
+        # notice:we can't use `if not self.order_active:`
+        if self.order_active is False:
+
+            # 3. If there was a prior sell price, only buy if the difference
+            # between the prior sell price and current price exceeds 'profit_threshold'
+            if self.price_of_last_sale is not None and self.p.profit_threshold > self.price_of_last_sale - \
+                    self.data.close[0]:
+                return
+
+            # 4. Enter into buy state if the close price is near the lowest price
+            if self.data.close[0] - self.recorded_lowest_price[0] < self.p.high_low_tolerance:
+                self.ready_to_buy = True
+            else:
+                self.ready_to_buy = False
+
+            # 5. If in buy state, and volume is sufficient, and there's a positive crossover, then buy
+            if self.ready_to_buy and self.data.volume[
+                0] > average_volume and self.moving_avg_crossover_indicator > 0:
+                self.buy()
+                # TrailingStopOrderRequest
+                self.ready_to_buy = False
+                self.order_active = True
+                # self.price_of_last_purchase = self.data.close[0]
+
+        # 6. If a buy order has been executed, consider selling
+        elif self.order_active:
+
+            # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
+            if self.p.profit_threshold > self.data.close[0] - self.price_of_last_purchase:
+                return
+
+            # 8. Enter into sell state if the close price is near the highest price
+            if self.recorded_highest_price[0] - self.data.close[0] < self.p.high_low_tolerance:
+                self.ready_to_sell = True
+            else:
+                self.ready_to_sell = False
+
+            # 9. If in sell state, and volume is sufficient, and there's a negative crossover, then sell
+            if self.ready_to_sell and self.data.volume[
+                0] > average_volume and self.moving_avg_crossover_indicator < 0:
+                self.sell()
+                self.ready_to_sell = False
+                self.order_active = False
+                # self.price_of_last_sale = self.data.close[0]
+
+        # Initiate strategy: If the current close price is below 'min_price', make the initial buy
+        elif self.order_active is None and self.data.close[0] <= min_price:
+            self.buy()
+            self.ready_to_buy = False
+            self.order_active = True
+            # self.price_of_last_purchase = self.data.close[0]
+
+    def live(self):
+        print(self.data.close[0])
+        # 11. buy only if when order has been executed on alpaca
+        if constants.GOOGLE_ORDER == self.buy_order:
+            print("buy executed")
+            self.buy()
+            self.trader.order_id = None
+            self.ready_to_buy = False
+            self.order_active = True
+        # 12. sell only if when order has been executed on alpaca
+        elif constants.GOOGLE_ORDER == self.sell_order:
+            print("sell executed")
+            self.sell()
+            self.trader.order_id = None
+            self.ready_to_sell = False
+            self.order_active = False
+
+        # 1. If the price drops more than 'profit_threshold' from the bought price,
+        # sell immediately and stop trading
+        if self.price_of_last_purchase is not None and self.p.profit_threshold < self.price_of_last_purchase - self.data.close[0]:
+            print("immediately sold")
+            self.sell_order = self.trader.sell(self.data.close[0])
+            self.trader.order_id = None
+            self.stop()
+            return
+        # ========== al_data = self.data_queue.get_nowait() ==========#
+        # =========== if al_data:
+
+        # 2. If there's no existing buy order, consider buying
+        # notice:we can't use `if not self.order_active:`
+        if self.order_active is False:
+
+            # 3. If there was a prior sell price, only buy if the difference
+            # between the prior sell price and current price exceeds 'profit_threshold'
+            if self.price_of_last_sale is not None and self.p.profit_threshold > self.price_of_last_sale - \
+                    self.data.close[0]:
+                return
+
+            # 4. Enter into buy state if the close price is near the lowest price
+            if self.data.close[0] - self.recorded_lowest_price[0] < self.p.high_low_tolerance:
+                self.ready_to_buy = True
+            else:
+                self.ready_to_buy = False
+
+            # 5. If in buy state, and volume is sufficient, and there's a positive crossover, then buy
+            if self.ready_to_buy and self.data.volume[
+                0] > constants.average_volume and self.moving_avg_crossover_indicator > 0:
+                self.buy_order = self.trader.buy(self.data.close[0])
+                # TrailingStopOrderRequest
+                # self.ready_to_buy = False
+                # self.order_active = True
+                # print(self.buy_order)
+                # =========== self.price_of_last_purchase = self.data.close[0]
+
+        # 6. If a buy order has been executed, consider selling
+        elif self.order_active:
+
+            # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
+            if self.p.profit_threshold > self.data.close[0] - self.price_of_last_purchase:
+                return
+
+            # 8. Enter into sell state if the close price is near the highest price
+            if self.recorded_highest_price[0] - self.data.close[0] < self.p.high_low_tolerance:
+                self.ready_to_sell = True
+            else:
+                self.ready_to_sell = False
+
+            # 9. If in sell state, and volume is sufficient, and there's a negative crossover, then sell
+            if self.ready_to_sell and self.data.volume[
+                0] > constants.average_volume and self.moving_avg_crossover_indicator < 0:
+                self.sell_order = self.trader.sell(self.data.close[0])
+                # self.ready_to_sell = False
+                # self.order_active = False
+                # ===========self.price_of_last_sale = self.data.close[0]
+
+        # 10. Initiate strategy: If the current close price is below 'min_price', make the initial buy
+        elif self.order_active is None and self.data.close[0] <= constants.min_price and self.data.close[-1] == 0:
+            self.buy_order = self.trader.buy(self.data.close[0])
+
+            # self.trader.order_id = None
+            # self.ready_to_buy = False
+            # self.order_active = False
+            print(f'initial buy order Id={self.buy_order}')
+            # =========== self.price_of_last_purchase = self.data.close[0]
 
     def log(self, txt, dt=None):
         ''' Logging function for the strategy '''
@@ -66,60 +235,19 @@ class SmaCrossStrategy(bt.Strategy):
 
     # Main strategy logic
     def next(self):
-        print("next")
-        # 1. If the price drops more than 'profit_threshold' from the bought price,
-        # sell immediately and stop trading
-        if self.price_of_last_purchase is not None and self.p.profit_threshold < self.price_of_last_purchase - self.data.close[0]:
-            self.sell()
-            self.stop()
-            return
+        if self.live_mode:
+            # sleep(4)
 
-        # 2. If there's no existing buy order, consider buying
-        # notice:we can't use `if not self.order_active:`
-        if self.order_active is False:
-
-            # 3. If there was a prior sell price, only buy if the difference
-            # between the prior sell price and current price exceeds 'profit_threshold'
-            if self.price_of_last_sale is not None and self.p.profit_threshold > self.price_of_last_sale - self.data.close[0]:
+            self.live()
+        else:
+            if self.data.close[0] == 0:
+                self.total_return_on_investment = self.cumulative_profit / self.starting_balance
+                print(f"Roi= {self.total_return_on_investment *100}%\nTrading Count= {self.trading_count}")
+                self.live_mode = True
+                self.trader = AlpacaTrader(api_key="PK167PR8HAC3D9G2XMLS",
+                                           secret_key="by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA")
+                thread = threading.Thread(target=run_in_thread)
+                thread.start()
+                print("live")
                 return
-
-            # 4. Enter into buy state if the close price is near the lowest price
-            if self.data.close[0] - self.recorded_lowest_price[0] < self.p.high_low_tolerance:
-                self.ready_to_buy = True
-            else:
-                self.ready_to_buy = False
-
-            # 5. If in buy state, and volume is sufficient, and there's a positive crossover, then buy
-            if self.ready_to_buy and self.data.volume[0] > average_volume and self.moving_avg_crossover_indicator > 0:
-                self.buy()
-                # TrailingStopOrderRequest
-                self.ready_to_buy = False
-                self.order_active = True
-                # self.price_of_last_purchase = self.data.close[0]
-
-        # 6. If a buy order has been executed, consider selling
-        elif self.order_active:
-
-            # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
-            if self.p.profit_threshold > self.data.close[0] - self.price_of_last_purchase:
-                return
-
-            # 8. Enter into sell state if the close price is near the highest price
-            if self.recorded_highest_price[0] - self.data.close[0] < self.p.high_low_tolerance:
-                self.ready_to_sell = True
-            else:
-                self.ready_to_sell = False
-
-            # 9. If in sell state, and volume is sufficient, and there's a negative crossover, then sell
-            if self.ready_to_sell and self.data.volume[0] > average_volume and self.moving_avg_crossover_indicator < 0:
-                self.sell()
-                self.ready_to_sell = False
-                self.order_active = False
-                # self.price_of_last_sale = self.data.close[0]
-
-        # Initiate strategy: If the current close price is below 'min_price', make the initial buy
-        elif self.order_active is None and self.data.close[0] <= min_price:
-            self.buy()
-            self.ready_to_buy = False
-            self.order_active = True
-            # self.price_of_last_purchase = self.data.close[0]
+            self.back_test()

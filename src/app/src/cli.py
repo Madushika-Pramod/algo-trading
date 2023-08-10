@@ -2,7 +2,7 @@ import csv
 import multiprocessing
 import os
 
-from app.src.configurations import constants
+from app.src import constants
 from app.src.back_trader import BacktraderStrategy
 from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy
 
@@ -19,7 +19,7 @@ def run_single(live=False):
         ))
 
     # strategy = (DemoStrategy, {})
-    result = BacktraderStrategy(live=live).add_strategy(strategy).run()
+    result = BacktraderStrategy(live).add_strategy(strategy).run()
     print(f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100,2)}%")
 
 
@@ -290,6 +290,6 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    run_single(live=True)
+    run_single()
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)

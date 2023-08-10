@@ -1,7 +1,7 @@
 import backtrader as bt
 import numpy as np
 
-from app.src.configurations.constants import average_volume
+from app.src.constants import average_volume
 
 
 class TrendLine(bt.Indicator):

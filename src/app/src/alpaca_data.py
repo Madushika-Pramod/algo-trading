@@ -4,14 +4,13 @@ import os
 import queue
 import threading
 from datetime import datetime, timedelta
-from time import sleep
 
 import backtrader as bt
 import requests
 from alpaca.data import StockHistoricalDataClient, StockBarsRequest, TimeFrame
 from websocket import WebSocketApp
 
-from app.src.configurations import constants
+from app.src import constants
 
 
 class AlpacaWebSocket:
@@ -46,7 +45,7 @@ class AlpacaWebSocket:
 
         listen_message = {
             "action": "subscribe",
-            "trades": ["AAPL"]
+            "trades": [constants.symbol]
         }
         ws.send(json.dumps(listen_message))
 
@@ -76,11 +75,9 @@ class AlpacaStreamData(bt.feed.DataBase):
         self.data_queue = q
 
     def start(self):
-        pass
-        # todo
-        # self.ws = AlpacaWebSocket('PK9KYDPO031HRWMDNBNB', 'VNNEYMyacOOpBr3HqdkOuIVdPQTzRS6EXnVJmelc',
-        #                           constants.data_stream_wss, self.data_queue)
-        # self.ws.start()
+        self.ws = AlpacaWebSocket('PK167PR8HAC3D9G2XMLS', 'by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA',
+                                  constants.data_stream_wss, self.data_queue)
+        self.ws.start()
 
     def stop(self):
         self.ws.stop()
@@ -88,7 +85,6 @@ class AlpacaStreamData(bt.feed.DataBase):
     def _load(self):
         try:
             al_data = self.data_queue.get()  # get_nowait() #.get(timeout=60)
-            sleep(10)  # todo  remove
             # print("alpaca data =", al_data)
             self._map_bar(al_data)
         except queue.Empty:

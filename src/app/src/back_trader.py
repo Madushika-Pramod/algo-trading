@@ -1,10 +1,11 @@
 import queue
+from datetime import datetime, timezone
 
 import backtrader as bt
 import pandas
 
 from app.src.alpaca_data import AlpacaStreamData
-from app.src.configurations import constants, register_live_strategies
+from app.src import constants
 # from app.src.alpaca_data import AlpacaHistoricalData
 from app.src.trade_analyzer import TradeAnalyzer
 
@@ -95,11 +96,17 @@ class BacktraderStrategy:
 
     def _historical_and_live_data(self):
         q = queue.Queue()
+
+
         for row in self.df.to_dict(orient='records'):
             # Insert each row (a Series) into the queue
             row['timestamp'] = row['timestamp'].to_pydatetime()
             q.put(row)
 
+        # back testing end indicator
+        q.put({'close': 0, 'high': 0, 'low': 0, 'open': 0,
+               'timestamp': datetime(2023, 8, 10, 12, 0, 0, tzinfo=timezone.utc), 'trade count': 0, 'volume': 0,
+               'vwap': 0})
         data = AlpacaStreamData(q=q)
         return data
 
@@ -132,7 +139,6 @@ class BacktraderStrategy:
             # display_statistics(analysis)
             # print("roi2:", strategies[0].roi2)
             return strategies[0]
-
 
 # def back_test(strategies):
 #     for strategy in strategies:

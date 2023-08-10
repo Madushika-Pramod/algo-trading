@@ -1,8 +1,7 @@
 import asyncio
-import threading
 
 from app.src.alpaca_trader import AlpacaTrader, alpaca_trade_ws
-from app.src.configurations import constants
+from app.src import constants
 from strategies import SmaCrossStrategy
 
 
@@ -29,20 +28,25 @@ class LiveSmaCrossStrategy(SmaCrossStrategy):
 
     def start(self):
         print("start method")
-        pass # todo 2
+        pass  # todo 2
         # thread = threading.Thread(target=run_in_thread)
         # thread.start()
 
     def next(self):
-        print("next method")
+
+
         # 11. buy only if when order has been executed on alpaca
         if constants.GOOGLE_ORDER == self.buy_order:
             self.buy()
             self.trader.order_id = None
+            self.ready_to_buy = False
+            self.order_active = True
         # 12. sell only if when order has been executed on alpaca
         elif constants.GOOGLE_ORDER == self.sell_order:
             self.sell()
             self.trader.order_id = None
+            self.ready_to_sell = False
+            self.order_active = False
 
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
@@ -76,9 +80,9 @@ class LiveSmaCrossStrategy(SmaCrossStrategy):
                 0] > constants.average_volume and self.moving_avg_crossover_indicator > 0:
                 self.buy_order = self.trader.buy(self.data.close[0])
                 # TrailingStopOrderRequest
-                self.ready_to_buy = False
-                self.order_active = True
-                print(self.buy_order)
+                # self.ready_to_buy = False
+                # self.order_active = True
+                # print(self.buy_order)
                 # =========== self.price_of_last_purchase = self.data.close[0]
 
         # 6. If a buy order has been executed, consider selling
@@ -98,16 +102,16 @@ class LiveSmaCrossStrategy(SmaCrossStrategy):
             if self.ready_to_sell and self.data.volume[
                 0] > constants.average_volume and self.moving_avg_crossover_indicator < 0:
                 self.sell_order = self.trader.sell(self.data.close[0])
-                self.ready_to_sell = False
-                self.order_active = False
+                # self.ready_to_sell = False
+                # self.order_active = False
                 # ===========self.price_of_last_sale = self.data.close[0]
 
         # 10. Initiate strategy: If the current close price is below 'min_price', make the initial buy
         elif self.order_active is None and self.data.close[0] <= constants.min_price:
-            print("strategy buy")
             self.buy_order = self.trader.buy(self.data.close[0])
-            self.trader.order_id = None
-            self.ready_to_buy = False
-            self.order_active = True
-            print(self.buy_order)
+
+            # self.trader.order_id = None
+            # self.ready_to_buy = False
+            # self.order_active = True
+            print(f'order Id={self.buy_order}')
             # =========== self.price_of_last_purchase = self.data.close[0]
