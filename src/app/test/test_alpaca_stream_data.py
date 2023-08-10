@@ -1,12 +1,9 @@
 import os
 import queue
 import unittest
-from datetime import datetime
 from unittest import mock
 
-from backtrader.feed import date2num
-
-from app.src import constants
+from app.src.configurations import constants
 from app.src.alpaca_data import AlpacaStreamData
 
 

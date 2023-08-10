@@ -3,7 +3,7 @@ import threading
 
 import backtrader as bt
 
-from app.src.constants import average_volume, min_price
+from app.src.configurations.constants import average_volume
 
 
 # Create a Strategy

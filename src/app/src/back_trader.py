@@ -3,8 +3,8 @@ import queue
 import backtrader as bt
 import pandas
 
-import constants
 from app.src.alpaca_data import AlpacaStreamData
+from app.src.configurations import constants, register_live_strategies
 # from app.src.alpaca_data import AlpacaHistoricalData
 from app.src.trade_analyzer import TradeAnalyzer
 
@@ -20,7 +20,7 @@ class AllInSizer(bt.Sizer):
         if isbuy:
             # Divide all available cash by the closing price to get the number of shares we can buy
             size = int(cash / (data.close[0] * (1 + constants.commission)))
-            print(size)
+            print(f"Number of shares brought {size}")
         else:
             # If we're selling, sell all shares
             size = self.broker.getposition(data).size
@@ -71,7 +71,7 @@ def display_statistics(analysis):
 
 
 class BacktraderStrategy:
-    def __init__(self, cash=constants.cash, live=False):
+    def __init__(self, live, cash=constants.cash, ):
         self.live = live
         self.cash = cash
         # self.strategy_class = strategy_class
@@ -105,6 +105,8 @@ class BacktraderStrategy:
 
     def add_strategy(self, strategy_with_params):
         strategy_class, params = strategy_with_params
+        # if self.live:
+        #     strategy_class = register_live_strategies.live_strategies.get(str(strategy_class))
         self.cerebro.addstrategy(strategy_class, **params)
         return self
 
@@ -132,12 +134,12 @@ class BacktraderStrategy:
             return strategies[0]
 
 
-def back_test(strategies):
-    for strategy in strategies:
-        BacktraderStrategy(strategy).run()
+# def back_test(strategies):
+#     for strategy in strategies:
+#         BacktraderStrategy(strategy).run()
 
 
-DataHandler().load_data()
+# DataHandler().load_data()
 
 # strategy = (
 #         SmaCrossStrategy,

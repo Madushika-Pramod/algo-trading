@@ -8,13 +8,13 @@ from alpaca.trading import OrderSide, TimeInForce
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import TrailingStopOrderRequest
 
-from app.src import constants
+from app.src.configurations import constants
 
 API_KEY = "PK167PR8HAC3D9G2XMLS"
 API_SECRET = "by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA"
 
 
-async def alpaca_ws():
+async def alpaca_trade_ws():
     async with websockets.connect(constants.trade_stream_wss) as ws:
         # Authenticate
         auth_data = {
@@ -40,6 +40,7 @@ async def alpaca_ws():
         # Receive messages
         while True:
             message = await ws.recv()
+            print(f"trade update:{message}")
             constants.GOOGLE_ORDER = True  # todo order id
             # q.put(message)
 
@@ -62,6 +63,7 @@ class AlpacaTrader:
                                             secret_key or os.environ.get("SECRET_KEY"), paper=True)
 
     def buy(self, price):
+        print("buy method executed")
         self.algo_price = price
         trailing_stop_order_data = TrailingStopOrderRequest(
             symbol=constants.symbol,

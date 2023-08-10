@@ -1,6 +1,21 @@
-from app.src import constants
-from app.src.alpaca_trader import AlpacaTrader
+import asyncio
+import threading
+
+from app.src.alpaca_trader import AlpacaTrader, alpaca_trade_ws
+from app.src.configurations import constants
 from strategies import SmaCrossStrategy
+
+
+def run_in_thread():
+    # Create a new loop for the current thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        # Now use this loop to run your async function
+        loop.run_until_complete(alpaca_trade_ws())
+    finally:
+        print("close alpaca_ws")
+        loop.close()
 
 
 class LiveSmaCrossStrategy(SmaCrossStrategy):
@@ -12,7 +27,14 @@ class LiveSmaCrossStrategy(SmaCrossStrategy):
         self.sell_order = None
         self.buy_order = None
 
+    def start(self):
+        print("start method")
+        pass # todo 2
+        # thread = threading.Thread(target=run_in_thread)
+        # thread.start()
+
     def next(self):
+        print("next method")
         # 11. buy only if when order has been executed on alpaca
         if constants.GOOGLE_ORDER == self.buy_order:
             self.buy()
@@ -56,6 +78,7 @@ class LiveSmaCrossStrategy(SmaCrossStrategy):
                 # TrailingStopOrderRequest
                 self.ready_to_buy = False
                 self.order_active = True
+                print(self.buy_order)
                 # =========== self.price_of_last_purchase = self.data.close[0]
 
         # 6. If a buy order has been executed, consider selling
@@ -81,8 +104,10 @@ class LiveSmaCrossStrategy(SmaCrossStrategy):
 
         # 10. Initiate strategy: If the current close price is below 'min_price', make the initial buy
         elif self.order_active is None and self.data.close[0] <= constants.min_price:
+            print("strategy buy")
             self.buy_order = self.trader.buy(self.data.close[0])
             self.trader.order_id = None
             self.ready_to_buy = False
             self.order_active = True
+            print(self.buy_order)
             # =========== self.price_of_last_purchase = self.data.close[0]

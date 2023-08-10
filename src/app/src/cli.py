@@ -2,25 +2,25 @@ import csv
 import multiprocessing
 import os
 
-from app.src import constants
+from app.src.configurations import constants
 from app.src.back_trader import BacktraderStrategy
 from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy
 
 
-def run_single():
+def run_single(live=False):
     strategy = (
         SmaCrossStrategy,
         dict(
             fast_ma_period=10,
             slow_ma_period=34,
-            high_low_period=20,
+            high_low_period=15,
             high_low_tolerance=0.3,
-            profit_threshold=3.0
+            profit_threshold=2.5
         ))
 
     # strategy = (DemoStrategy, {})
-    score = BacktraderStrategy().add_strategy(strategy).run()
-    print(score)
+    result = BacktraderStrategy(live=live).add_strategy(strategy).run()
+    print(f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100,2)}%")
 
 
 def run_multi():
@@ -29,7 +29,7 @@ def run_multi():
          dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0)),
         (SmaCrossStrategy, dict(pfast=10, pslow=30))]
     for strategy in strategies:
-        score = BacktraderStrategy().add_strategy(strategy).run()
+        score = BacktraderStrategy(live=False).add_strategy(strategy).run()
         print(score)
 
 
@@ -66,7 +66,7 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_
                             gv = y / 2
                             if count > 8600:
 
-                                result = BacktraderStrategy(
+                                result = BacktraderStrategy(live=False
                                 ).add_strategy((SmaCrossStrategy,
                                                 dict(fast_ma_period=pf, slow_ma_period=ps, high_low_period=p,
                                                      high_low_tolerance=e, profit_threshold=gv))).run()
@@ -290,6 +290,6 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    run_single()
+    run_single(live=True)
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)

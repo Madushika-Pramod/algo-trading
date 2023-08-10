@@ -1,5 +1,5 @@
 import backtrader as bt
-from app.src.constants import average_volume, min_price
+from app.src.configurations.constants import average_volume, min_price
 
 
 class SmaCrossStrategy(bt.Strategy):
@@ -66,6 +66,7 @@ class SmaCrossStrategy(bt.Strategy):
 
     # Main strategy logic
     def next(self):
+        print("next")
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
         if self.price_of_last_purchase is not None and self.p.profit_threshold < self.price_of_last_purchase - self.data.close[0]:
