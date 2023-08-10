@@ -40,7 +40,7 @@ Input your Alpaca API_KEY and SECRET_KEY in your environment variables. If you r
 
 ## ⚙️ Customizing Your Bot
 
-The bot's operational parameters can be adjusted by modifying the constant values in the `Constant.py` file.
+The bot's operational parameters can be adjusted by modifying the values of the files in the `configurations` folder.
 
 ## 🚀 Execution
 

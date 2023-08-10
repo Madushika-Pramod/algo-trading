@@ -1,13 +1,14 @@
 import csv
-from datetime import datetime, timedelta
+import json
 import os
-import requests
-import websocket
 import queue
 import threading
-import json
+from datetime import datetime, timedelta
+
 import backtrader as bt
+import requests
 from alpaca.data import StockHistoricalDataClient, StockBarsRequest, TimeFrame
+from websocket import WebSocketApp
 
 from app.src import constants
 
@@ -44,16 +45,16 @@ class AlpacaWebSocket:
 
         listen_message = {
             "action": "subscribe",
-            "trades": ["AAPL"]
+            "trades": [constants.symbol]
         }
         ws.send(json.dumps(listen_message))
 
     def start(self):
         def run_ws():
-            self.ws = websocket.WebSocketApp(self.url,
-                                             on_message=self.on_message,
-                                             on_error=self.on_error,
-                                             on_close=self.on_close)
+            self.ws = WebSocketApp(self.url,
+                                   on_message=self.on_message,
+                                   on_error=self.on_error,
+                                   on_close=self.on_close)
             self.ws.on_open = self.on_open
             self.ws.run_forever()
 
@@ -74,7 +75,7 @@ class AlpacaStreamData(bt.feed.DataBase):
         self.data_queue = q
 
     def start(self):
-        self.ws = AlpacaWebSocket('PK9KYDPO031HRWMDNBNB', 'VNNEYMyacOOpBr3HqdkOuIVdPQTzRS6EXnVJmelc',
+        self.ws = AlpacaWebSocket('PK167PR8HAC3D9G2XMLS', 'by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA',
                                   constants.data_stream_wss, self.data_queue)
         self.ws.start()
 
@@ -83,8 +84,8 @@ class AlpacaStreamData(bt.feed.DataBase):
 
     def _load(self):
         try:
-            al_data = self.data_queue.get(timeout=60)  # get_nowait()
-            print("alpaca data =", al_data)
+            al_data = self.data_queue.get()  # get_nowait() #.get(timeout=60)
+            # print("alpaca data =", al_data)
             self._map_bar(al_data)
         except queue.Empty:
             print("queue empty")
