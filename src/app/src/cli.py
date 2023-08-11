@@ -20,7 +20,8 @@ def run_single(live=False):
 
     # strategy = (DemoStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
-    print(f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100,2)}%")
+    print(
+        f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 2)}%")
 
 
 def run_multi():
@@ -40,7 +41,8 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_
     count = 0
     roi_count = 0
     statistics = [
-        ["Trading Count", "Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error", "Gain Value"]]
+        ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error",
+         "Gain Value"]]
     try:
         for p in range(high_low_period, 30):
             p2 = p
@@ -64,20 +66,22 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_
                         e = x / 10
                         for y in range(profit_threshold, 9):
                             gv = y / 2
-                            if count > 8600:
+                            # if count > 8600:
 
-                                result = BacktraderStrategy(live=False
-                                ).add_strategy((SmaCrossStrategy,
-                                                dict(fast_ma_period=pf, slow_ma_period=ps, high_low_period=p,
-                                                     high_low_tolerance=e, profit_threshold=gv))).run()
-                                statistics.append(
-                                    [result.trading_count, result.total_return_on_investment, pf, ps, p, e, gv])
-                                if result.total_return_on_investment > best_roi:
-                                    best_roi = result.total_return_on_investment
-                                    roi_count = count
-                                    print(
-                                        f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\nGain value: {gv}")
-                                print(count)
+                            # result = BacktraderStrategy(live=False
+                            #                             ).add_strategy((SmaCrossStrategy,
+                            #                                             dict(fast_ma_period=pf, slow_ma_period=ps,
+                            #                                                  high_low_period=p,
+                            #                                                  high_low_tolerance=e,
+                            #                                                  profit_threshold=gv))).run()
+                            # statistics.append(
+                            #     [count, result.trading_count, result.total_return_on_investment, pf, ps, p, e, gv])
+                            # if result.total_return_on_investment > best_roi:
+                            #     best_roi = result.total_return_on_investment
+                            #     roi_count = count
+                            #     print(
+                            #         f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\nGain value: {gv}")
+                            # print(count)
                             count += 1
 
     except KeyboardInterrupt:
@@ -87,14 +91,14 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_
 
 
 configurations_for_sma_cross = [
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=14, high_low_tolerance=2, profit_threshold=3),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=15, high_low_tolerance=2, profit_threshold=3),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=2, profit_threshold=3),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=17, high_low_tolerance=2, profit_threshold=3),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=18, high_low_tolerance=2, profit_threshold=3),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=20, high_low_tolerance=2, profit_threshold=3),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=19, high_low_tolerance=2, profit_threshold=3),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=21, high_low_tolerance=2, profit_threshold=3)
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=14, high_low_tolerance=2, profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=12, high_low_tolerance=2, profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=2, profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=10, high_low_tolerance=2, profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=18, high_low_tolerance=2, profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=20, high_low_tolerance=2, profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=2, profit_threshold=2)
 
 ]
 

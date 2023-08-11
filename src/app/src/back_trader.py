@@ -103,7 +103,7 @@ class BacktraderStrategy:
             row['timestamp'] = row['timestamp'].to_pydatetime()
             q.put(row)
 
-        # back testing end indicator
+        # back testing end indicator todo optimize this
         q.put({'close': 0, 'high': 0, 'low': 0, 'open': 0,
                'timestamp': datetime(2023, 8, 10, 12, 0, 0, tzinfo=timezone.utc), 'trade count': 0, 'volume': 0,
                'vwap': 0})
