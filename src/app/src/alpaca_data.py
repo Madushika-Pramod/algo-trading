@@ -213,5 +213,7 @@ class AlpacaHistoricalDataApi:
 
         print(f"Data has been written to '{self.csv_file_path}' file.")
 
-# AlpacaHistoricalData(constants.symbol, constants.period_in_days, constants.csv_file_path, "PK9KYDPO031HRWMDNBNB",
-#                      "VNNEYMyacOOpBr3HqdkOuIVdPQTzRS6EXnVJmelc").save_to_csv()
+
+# AlpacaHistoricalData(constants.symbol, constants.period_in_days, constants.csv_file_path,
+#                      api_key="PKJ1POLUPS41MCXZDP73",
+#                      secret_key="6bkatV5bN5nWMr1o3Hr4ETkeIzY6RbdfA89NS1sc").save_to_csv()
