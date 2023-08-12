@@ -91,34 +91,42 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_
 
 
 configurations_for_sma_cross = [
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=14, high_low_tolerance=2, profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=12, high_low_tolerance=2, profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=2, profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=10, high_low_tolerance=2, profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=18, high_low_tolerance=2, profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=20, high_low_tolerance=2, profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=2, profit_threshold=2)
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=14, high_low_tolerance=2, profit_threshold=2,
+         pre_count=36065),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=12, high_low_tolerance=2, profit_threshold=2,
+         pre_count=36401),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=2, profit_threshold=2,
+         pre_count=36454),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=10, high_low_tolerance=2, profit_threshold=2,
+         pre_count=36447),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=18, high_low_tolerance=2, profit_threshold=2,
+         pre_count=36039),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=20, high_low_tolerance=2, profit_threshold=2,
+         pre_count=36587),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
+         pre_count=36585),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=2, profit_threshold=2,
+         pre_count=36164)
 
 ]
 
 
-def get_bollinger_rsi_strategy_optimum_params(best_roi=0.0, bbperiod=13, rsiperiod=14, rsi_low=30, rsi_high=70,
-                                              gain_value=0):
-    # todo use dev factor as 1.5 remove loop
-    # give more space to rsi and bollinger
-
-    if rsi_low > 50 or rsi_high < 50:
-        return
-    bp2 = None
+def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
+                                          high_low_tolerance=None,
+                                          profit_threshold=None, pre_count=None):
+    p2 = None
     count = 0
     roi_count = 0
-    statistics = []
+    statistics = [
+        ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error",
+         "Gain Value"]]
     try:
-        for bp in range(bbperiod, 30):
-            bp2 = bp
-            if bp == bbperiod + 1:
-                print(bp - 1)
+        for p in range(high_low_period, 30):
+            p2 = p
+            if p == high_low_period + 1:
+                # print(
+                #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
+                print(p - 1)
                 print(f"Total Count: {count}")
                 print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
                 write_csv(statistics)
@@ -126,32 +134,36 @@ def get_bollinger_rsi_strategy_optimum_params(best_roi=0.0, bbperiod=13, rsiperi
                     os.system('afplay /System/Library/Sounds/Ping.aiff')
 
                 raise Exception("===xxxxxx===")
-            for rp in range(rsiperiod, 46):  # typically it's between 5 and 30
-                for rl in range(rsi_low, 46):  # range of 0-50
-                    for rh in range(rsi_high, 61):  # 50-100
-                        for x in range(3, 4):
-                            # Dev-Factor from 1, 1.5, 2
-                            df = x / 2
-                            for y in range(gain_value, 4):
-                                # gv = y / 2
-                                # if count > count_continue:
+            for pf in range(fast_ma_period, 31):
+                for ps in range(slow_ma_period, 61):
+                    if pf > ps:
+                        continue
+                    for x in range(high_low_tolerance, 10):
+                        # Dev-Factor from 1, 1.5, 2
+                        e = x / 10
+                        for y in range(profit_threshold, 9):
+                            gv = y / 2
+                            if count >= pre_count:
 
-                                score = BacktraderStrategy(
-                                ).add_strategy((BollingerRSIStrategy,
-                                                dict(bbperiod=bp, bbdev=df, rsiperiod=rp, rsi_low=rl, rsi_high=rh,
-                                                     gain_value=y))).run()
-                                statistics.append([score, df, rp, rl, rh, bp, y])
-                                if score > best_roi:
-                                    best_roi = score
+                                result = BacktraderStrategy(live=False
+                                                            ).add_strategy((SmaCrossStrategy,
+                                                                            dict(fast_ma_period=pf, slow_ma_period=ps,
+                                                                                 high_low_period=p,
+                                                                                 high_low_tolerance=e,
+                                                                                 profit_threshold=gv))).run()
+                                statistics.append(
+                                    [count, result.trading_count, result.total_return_on_investment, pf, ps, p, e, gv])
+                                if result.total_return_on_investment > best_roi:
+                                    best_roi = result.total_return_on_investment
                                     roi_count = count
                                     print(
-                                        f"Best ROI: {best_roi * 100}%\nDev-Factor:{df}\n Rsi period: {rp}\n Rsi low: {rl}\n Rsi high: {rh}\n Bollinger Period: {bp}\n Gain value: {y}")
+                                        f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\nGain value: {gv}")
                                 print(count)
-                                count += 1
+                            count += 1
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...")
-        print(f"Bollinger Period: {bp2}-Total Count: {count}-Best ROI: {best_roi * 100}%")
+        print(f"high_low_period: {p2}-Total Count: {count}-Best ROI: {best_roi * 100}%")
         write_csv(statistics)
 
 
