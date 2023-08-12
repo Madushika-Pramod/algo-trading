@@ -15,8 +15,9 @@ symbol = "GOOGL"
 commission = 0.0  # 0.005
 min_price = 130.81
 median_volume = 24_585
-stat_id = datetime.now()
-stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{stat_id}.csv')
+file_id = datetime.now()
+stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{file_id}.csv')
+# tick_file_path = os.path.join(_parent_dir, 'datas', f'tick{file_id}.csv')
 voice_alert_frequency = 3
 
 time_frame = "minute"  # hour
