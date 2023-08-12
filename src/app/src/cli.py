@@ -24,14 +24,14 @@ def run_single(live=False):
         f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 2)}%")
 
 
-def run_multi():
-    strategies = [
-        (TrendLineStrategy,
-         dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0)),
-        (SmaCrossStrategy, dict(pfast=10, pslow=30))]
-    for strategy in strategies:
-        score = BacktraderStrategy(live=False).add_strategy(strategy).run()
-        print(score)
+# def run_multi():
+#     strategies = [
+#         (TrendLineStrategy,
+#          dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0)),
+#         (SmaCrossStrategy, dict(pfast=10, pslow=30))]
+#     for strategy in strategies:
+#         score = BacktraderStrategy(live=False).add_strategy(strategy).run()
+#         print(score)
 
 
 def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
@@ -294,6 +294,6 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    run_single()
+    run_single(live=True)
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)

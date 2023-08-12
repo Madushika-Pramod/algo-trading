@@ -77,7 +77,7 @@ class LiveSmaCrossStrategy(SmaCrossStrategy):
 
             # 5. If in buy state, and volume is sufficient, and there's a positive crossover, then buy
             if self.ready_to_buy and self.data.volume[
-                0] > constants.average_volume and self.moving_avg_crossover_indicator > 0:
+                0] > constants.median_volume and self.moving_avg_crossover_indicator > 0:
                 self.buy_order = self.trader.buy(self.data.close[0])
                 # TrailingStopOrderRequest
                 # self.ready_to_buy = False
@@ -100,7 +100,7 @@ class LiveSmaCrossStrategy(SmaCrossStrategy):
 
             # 9. If in sell state, and volume is sufficient, and there's a negative crossover, then sell
             if self.ready_to_sell and self.data.volume[
-                0] > constants.average_volume and self.moving_avg_crossover_indicator < 0:
+                0] > constants.median_volume and self.moving_avg_crossover_indicator < 0:
                 self.sell_order = self.trader.sell(self.data.close[0])
                 # self.ready_to_sell = False
                 # self.order_active = False

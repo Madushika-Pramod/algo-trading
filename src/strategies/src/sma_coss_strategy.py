@@ -3,12 +3,13 @@ import threading
 
 import backtrader as bt
 
-from app.src.alpaca_trader import alpaca_trade_ws, AlpacaTrader
 from app.src import constants
-from app.src.constants import average_volume, min_price
+from app.src.alpaca_trader import alpaca_trade_ws, AlpacaTrader
+from app.src.constants import median_volume, min_price
+from app.src.voice_alert import voice_alert
 
 
-def run_in_thread():
+def alpaca_trade_updates():
     # Create a new loop for the current thread
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -34,9 +35,9 @@ class SmaCrossStrategy(bt.Strategy):
     def __init__(self):
         self.live_mode = False
         self.trader = None
-        self.sell_order = None
-        self.buy_order = None
-        # Initial attributes to track trades, profits, and orders
+        self.algorithm_performed_sell_order_id = None
+        self.algorithm_performed_buy_order_id = None
+
 
         self.order_active = None
         self.trading_count = 0
@@ -44,7 +45,7 @@ class SmaCrossStrategy(bt.Strategy):
         self.commission_on_last_purchase = None
         self.price_of_last_sale = None
         self.price_of_last_purchase = None
-        self.starting_balance = self.broker.get_cash()  # Retrieve starting balance
+        self.starting_balance = self.broker.get_cash()
         self.cumulative_profit = 0.0
         self.ready_to_buy = False
         self.ready_to_sell = False
@@ -86,12 +87,10 @@ class SmaCrossStrategy(bt.Strategy):
 
             # 5. If in buy state, and volume is sufficient, and there's a positive crossover, then buy
             if self.ready_to_buy and self.data.volume[
-                0] > average_volume and self.moving_avg_crossover_indicator > 0:
+                0] > median_volume and self.moving_avg_crossover_indicator > 0:
                 self.buy()
-                # TrailingStopOrderRequest
                 self.ready_to_buy = False
                 self.order_active = True
-                # self.price_of_last_purchase = self.data.close[0]
 
         # 6. If a buy order has been executed, consider selling
         elif self.order_active:
@@ -108,42 +107,56 @@ class SmaCrossStrategy(bt.Strategy):
 
             # 9. If in sell state, and volume is sufficient, and there's a negative crossover, then sell
             if self.ready_to_sell and self.data.volume[
-                0] > average_volume and self.moving_avg_crossover_indicator < 0:
+                0] > median_volume and self.moving_avg_crossover_indicator < 0:
                 self.sell()
                 self.ready_to_sell = False
                 self.order_active = False
-                # self.price_of_last_sale = self.data.close[0]
 
         # Initiate strategy: If the current close price is below 'min_price', make the initial buy
         elif self.order_active is None and self.data.close[0] <= min_price:
             self.buy()
             self.ready_to_buy = False
             self.order_active = True
-            # self.price_of_last_purchase = self.data.close[0]
 
     def live(self):
-        print(self.data.close[0])
+        print(f'live-{self.data.close[0]}--time-{self.data.datetime[0]}')
         # 11. buy only if when order has been executed on alpaca
-        if constants.GOOGLE_ORDER == self.buy_order:
+        if constants.accepted_order is not None and constants.accepted_order['id'] == str(self.algorithm_performed_buy_order_id):
             print("buy executed")
             self.buy()
-            self.trader.order_id = None
             self.ready_to_buy = False
             self.order_active = True
+            self.price_of_last_purchase = float(constants.accepted_order['stop_price'])
+            constants.accepted_order = None
         # 12. sell only if when order has been executed on alpaca
-        elif constants.GOOGLE_ORDER == self.sell_order:
+        elif constants.accepted_order is not None and constants.accepted_order['id'] == str(self.algorithm_performed_sell_order_id):
             print("sell executed")
+            self.price_of_last_sale = float(constants.accepted_order['stop_price'])
             self.sell()
-            self.trader.order_id = None
             self.ready_to_sell = False
             self.order_active = False
+            constants.accepted_order = None
+
+
+        # cancel pending order if not executed
+        elif constants.pending_order is not None and float(constants.pending_order['hwm']) - self.data.close[0] > self.p.profit_threshold / 4 \
+                and not self.order_active:
+
+            self.trading_client.cancel_order_by_id(constants.pending_order['id'])
+            voice_alert(f"say the buy order made at a price {constants.pending_order['hwm']} has been canceled", 2)
+
+        elif constants.pending_order is not None and self.data.close[0] - float(constants.pending_order['hwm']) > self.p.profit_threshold / 4 \
+                and self.order_active:
+
+            self.trading_client.cancel_order_by_id(constants.pending_order['id'])
+            voice_alert(f"say the sell order made at a price {float(constants.pending_order['hwm'])} has been canceled", 2)
 
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
-        if self.price_of_last_purchase is not None and self.p.profit_threshold < self.price_of_last_purchase - self.data.close[0]:
+        if self.price_of_last_purchase is not None \
+                and self.p.profit_threshold < self.price_of_last_purchase - self.data.close[0]:
+            voice_alert("say Warning! The price has dropped significantly low. Trading has been stopped.", 5)
             print("immediately sold")
-            self.sell_order = self.trader.sell(self.data.close[0])
-            self.trader.order_id = None
             self.stop()
             return
         # ========== al_data = self.data_queue.get_nowait() ==========#
@@ -167,13 +180,8 @@ class SmaCrossStrategy(bt.Strategy):
 
             # 5. If in buy state, and volume is sufficient, and there's a positive crossover, then buy
             if self.ready_to_buy and self.data.volume[
-                0] > constants.average_volume and self.moving_avg_crossover_indicator > 0:
-                self.buy_order = self.trader.buy(self.data.close[0])
-                # TrailingStopOrderRequest
-                # self.ready_to_buy = False
-                # self.order_active = True
-                # print(self.buy_order)
-                # =========== self.price_of_last_purchase = self.data.close[0]
+                0] > constants.median_volume and self.moving_avg_crossover_indicator > 0:
+                self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
 
         # 6. If a buy order has been executed, consider selling
         elif self.order_active:
@@ -190,37 +198,29 @@ class SmaCrossStrategy(bt.Strategy):
 
             # 9. If in sell state, and volume is sufficient, and there's a negative crossover, then sell
             if self.ready_to_sell and self.data.volume[
-                0] > constants.average_volume and self.moving_avg_crossover_indicator < 0:
-                self.sell_order = self.trader.sell(self.data.close[0])
-                # self.ready_to_sell = False
-                # self.order_active = False
-                # ===========self.price_of_last_sale = self.data.close[0]
+                0] > constants.median_volume and self.moving_avg_crossover_indicator < 0:
+                self.algorithm_performed_sell_order_id = self.trader.sell(self.data.close[0])
 
-        # 10. Initiate strategy: If the current close price is below 'min_price', make the initial buy
+        # this is just for buy test purpose only will be deleted in future
         elif self.order_active is None and self.data.close[0] <= constants.min_price and self.data.close[-1] == 0:
-            self.buy_order = self.trader.buy(self.data.close[0])
-
-            # self.trader.order_id = None
-            # self.ready_to_buy = False
-            # self.order_active = False
-            print(f'initial buy order Id={self.buy_order}')
-            # =========== self.price_of_last_purchase = self.data.close[0]
+            self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
+            print(f'initial buy order Id={str(self.algorithm_performed_buy_order_id)}')
 
     def log(self, txt, dt=None):
         ''' Logging function for the strategy '''
         dt = dt or self.datas[0].datetime.date(0)
-        print(f'{dt.isoformat()}, {txt}')
+        # print(f'{dt.isoformat()}, {txt}')
 
     def notify_order(self, order):
         """Handle the events of executed orders."""
         if order.status in [order.Completed]:
             if order.isbuy():
-                self.price_of_last_purchase = order.executed.price
+
                 self.commission_on_last_purchase = order.executed.comm
                 self.log(f"Commission on Buy: {order.executed.comm}")
                 self.log('BUY EXECUTED, %.2f' % order.executed.price)
             elif order.issell():
-                self.price_of_last_sale = order.executed.price
+
                 # Calculate cumulative profit/loss after selling
                 self.cumulative_profit += ((self.price_of_last_sale - self.price_of_last_purchase) * abs(
                     order.executed.size)) - self.commission_on_last_purchase
@@ -236,18 +236,38 @@ class SmaCrossStrategy(bt.Strategy):
     # Main strategy logic
     def next(self):
         if self.live_mode:
-            # sleep(4)
-
-            self.live()
+            try:
+                self.live()
+            except KeyboardInterrupt:
+                print("KeyboardInterrupt received. shutting down trader...")
+                self.trader.trading_client.cancel_orders()
         else:
             if self.data.close[0] == 0:
                 self.total_return_on_investment = self.cumulative_profit / self.starting_balance
-                print(f"Roi= {self.total_return_on_investment *100}%\nTrading Count= {self.trading_count}")
+
+                # voice_alert(
+                #     "say  the back testing has been completed. " +
+                #     f"the return on investment is {round(self.total_return_on_investment * 100, 2)}% " +
+                #     f"and the trading count is {self.trading_count}", 1)
+
+                print(f"Roi= {round(self.total_return_on_investment * 100, 2)}%\nTrading Count= {self.trading_count}")
                 self.live_mode = True
-                self.trader = AlpacaTrader(api_key="PK167PR8HAC3D9G2XMLS",
-                                           secret_key="by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA")
-                thread = threading.Thread(target=run_in_thread)
+                self.trading_count = 0
+                self.trader = AlpacaTrader()
+                positions = self.trader.trading_client.get_all_positions()
+                if len(positions):  # todo test
+                    # force to sell if any sell orders left in Alpaca
+                    self.ready_to_buy = False
+                    self.order_active = True
+                    self.price_of_last_purchase = positions[0].avg_entry_price
+                else:
+                    # force to buy if no any sell orders left in Alpaca
+                    self.ready_to_sell = False
+                    self.order_active = False
+                    self.order_active = None  # todo remove
+
+                thread = threading.Thread(target=alpaca_trade_updates)  # start trade updates
                 thread.start()
-                print("live")
+
                 return
             self.back_test()

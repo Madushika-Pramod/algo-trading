@@ -16,6 +16,7 @@ from app.src import constants
 class AlpacaWebSocket:
 
     def __init__(self, key, secret, url, data_queue):
+        self.ws = None
         self.thread = None
         self.key = key
         self.secret = secret
@@ -24,18 +25,19 @@ class AlpacaWebSocket:
 
     def on_message(self, ws, message):
         for d in json.loads(message):
+            # print(d)
             if d.get('T') == 't':
                 self.data_queue.put(d)
-            # print(d)
+
 
     def on_error(self, ws, error):
-        print(f"Error occurred: {error}")
+        print(f"Error occurred on live data stream: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        print("Connection closed")
+        print("live data stream closed")
 
     def on_open(self, ws):
-        print("Connection opened")
+        print("live data stream opened")
         auth_data = {
             "action": "auth",
             "key": self.key,
@@ -75,7 +77,7 @@ class AlpacaStreamData(bt.feed.DataBase):
         self.data_queue = q
 
     def start(self):
-        self.ws = AlpacaWebSocket('PK167PR8HAC3D9G2XMLS', 'by3sIKrZzsJdCQv7fndkAm3qabYMUruc4G67qgTA',
+        self.ws = AlpacaWebSocket(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
                                   constants.data_stream_wss, self.data_queue)
         self.ws.start()
 
@@ -84,10 +86,12 @@ class AlpacaStreamData(bt.feed.DataBase):
 
     def _load(self):
         try:
-            al_data = self.data_queue.get()  # get_nowait() #.get(timeout=60)
+            al_data = self.data_queue.get(timeout=120)  # get_nowait()
             # print("alpaca data =", al_data)
             self._map_bar(al_data)
         except queue.Empty:
+            from app.src.voice_alert import voice_alert
+            voice_alert('say the queue is empty')
             print("queue empty")
             return False
         except Exception as e:
@@ -99,6 +103,7 @@ class AlpacaStreamData(bt.feed.DataBase):
 
         date_string = data_dict.get('t')
         if date_string and data_dict.get('T') == 't':
+
             # Trim the string to remove nanoseconds and trailing 'Z'
             date_string_trimmed = date_string[:23]
 
@@ -119,20 +124,18 @@ class AlpacaStreamData(bt.feed.DataBase):
 
 
 class AlpacaHistoricalData:
-    def __init__(self, symbol, period_in_days, csv_file_path, api_key=None,
-                 secret_key=None):
+    def __init__(self, symbol, period_in_days, csv_file_path):
         self.csv_file_path = csv_file_path
         self.symbol = symbol
         self.days = period_in_days
-        self.client = StockHistoricalDataClient(api_key or os.environ.get("API_KEY"),
-                                                secret_key or os.environ.get("SECRET_KEY"))
+        self.client = StockHistoricalDataClient(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"))
 
     def get_stock_historical_data(self, period=constants.time_frame):
         t_frame = TimeFrame.Minute
-        if period == "hour":
-            t_frame = TimeFrame.Hour
-        elif period == "minute":
-            t_frame = TimeFrame.Minute
+        # if period == "hour":
+        #     t_frame = TimeFrame.Hour
+        # elif period == "minute":
+        #     t_frame = TimeFrame.Minute
 
         start_date = datetime.now() - timedelta(days=self.days)
         #  Sri lanka is 5 hours and 30 minutes ahead of UTC + 15 min
@@ -161,8 +164,7 @@ class AlpacaHistoricalData:
 
 
 class AlpacaHistoricalDataApi:
-    def __init__(self, symbol, period_in_days, csv_file_path, api_key=None,
-                 secret_key=None):
+    def __init__(self, symbol, period_in_days, csv_file_path):
         self.csv_file_path = csv_file_path
         self.symbol = symbol
         self.days = period_in_days
@@ -170,8 +172,8 @@ class AlpacaHistoricalDataApi:
 
         self.headers = {
             "accept": "application/json",
-            "APCA-API-KEY-ID": f'{api_key or os.environ.get("API_KEY")}',
-            "APCA-API-SECRET-KEY": f'{secret_key or os.environ.get("SECRET_KEY")}'
+            "APCA-API-KEY-ID": f'{os.environ.get("API_KEY")}',
+            "APCA-API-SECRET-KEY": f'{os.environ.get("SECRET_KEY")}'
         }
 
     def _get_stock_historical_data(self):
@@ -213,7 +215,4 @@ class AlpacaHistoricalDataApi:
 
         print(f"Data has been written to '{self.csv_file_path}' file.")
 
-
-# AlpacaHistoricalData(constants.symbol, constants.period_in_days, constants.csv_file_path,
-#                      api_key="PKJ1POLUPS41MCXZDP73",
-#                      secret_key="6bkatV5bN5nWMr1o3Hr4ETkeIzY6RbdfA89NS1sc").save_to_csv()
+# AlpacaHistoricalData(constants.symbol, constants.period_in_days, constants.csv_file_path).save_to_csv()
