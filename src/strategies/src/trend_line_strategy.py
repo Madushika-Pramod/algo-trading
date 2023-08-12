@@ -1,7 +1,7 @@
 import backtrader as bt
 import numpy as np
 
-from app.src.constants import average_volume
+from app.src.constants import median_volume
 
 
 class TrendLine(bt.Indicator):
@@ -108,7 +108,7 @@ class TrendLineStrategy(bt.Strategy):
                 if self.buy_status:  # Cross above lower Bollinger Band
                     if self.previous_low is None or self.data.low[0] > self.previous_low:  # Higher low
 
-                        if self.data.volume[0] > average_volume and real_slope < 0 < slope_predicted:
+                        if self.data.volume[0] > median_volume and real_slope < 0 < slope_predicted:
                             self.buy()
                             self.buy_status = False
                             self.order_status = True
@@ -124,7 +124,7 @@ class TrendLineStrategy(bt.Strategy):
             if self.sell_status:  # Cross below upper Bollinger Band
                 if self.previous_high is None or self.data.high[0] < self.previous_high:  # Lower high
 
-                    if self.data.volume[0] > average_volume and real_slope > 0 > slope_predicted:
+                    if self.data.volume[0] > median_volume and real_slope > 0 > slope_predicted:
                         self.sell()
                         self.sell_status = False  # now it's a buy status
                         self.order_status = False

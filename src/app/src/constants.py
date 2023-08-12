@@ -2,19 +2,22 @@
 import os
 from datetime import datetime
 
-
 # Get the directory of the current file
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 _parent_dir = os.path.dirname(os.path.dirname(_current_dir))
 
-# Construct the full path to the data file
-GOOGLE_ORDER = 0
+#variables ==>
+pending_order = None
+accepted_order = None
+# <==
+
 symbol = "GOOGL"
-commission = 0.0  #0.005
-min_price = 13_081
-average_volume = 24_585
+commission = 0.0  # 0.005
+min_price = 130.81
+median_volume = 24_585
 stat_id = datetime.now()
 stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{stat_id}.csv')
+voice_alert_frequency = 3
 
 time_frame = "minute"  # hour
 period_in_days = 10
@@ -32,3 +35,4 @@ market_data_url = 'https://data.alpaca.markets/v2/stocks/'
 trade_stream_wss = 'wss://paper-api.alpaca.markets/stream'
 data_stream_wss = 'wss://stream.data.alpaca.markets/v2/iex'
 # best_strategy = MovingAverageADXStrategy
+

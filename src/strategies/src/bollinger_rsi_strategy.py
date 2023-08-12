@@ -3,7 +3,7 @@ import threading
 
 import backtrader as bt
 
-from app.src.constants import average_volume
+from app.src.constants import median_volume
 
 
 # Create a Strategy
@@ -57,7 +57,7 @@ class BollingerRSIStrategy(bt.Strategy):
                         if self.rsi[0] < self.p.rsi_low:
                             self.waiting_for_rsi_to_come_back_up = True
                         elif self.waiting_for_rsi_to_come_back_up and self.rsi[0] > self.p.rsi_low:
-                            if self.data.volume[0] > average_volume:
+                            if self.data.volume[0] > median_volume:
                                 self.buy()
 
                                 self.buy_status = False
@@ -77,7 +77,7 @@ class BollingerRSIStrategy(bt.Strategy):
                     if self.rsi[0] > self.p.rsi_high:
                         self.waiting_for_rsi_to_come_back_down = True
                     elif self.waiting_for_rsi_to_come_back_down and self.rsi[0] < self.p.rsi_high:
-                        if self.data.volume[0] > average_volume:
+                        if self.data.volume[0] > median_volume:
                             self.sell()
                             self.sell_status = False  # now it's a buy status
                             self.waiting_for_rsi_to_come_back_down = False

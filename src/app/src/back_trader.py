@@ -120,25 +120,25 @@ class BacktraderStrategy:
     def run(self):
 
         if self.live:
-            self.cerebro.run(live=True)
+            strategies = self.cerebro.run(live=True)
             # todo
-            return 0.00
-        else:
+        #     return 0.00
+        # else:
             # startcash = self.cerebro.broker.getvalue()
-
+        else:
             strategies = self.cerebro.run()
-            # endcash = self.cerebro.broker.getvalue()
-            # roi = (endcash - startcash) / startcash
+        # endcash = self.cerebro.broker.getvalue()
+        # roi = (endcash - startcash) / startcash
 
-            # print('ROI not from strategy: {:.2f}%'.format(100.0 * roi))
+        # print('ROI not from strategy: {:.2f}%'.format(100.0 * roi))
 
-            # self.cerebro.plot(style='candle')
-            # self.cerebro.plot()
-            # strat = strategies[0]
-            # analysis = strat.analyzers.trade_analyzer.get_analysis()
-            # display_statistics(analysis)
-            # print("roi2:", strategies[0].roi2)
-            return strategies[0]
+        # self.cerebro.plot(style='candle')
+        # self.cerebro.plot()
+        # strat = strategies[0]
+        # analysis = strat.analyzers.trade_analyzer.get_analysis()
+        # display_statistics(analysis)
+        # print("roi2:", strategies[0].roi2)
+        return strategies[0]
 
 # def back_test(strategies):
 #     for strategy in strategies:
