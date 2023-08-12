@@ -112,6 +112,7 @@ class AlpacaStreamData(bt.feed.DataBase):
             self.lines.datetime[0] = bt.date2num(date)
             self.lines.close[0] = self.lines.low[0] = self.lines.high[0] = self.lines.open[0] = data_dict["p"]
             self.lines.volume[0] = data_dict["s"]
+            # todo add line.volumes to A LIST
         else:
             date_string = data_dict.get('timestamp')
             if date_string:

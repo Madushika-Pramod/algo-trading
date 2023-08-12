@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 
@@ -12,7 +13,19 @@ from app.src import constants
 from app.src.voice_alert import voice_alert
 
 
-async def alpaca_trade_ws():
+def get_trade_updates():
+    # Create a new loop for the current thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        # Now use this loop to run your async function
+        loop.run_until_complete(alpaca_trade_updates_ws())
+    finally:
+        print("close alpaca_ws")
+        loop.close()
+
+
+async def alpaca_trade_updates_ws():
     async with websockets.connect(constants.trade_stream_wss) as ws:
         # Authenticate
         auth_data = {
@@ -44,22 +57,23 @@ async def alpaca_trade_ws():
                 constants.pending_order = trade['order']  # todo
                 voice_alert(f"say a {trade['order']['side']} order is placed", 1)
                 voice_alert("say placed", 1)
-                print(f"a {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                print(
+                    f"a {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
 
             elif trade['event'] == 'accepted':
                 constants.accepted_order = trade['order']
                 voice_alert(f"say a {trade['order']['side']} order is executed", 1)
                 voice_alert("say executed", 1)
-                print(f"a {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                print(
+                    f"a {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
             elif trade['event'] == 'canceled':
 
                 voice_alert(f"say a {trade['order']['side']} order is canceled", 1)
                 voice_alert("say canceled", 1)
-                print(f"a {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
-
-
+                print(
+                    f"a {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
             # q.put(message)
 
@@ -121,7 +135,7 @@ class AlpacaTrader:
         return ""
 
     def _buy_quantity(self, price):
-        cash = self.trading_client.get_account().cash  #buying_power todo
+        cash = self.trading_client.get_account().cash  # buying_power todo
 
         # Calculate maximum shares factoring in the commission
         return int(float(cash) / (price + constants.commission))

@@ -1,6 +1,6 @@
 import asyncio
 
-from app.src.alpaca_trader import AlpacaTrader, alpaca_trade_ws
+from app.src.alpaca_trader import AlpacaTrader, alpaca_trade_updates_ws
 from app.src import constants
 from strategies import SmaCrossStrategy
 
@@ -11,7 +11,7 @@ def run_in_thread():
     asyncio.set_event_loop(loop)
     try:
         # Now use this loop to run your async function
-        loop.run_until_complete(alpaca_trade_ws())
+        loop.run_until_complete(alpaca_trade_updates_ws())
     finally:
         print("close alpaca_ws")
         loop.close()

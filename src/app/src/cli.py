@@ -11,11 +11,11 @@ def run_single(live=False):
     strategy = (
         SmaCrossStrategy,
         dict(
-            fast_ma_period=10,
-            slow_ma_period=34,
-            high_low_period=15,
-            high_low_tolerance=0.3,
-            profit_threshold=2.5
+            fast_ma_period=11,
+            slow_ma_period=15,
+            high_low_period=10,
+            high_low_tolerance=0.2,
+            profit_threshold=1.0
         ))
 
     # strategy = (DemoStrategy, {})
@@ -294,6 +294,6 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    run_single(live=True)
+    run_single()
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)
