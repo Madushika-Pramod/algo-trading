@@ -11,6 +11,7 @@ from alpaca.data import StockHistoricalDataClient, StockBarsRequest, TimeFrame
 from websocket import WebSocketApp
 
 from app.src import constants
+from app.src.voice_alert import voice_alert
 
 
 class AlpacaWebSocket:
@@ -28,7 +29,6 @@ class AlpacaWebSocket:
             # print(d)
             if d.get('T') == 't':
                 self.data_queue.put(d)
-
 
     def on_error(self, ws, error):
         print(f"Error occurred on live data stream: {error}")
@@ -75,6 +75,7 @@ class AlpacaStreamData(bt.feed.DataBase):
         super().__init__()
         self.ws = None
         self.data_queue = q
+        # self.tick_data = ["timestamp", "open", "high", "low", "close", "volume", "trade count", "vwap"]  # todo for tick data volume
 
     def start(self):
         self.ws = AlpacaWebSocket(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
@@ -84,16 +85,27 @@ class AlpacaStreamData(bt.feed.DataBase):
     def stop(self):
         self.ws.stop()
 
+        # writing tick data to a csv file
+        # with open(constants.tick_file_path, 'w', newline='') as csvfile:
+        #     writer = csv.writer(csvfile)
+        #     for data in self.tick_data:
+        #         writer.writerow(data)
+
     def _load(self):
         try:
             al_data = self.data_queue.get(timeout=120)  # get_nowait()
             # print("alpaca data =", al_data)
             self._map_bar(al_data)
         except queue.Empty:
-            from app.src.voice_alert import voice_alert
+
             voice_alert('say the queue is empty')
             print("queue empty")
             return False
+        except KeyboardInterrupt:
+            print("KeyboardInterrupt")
+            voice_alert('say the trading has been terminated', 1)
+            return False
+
         except Exception as e:
             print("An error occurred: ", e)
 
@@ -111,8 +123,9 @@ class AlpacaStreamData(bt.feed.DataBase):
             date = datetime.strptime(date_string_trimmed, '%Y-%m-%dT%H:%M:%S.%f')
             self.lines.datetime[0] = bt.date2num(date)
             self.lines.close[0] = self.lines.low[0] = self.lines.high[0] = self.lines.open[0] = data_dict["p"]
-            self.lines.volume[0] = data_dict["s"]
-            # todo add line.volumes to A LIST
+            self.lines.volume[0] = data_dict["p"]
+            # self.tick_data.append(f'{date_string_trimmed}, {data_dict["p"]}, {data_dict["p"]}, {data_dict["p"]}, {data_dict["p"]},{data_dict["p"]}')
+            # do this before submit date = datetime.strptime(date_string_trimmed, '%Y-%m-%dT%H:%M:%S.%f')
         else:
             date_string = data_dict.get('timestamp')
             if date_string:
@@ -150,8 +163,8 @@ class AlpacaHistoricalData:
 
         return self.client.get_stock_bars(request_params).data
 
-    def save_to_csv(self):
-        bars = self.get_stock_historical_data()
+    def save_to_csv(self, data=None):
+        bars = data or self.get_stock_historical_data()
         header = list(dict(bars[self.symbol][0]).keys())
 
         with open(self.csv_file_path, 'w', newline='') as file:

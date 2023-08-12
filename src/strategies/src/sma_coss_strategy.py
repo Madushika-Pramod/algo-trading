@@ -53,12 +53,13 @@ class SmaCrossStrategy(bt.Strategy):
     def back_test(self):
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
-        # if self.price_of_last_purchase is not None and self.p.profit_threshold * 3 < self.price_of_last_purchase - \
-        #         self.data.close[0]:
-        #     self.price_of_last_sale = self.data.close[0]
-        #     self.sell()
-        #     self.stop()
-        #     return
+        if self.price_of_last_purchase is not None and self.p.profit_threshold * 3 < self.price_of_last_purchase - \
+                self.data.close[0]:
+            self.price_of_last_sale = self.data.close[0]
+            self.sell()
+            self.stop()
+            raise Exception("===xxxxxx===")
+
 
         # 2. If there's no existing buy order, consider buying
         # notice:we can't use `if not self.order_active:`
@@ -148,7 +149,7 @@ class SmaCrossStrategy(bt.Strategy):
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
         if self.price_of_last_purchase is not None \
-                and self.p.profit_threshold < self.price_of_last_purchase - self.data.close[0]:
+                and self.p.profit_threshold * 3 < self.price_of_last_purchase - self.data.close[0]:
             voice_alert("say Warning! The price has dropped significantly low. Trading has been stopped.", 5)
             print("immediately sold")
             self.stop()
@@ -227,8 +228,9 @@ class SmaCrossStrategy(bt.Strategy):
     def stop(self):
         # Calculate the ROI based on the net profit and starting balance
         self.total_return_on_investment = self.cumulative_profit / self.starting_balance
-
-
+        if self.live_mode:
+            self.trader.trading_client.cancel_orders()
+            print("pending orders canceled")
 
     # Main strategy logic
     def next(self):
@@ -239,6 +241,9 @@ class SmaCrossStrategy(bt.Strategy):
                 print("KeyboardInterrupt received. shutting down trader...")
                 self.trader.trading_client.cancel_orders()
                 # todo add stop order for pre-market period
+                # doesn't reach todo
+            except:
+                print("accepted")
         else:
             if self.data.close[0] == 0:
                 self.total_return_on_investment = self.cumulative_profit / self.starting_balance

@@ -12,8 +12,9 @@ We strongly advise understanding the potential financial risks associated with a
 
 ## 🔧 System Requirements
 
-- Python 3.9
+- Python 3.11
 - Pdm ([Installation Guide](https://pdm.fming.dev/latest/))
+- Mac Os (for voice alerts) 
 
 ## 💻 Installation & Configuration Steps
 

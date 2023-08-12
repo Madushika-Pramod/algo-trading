@@ -6,7 +6,7 @@ from app.src.constants import voice_alert_frequency
 
 def _run_os_system(command, repeat):
     for _ in range(repeat):
-        os.system(command)
+        os.system(command)  # todo depend on mac os
 
 
 def voice_alert(msg, repeat=voice_alert_frequency):
