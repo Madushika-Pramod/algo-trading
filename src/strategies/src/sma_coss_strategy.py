@@ -53,7 +53,7 @@ class SmaCrossStrategy(bt.Strategy):
     def back_test(self):
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
-        if self.price_of_last_purchase is not None and self.p.profit_threshold * 3 < self.price_of_last_purchase - \
+        if self.price_of_last_purchase is not None and self.p.profit_threshold * 4 < self.price_of_last_purchase - \
                 self.data.close[0]:
             self.price_of_last_sale = self.data.close[0]
             self.sell()
@@ -149,7 +149,7 @@ class SmaCrossStrategy(bt.Strategy):
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
         if self.price_of_last_purchase is not None \
-                and self.p.profit_threshold * 3 < self.price_of_last_purchase - self.data.close[0]:
+                and self.p.profit_threshold * 4 < self.price_of_last_purchase - self.data.close[0]:
             voice_alert("say Warning! The price has dropped significantly low. Trading has been stopped.", 5)
             print("immediately sold")
             self.stop()

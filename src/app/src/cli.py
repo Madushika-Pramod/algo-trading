@@ -11,10 +11,21 @@ def run_single(live=False):
     strategy = (
         SmaCrossStrategy,
         dict(
-            fast_ma_period=14,
-            slow_ma_period=52,
-            high_low_period=20,
-            high_low_tolerance=0.3,
+
+            # fast_ma_period=14,
+            # slow_ma_period=52,
+            # high_low_period=20,
+            # high_low_tolerance=0.3,
+            # profit_threshold=1.0
+            # fast_ma_period=15,
+            # slow_ma_period=30,
+            # high_low_period=8,
+            # high_low_tolerance=0.2,
+            # profit_threshold=1.0
+            fast_ma_period=16,
+            slow_ma_period=30,
+            high_low_period=8,
+            high_low_tolerance=0.2,
             profit_threshold=1.0
         ))
 
