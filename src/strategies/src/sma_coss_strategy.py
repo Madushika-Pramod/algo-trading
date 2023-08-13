@@ -204,7 +204,7 @@ class SmaCrossStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         ''' Logging function for the strategy '''
         dt = dt or self.datas[0].datetime.date(0)
-        # print(f'{dt.isoformat()}, {txt}')
+        print(f'{dt.isoformat()}, {txt}')
 
 
     def notify_order(self, order):
@@ -220,8 +220,10 @@ class SmaCrossStrategy(bt.Strategy):
                 # Calculate cumulative profit/loss after selling
                 self.cumulative_profit += ((self.price_of_last_sale - self.price_of_last_purchase) * abs(
                     order.executed.size)) - self.commission_on_last_purchase
+
                 self.trading_count += 1
                 self.log('SELL EXECUTED, %.2f' % order.executed.price)
+                print(f"total profit on trades:{self.cumulative_profit}")
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log('Order Canceled/Margin/Rejected')
 
@@ -255,8 +257,10 @@ class SmaCrossStrategy(bt.Strategy):
 
                 print(f"Roi= {round(self.total_return_on_investment * 100, 3)}%\nTrading Count= {self.trading_count}")
                 self.live_mode = True
-                self.trading_count = 0
                 self.trader = AlpacaTrader()
+                self.starting_balance = self.trader.cash
+                self.trading_count = 0
+                self.total_return_on_investment = 0
                 positions = self.trader.trading_client.get_all_positions()
                 if len(positions):  # todo test
                     # force to sell if any sell orders left in Alpaca

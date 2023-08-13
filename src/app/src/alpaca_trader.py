@@ -88,6 +88,7 @@ def get_last_trade_from_sdk():
 
 class AlpacaTrader:
     def __init__(self):
+        self.cash = constants.cash
         self.algo_price = None
         self.trading_client = TradingClient(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"), paper=True)
 
@@ -134,7 +135,7 @@ class AlpacaTrader:
         return ""
 
     def _buy_quantity(self, price):
-        cash = self.trading_client.get_account().cash  # buying_power todo
+        self.cash = self.trading_client.get_account().cash  # buying_power todo
 
         # Calculate maximum shares factoring in the commission
-        return int(float(cash) / (price + constants.commission))
+        return int(float(self.cash / (price + constants.commission)))
