@@ -54,7 +54,7 @@ class SmaCrossStrategy(bt.Strategy):
             self.price_of_last_sale = self.data.close[0]
             self.sell()
             self.stop()
-            raise Exception("===xxxxxx===")
+            raise Exception("===xxx Trading Terminated xxx===")
 
         # 2. If there's no existing buy order, consider buying
         # notice:we can't use `if not self.order_active:`
@@ -151,10 +151,12 @@ class SmaCrossStrategy(bt.Strategy):
         # sell immediately and stop trading
         if self.price_of_last_purchase is not None \
                 and self.p.profit_threshold * 4 < self.price_of_last_purchase - self.data.close[0]:
+            r = self.traderself.trading_client.close_all_positions(cancel_orders=True)
+            print(r)
             voice_alert("say Warning! The price has dropped significantly low. Trading has been stopped.", 5)
             print("immediately sold")
             self.stop()
-            return
+            raise Exception("===xxx Trading Terminated xxx===")
         # ========== al_data = self.data_queue.get_nowait() ==========#
         # =========== if al_data:
 
@@ -244,8 +246,7 @@ class SmaCrossStrategy(bt.Strategy):
                 self.trader.trading_client.cancel_orders()
                 # todo add stop order for pre-market period
                 # doesn't reach todo
-            except:
-                print("accepted")
+
         else:
             if self.data.close[0] == 0:
                 self.total_return_on_investment = self.cumulative_profit / self.starting_balance
@@ -258,7 +259,7 @@ class SmaCrossStrategy(bt.Strategy):
                 print(f"Roi= {round(self.total_return_on_investment * 100, 3)}%\nTrading Count= {self.trading_count}")
                 self.live_mode = True
                 self.trader = AlpacaTrader()
-                self.starting_balance = self.trader.cash
+                self.starting_balance = float(self.trader.cash)
                 self.trading_count = 0
                 self.total_return_on_investment = 0
                 positions = self.trader.trading_client.get_all_positions()

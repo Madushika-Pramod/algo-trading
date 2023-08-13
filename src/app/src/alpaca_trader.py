@@ -7,6 +7,7 @@ from alpaca.data.historical.stock import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestTradeRequest
 from alpaca.trading import OrderSide, TimeInForce
 from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.requests import TrailingStopOrderRequest
 
 from app.src import constants
@@ -88,11 +89,13 @@ def get_last_trade_from_sdk():
 
 class AlpacaTrader:
     def __init__(self):
-        self.cash = constants.cash
         self.algo_price = None
         self.trading_client = TradingClient(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"), paper=True)
+        self.account = self.trading_client.get_account()
+        self.cash = self.account.cash  # buying_power todo
 
     def buy(self, price):
+        self.account = self.trading_client.get_account()
         self.algo_price = price
         trailing_stop_order_data = TrailingStopOrderRequest(
             symbol=constants.symbol,
@@ -100,20 +103,60 @@ class AlpacaTrader:
             time_in_force=TimeInForce.DAY,
             trail_percent=0.1,
         )
+        market_order_data = MarketOrderRequest(
+            symbol=constants.symbol,
+            side=OrderSide.BUY,
+            time_in_force=TimeInForce.DAY,
+            notional=0
+        )
         current_price = get_last_trade_from_sdk()[constants.symbol].price
 
-        if current_price < self.algo_price:  # price decreasing
+        if current_price < self.algo_price:  # or self.account.daytrade_count == 3:  # price decreasing or day trade count reach
             print(f"algo price={self.algo_price} > current price={current_price} <=> price decreasing")
             return ""
 
         # execute new trailing stop order
         trailing_stop_order_data.qty = self._buy_quantity(current_price)
+        market_order_data.notional = float(self.account.cash) - current_price * trailing_stop_order_data.qty
         if trailing_stop_order_data.qty > 0:
-            return self.trading_client.submit_order(order_data=trailing_stop_order_data).id
+            order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
+            _ = self.trading_client.submit_order(order_data=market_order_data).id
+            return order
+
         return ""
 
+    # def market_order(self, price):
+    #     #todo get pre-market bar data for improve this
+    #
+    #
+    #     trailing_stop_order_data = Stop(
+    #         symbol=constants.symbol,
+    #         qty=self.trading_client.get_open_position(constants.symbol).qty,
+    #         side=OrderSide.SELL,
+    #         time_in_force=TimeInForce.DAY,
+    #         trail_percent=0.1,
+    #     )
+    #
+    #
+    #     # execute new trailing stop order
+    #     if trailing_stop_order_data.qty > 0:
+    #         return self.trading_client.submit_order(order_data=trailing_stop_order_data).id
+    #     return ""
+
+    def market_sell(self, notional=0.0):
+
+        market_order_data = MarketOrderRequest(
+            symbol=constants.symbol,
+            side=OrderSide.SELL,
+            time_in_force=TimeInForce.DAY,
+            notional=notional
+        )
+        return self.trading_client.submit_order(order_data=market_order_data)
+
     def sell(self, price):
+        self.account = self.trading_client.get_account()
         self.algo_price = price
+        current_price = get_last_trade_from_sdk()[constants.symbol].price
 
         trailing_stop_order_data = TrailingStopOrderRequest(
             symbol=constants.symbol,
@@ -122,20 +165,22 @@ class AlpacaTrader:
             time_in_force=TimeInForce.DAY,
             trail_percent=0.1,
         )
-
-        current_price = get_last_trade_from_sdk()[constants.symbol].price
-
         if current_price > self.algo_price:  # price increasing
             print(f"algo price={self.algo_price} < current price={current_price} <=> price increasing")
             return ""
-
         # execute new trailing stop order
         if trailing_stop_order_data.qty > 0:
-            return self.trading_client.submit_order(order_data=trailing_stop_order_data).id
+            order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
+            _ = self.market_sell(notional=float(self.account.cash) - current_price * trailing_stop_order_data.qty).id
+            return order
         return ""
 
     def _buy_quantity(self, price):
-        self.cash = self.trading_client.get_account().cash  # buying_power todo
 
         # Calculate maximum shares factoring in the commission
-        return int(float(self.cash / (price + constants.commission)))
+        return int(float(self.account.cash) / (
+                price + constants.commission))  # todo check this wheather when calling saved variable account.cash all ways get new cash value
+
+
+t = AlpacaTrader()
+t.buy(float(129))
