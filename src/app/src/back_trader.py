@@ -8,6 +8,7 @@ from app.src.alpaca_data import AlpacaStreamData
 from app.src import constants
 # from app.src.alpaca_data import AlpacaHistoricalData
 from app.src.trade_analyzer import TradeAnalyzer
+from strategies import SmaCrossStrategy
 
 
 # from .alpaca_data import AlpacaHistoricalData
@@ -140,9 +141,11 @@ class BacktraderStrategy:
         # print("roi2:", strategies[0].roi2)
         return strategies[0]
 
-# def back_test(strategies):
-#     for strategy in strategies:
-#         BacktraderStrategy(strategy).run()
+
+
+
+
+
 
 
 # DataHandler().load_data()
@@ -150,11 +153,10 @@ class BacktraderStrategy:
 # strategy = (
 #         SmaCrossStrategy,
 #         dict(
-#             pfast=2,  # 50 period for the fast moving average
-#             pslow=23,  # 200 period for the slow moving average
-#             high_low_period=8,
-#             high_low_error=0.5,
-#             gain_value=3.0
+#             fast_ma_period=19,
+#             slow_ma_period=36,
+#             high_low_period=16,
+#             high_low_tolerance=0.3,
+#             profit_threshold=1.0
 #         ))
 # score = BacktraderStrategy(live=True).add_strategy(strategy).run()
-# print(score)

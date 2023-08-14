@@ -7,8 +7,7 @@ from alpaca.data.historical.stock import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestTradeRequest
 from alpaca.trading import OrderSide, TimeInForce
 from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import MarketOrderRequest
-from alpaca.trading.requests import TrailingStopOrderRequest
+from alpaca.trading.requests import MarketOrderRequest, TrailingStopOrderRequest, LimitOrderRequest, StopOrderRequest
 
 from app.src import constants
 from app.src.voice_alert import voice_alert
@@ -92,7 +91,7 @@ class AlpacaTrader:
         self.algo_price = None
         self.trading_client = TradingClient(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"), paper=True)
         self.account = self.trading_client.get_account()
-        self.cash = self.account.cash  # buying_power todo
+        self.cash = self.account.buying_power  # buying_power todo
 
     def buy(self, price):
         self.account = self.trading_client.get_account()
@@ -103,12 +102,7 @@ class AlpacaTrader:
             time_in_force=TimeInForce.DAY,
             trail_percent=0.1,
         )
-        market_order_data = MarketOrderRequest(
-            symbol=constants.symbol,
-            side=OrderSide.BUY,
-            time_in_force=TimeInForce.DAY,
-            notional=0
-        )
+
         current_price = get_last_trade_from_sdk()[constants.symbol].price
 
         if current_price < self.algo_price:  # or self.account.daytrade_count == 3:  # price decreasing or day trade count reach
@@ -117,10 +111,10 @@ class AlpacaTrader:
 
         # execute new trailing stop order
         trailing_stop_order_data.qty = self._buy_quantity(current_price)
-        market_order_data.notional = float(self.account.cash) - current_price * trailing_stop_order_data.qty
         if trailing_stop_order_data.qty > 0:
             order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
-            _ = self.trading_client.submit_order(order_data=market_order_data).id
+            _ = self.market_buy(
+                notional=float(self.account.buying_power) - current_price * trailing_stop_order_data.qty).id
             return order
 
         return ""
@@ -143,13 +137,25 @@ class AlpacaTrader:
     #         return self.trading_client.submit_order(order_data=trailing_stop_order_data).id
     #     return ""
 
-    def market_sell(self, notional=0.0):
+    def market_buy(self, notional=0.0, extended_hours=False):
 
+        market_order_data = MarketOrderRequest(
+            symbol=constants.symbol,
+            side=OrderSide.BUY,
+            time_in_force=TimeInForce.DAY,
+            notional=notional,
+            extended_hours=extended_hours
+
+        )
+        return self.trading_client.submit_order(order_data=market_order_data)
+
+    def market_sell(self, notional=0.0, extended_hours=False):
         market_order_data = MarketOrderRequest(
             symbol=constants.symbol,
             side=OrderSide.SELL,
             time_in_force=TimeInForce.DAY,
-            notional=notional
+            notional=notional,
+            extended_hours=extended_hours
         )
         return self.trading_client.submit_order(order_data=market_order_data)
 
@@ -171,16 +177,39 @@ class AlpacaTrader:
         # execute new trailing stop order
         if trailing_stop_order_data.qty > 0:
             order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
-            _ = self.market_sell(notional=float(self.account.cash) - current_price * trailing_stop_order_data.qty).id
+            _ = self.market_sell(
+                notional=float(self.account.buying_power) - current_price * trailing_stop_order_data.qty).id
             return order
         return ""
 
     def _buy_quantity(self, price):
 
         # Calculate maximum shares factoring in the commission
-        return int(float(self.account.cash) / (
+        return int(float(self.account.buying_power) / (
                 price + constants.commission))  # todo check this wheather when calling saved variable account.cash all ways get new cash value
 
 
-t = AlpacaTrader()
-t.buy(float(129))
+# t = AlpacaTrader()
+# #
+# stop_order_data = StopOrderRequest(
+#     symbol=constants.symbol,
+#     side=OrderSide.BUY,
+#     time_in_force=TimeInForce.DAY,
+#     qty=1,
+#     stop_price=100,
+#     extended_hours=True
+# )
+#
+# # limit_order_data = LimitOrderRequest(
+# #     symbol=constants.symbol,
+# #     side=OrderSide.SELL,
+# #     time_in_force=TimeInForce.DAY,
+# #     qty=1,
+# #     limit_price=100,
+# #     extended_hours=True
+# # )
+# t.trading_client.submit_order(order_data=stop_order_data)
+#
+
+
+

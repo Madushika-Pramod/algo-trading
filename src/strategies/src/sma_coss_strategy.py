@@ -15,7 +15,7 @@ class SmaCrossStrategy(bt.Strategy):
         slow_ma_period=15,  # Period for the slow moving average
         high_low_period=20,  # Period for tracking highest and lowest prices
         high_low_tolerance=0.15,  # Tolerance for approximating high or low prices
-        profit_threshold=2  # Threshold to decide when to sell based on profit
+        profit_threshold=2,  # Threshold to decide when to sell based on profit
 
     )
 
@@ -107,7 +107,6 @@ class SmaCrossStrategy(bt.Strategy):
             self.buy()
             self.ready_to_buy = False
             self.order_active = True
-
 
     def live(self):
         print(f'live-{self.data.close[0]}--time-{self.data.datetime[0]}')
@@ -238,44 +237,83 @@ class SmaCrossStrategy(bt.Strategy):
 
     # Main strategy logic
     def next(self):
-        if self.live_mode:
-            try:
-                self.live()
-            except KeyboardInterrupt:
-                print("KeyboardInterrupt received. shutting down trader...")
-                self.trader.trading_client.cancel_orders()
-                # todo add stop order for pre-market period
-                # doesn't reach todo
+        # if self.live_mode:
+        #     try:
+        #         self.live()
+        #     except KeyboardInterrupt:
+        #         print("KeyboardInterrupt received. shutting down trader...")
+        #         self.trader.trading_client.cancel_orders()
+        #         # todo add stop order for pre-market period
+        #         # doesn't reach todo
+        #
+        # else:
+        # if self.data.close[0] == 0:
+        #     self.total_return_on_investment = self.cumulative_profit / self.starting_balance
+        #
+        #     # voice_alert(
+        #     #     "say  the back testing has been completed. " +
+        #     #     f"the return on investment is {round(self.total_return_on_investment * 100, 1)}% " +
+        #     #     f"and the trading count is {self.trading_count}", 1)
+        #
+        #     print(f"Roi= {round(self.total_return_on_investment * 100, 3)}%\nTrading Count= {self.trading_count}")
+        #     self.live_mode = True
+        #     self.trader = AlpacaTrader()
+        #     self.starting_balance = float(self.trader.cash)
+        #     self.trading_count = 0
+        #     self.total_return_on_investment = 0
+        #     positions = self.trader.trading_client.get_all_positions()
+        #     if len(positions):  # todo test
+        #         # force to sell if any sell orders left in Alpaca
+        #         self.ready_to_buy = False
+        #         self.order_active = True
+        #         self.price_of_last_purchase = positions[0].avg_entry_price
+        #     else:
+        #         # force to buy if no any sell orders left in Alpaca
+        #         self.ready_to_sell = False
+        #         self.order_active = False
+        #         self.order_active = None  # todo remove
+        #
+        #     thread = threading.Thread(target=get_trade_updates)  # start trade updates
+        #     thread.start()
+        #
+        #     return
+        if self.cerebro.params.live:
+            if self.live_mode:
+                try:
+                    self.live()
+                except KeyboardInterrupt:
+                    print("KeyboardInterrupt received. shutting down trader...")
+                    self.trader.trading_client.cancel_orders()
+                    # todo add stop order for pre-market period
+                    # doesn't reach todo
 
-        else:
-            if self.data.close[0] == 0:
-                self.total_return_on_investment = self.cumulative_profit / self.starting_balance
+            elif self.data.close[0] == 0:
 
-                # voice_alert(
-                #     "say  the back testing has been completed. " +
-                #     f"the return on investment is {round(self.total_return_on_investment * 100, 1)}% " +
-                #     f"and the trading count is {self.trading_count}", 1)
-
-                print(f"Roi= {round(self.total_return_on_investment * 100, 3)}%\nTrading Count= {self.trading_count}")
                 self.live_mode = True
                 self.trader = AlpacaTrader()
                 self.starting_balance = float(self.trader.cash)
                 self.trading_count = 0
                 self.total_return_on_investment = 0
+                constants.median_volume = 500
                 positions = self.trader.trading_client.get_all_positions()
                 if len(positions):  # todo test
-                    # force to sell if any sell orders left in Alpaca
+                    # this is a fake sell state if any sell orders left in Alpaca
                     self.ready_to_buy = False
                     self.order_active = True
-                    self.price_of_last_purchase = positions[0].avg_entry_price
+                    if len(positions) == 2:  # if market order and stop order exists
+                        self.price_of_last_purchase = positions[0].avg_entry_price if positions[0].qty > positions[
+                            1].qty else positions[1].avg_entry_price
+                    else:  # if 1 order exists
+                        self.price_of_last_purchase = positions[0].avg_entry_price
                 else:
-                    # force to buy if no any sell orders left in Alpaca
+                    # this is a fake buy state if no any sell orders left in Alpaca
                     self.ready_to_sell = False
                     self.order_active = False
-                    self.order_active = None  # todo remove
+                    # initially, make algorithm to ignore profit_threshold
+                    self.price_of_last_sale = self.data.close[0] + self.p.profit_threshold + 0.01
 
                 thread = threading.Thread(target=get_trade_updates)  # start trade updates
                 thread.start()
 
-                return
+        else:
             self.back_test()

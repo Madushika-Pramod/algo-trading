@@ -24,11 +24,20 @@ def run_single(live=False):
             # high_low_tolerance=0.2,
             # profit_threshold=1.0
 
-            fast_ma_period=16,
-            slow_ma_period=30,
-            high_low_period=8,
-            high_low_tolerance=0.2,
+            # fast_ma_period=16,
+            # slow_ma_period=30,
+            # high_low_period=8,
+            # high_low_tolerance=0.2,
+            # profit_threshold=1.0
+
+            # //// 14/
+
+            fast_ma_period=19,
+            slow_ma_period=36,
+            high_low_period=16,
+            high_low_tolerance=0.3,
             profit_threshold=1.0
+
         ))
 
     # strategy = (DemoStrategy, {})

@@ -27,8 +27,8 @@ period_in_days = 10
 # it might attempt to different position when you change cash amount so
 # adjust`AllInSizer._getsizing()`if you get an error, also fractional sizes not allowed in backtrader for current config
 cash = 5_000
-# csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
-csv_file_path = os.path.join(_parent_dir, 'datas', 'appl2.csv')
+csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
+# csv_file_path = os.path.join(_parent_dir, 'datas', 'appl2.csv')
 
 data_download = 0
 # time_for_rate_limit = 3

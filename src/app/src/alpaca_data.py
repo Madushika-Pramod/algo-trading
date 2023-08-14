@@ -26,7 +26,7 @@ class AlpacaWebSocket:
 
     def on_message(self, ws, message):
         for d in json.loads(message):
-            # print(d)
+            print(d)
             if d.get('T') == 't':
                 self.data_queue.put(d)
 
@@ -123,7 +123,7 @@ class AlpacaStreamData(bt.feed.DataBase):
             date = datetime.strptime(date_string_trimmed, '%Y-%m-%dT%H:%M:%S.%f')
             self.lines.datetime[0] = bt.date2num(date)
             self.lines.close[0] = self.lines.low[0] = self.lines.high[0] = self.lines.open[0] = data_dict["p"]
-            self.lines.volume[0] = data_dict["p"]
+            self.lines.volume[0] = data_dict["s"]
             # self.tick_data.append(f'{date_string_trimmed}, {data_dict["p"]}, {data_dict["p"]}, {data_dict["p"]}, {data_dict["p"]},{data_dict["p"]}')
             # do this before submit date = datetime.strptime(date_string_trimmed, '%Y-%m-%dT%H:%M:%S.%f')
         else:
@@ -230,3 +230,7 @@ class AlpacaHistoricalDataApi:
         print(f"Data has been written to '{self.csv_file_path}' file.")
 
 # AlpacaHistoricalData(constants.symbol, constants.period_in_days, constants.csv_file_path).save_to_csv()
+
+# ws = AlpacaWebSocket(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
+#                                   constants.data_stream_wss, queue.Queue())
+# ws.start()
