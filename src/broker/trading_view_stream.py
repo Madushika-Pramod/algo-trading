@@ -9,37 +9,41 @@ import websocket
 def extract_data(data):
     data_points = re.split(r'~m~\d+~m~', data)[1:]
     results = []
+    pattern1 = (
+        r'(?:.*?"n":"NASDAQ:([\w]+)")?(?:.*?"volume":(\d+))?(?:.*?"lp_time":(\d+))?(?:.*?"lp":([\d.]+))?(?:.*?"chp":([\d.-]+))?(?:.*?"ch":([\d.-]+))?')
+
+    pattern2 = (r'(?:.*?"n":"NASDAQ:([\w]+)")?(?:.*?"rtc":([\d.-]+))?(?:.*?"rchp":([\d.-]+))?')
 
     for point in data_points:
-
-        data_points = re.split(r'~m~\d+~m~', point)
-
-        for point in data_points:
-            match = re.search(
-                r'"n":"NASDAQ:GOOGL".*?"volume":(\d+)(?:.*?"lp_time":(\d+))?(?:.*?"lp":([\d.]+))?(?:.*?"chp":([\d.]+))?(?:.*?"ch":([\d.]+))?(?:.*?"rtc":([\d.-]+))?(?:.*?"rchp":([\d.-]+))?',
-                point)
-
-            if match:
-                volume = match.group(1)
-                lp_time = match.group(2)
-                lp = match.group(3)
-                chp = match.group(4)
-                ch = match.group(5)
-                rtc = match.group(6)
-                rchp = match.group(7)
-
+        match1 = re.search(pattern1, point)
+        if match1 and match1.groups()[-1] is not None:
+            symbol = match1.group(1)
+            vol = match1.group(2)
+            lp_time = match1.group(3)
+            lp = match1.group(4)
+            chp = match1.group(5)
+            ch = match1.group(6)
             results.append({
-                "symbol": "GOOGL",
-                "volume": volume,
+                "symbol": symbol,
+                "volume": vol,
                 "last_price": lp,
                 "datetime": lp_time,
                 "cumulative_change": ch,
-                "cc_percentage": chp,
-                "extended_hours_price": rtc,
-                "ehp_change": rchp
-
+                "cc_percentage": chp
             })
-    print(results)
+
+        else:
+            match2 = re.search(pattern2, point)
+            if match2 and match2.groups()[-1] is not None:
+                symbol = match2.group(1)
+                rtc = match2.group(2)
+                rchp = match2.group(3)
+
+                results.append({
+                    "symbol": symbol,
+                    "extended_hours_price": rtc,
+                    "ehp_change": rchp
+                })
     return results
 
 
@@ -55,19 +59,25 @@ def build_dataframe(lists):
     flattened_data = [item for sublist in lists for item in sublist]
 
     # Convert this flattened list into a pandas DataFrame
-
     df3 = pd.DataFrame(flattened_data,
-                       columns=['symbol', 'volume', 'last_price', 'datetime', 'cumulative_change', 'cc_percentage', "extended_hours_price", "ehp_change"])
+                           columns=['symbol', 'volume', 'last_price', 'datetime', 'cumulative_change', 'cc_percentage',
+                                    "extended_hours_price", "ehp_change"])
+
     df3['last_price'].fillna(method='ffill', inplace=True)
     df3['cumulative_change'].fillna(method='ffill', inplace=True)
     df3['cc_percentage'].fillna(method='ffill', inplace=True)
+    df3['symbol'].fillna(method='ffill', inplace=True)
+
+    # Convert the 'datetime' column to integers
+    # Attempt to convert the 'datetime' column to integers, setting errors='coerce' to turn failures into NaN
+    df3['datetime'] = pd.to_numeric(df3['datetime'], errors='coerce').astype('Int64')
 
     # Calculate the forward and backward fill
     ffill = df3['datetime'].fillna(method='ffill')
     bfill = df3['datetime'].fillna(method='bfill')
 
     # Calculate the midpoint
-    midpoint = (ffill + bfill) / 2
+    midpoint = (ffill + bfill) / 2  # Use // for integer division
 
     # Where the original 'datetime' column is NaN, replace with the midpoint
     df3['datetime'] = df3['datetime'].where(df3['datetime'].notna(), midpoint)
@@ -108,8 +118,10 @@ class TradingViewWebSocket:
 
         else:
             d = extract_data(message)
-            self.data_lists.append(d)
-            self.data_queue.put(d)
+            if len(d) > 0:
+                self.data_lists.append(d)
+                self.data_queue.put(d)
+                print(d)
 
     def on_error(self, error):
         print(f"Process terminated: {error}")

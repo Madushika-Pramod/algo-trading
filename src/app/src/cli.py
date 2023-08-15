@@ -1,6 +1,7 @@
 import csv
 import multiprocessing
 import os
+import re
 
 from app.src import constants
 from app.src.back_trader import BacktraderStrategy
