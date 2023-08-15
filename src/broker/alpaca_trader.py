@@ -14,6 +14,7 @@ from app.src.voice_alert import voice_alert
 
 
 def get_trade_updates():
+    print('alpaca trader 17')
     # Create a new loop for the current thread
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -46,12 +47,12 @@ async def alpaca_trade_updates_ws():
 
         for _ in range(2):
             message = await ws.recv()
-            print(message)
+            print(f'trade update: {message}')
 
         # Receive messages
         while True:
             message = await ws.recv()
-            print(message)
+            print(f'trade update: {message}')
             trade = json.loads(message)['data']
             if trade['event'] == 'new' or trade['event'] == 'accepted':
                 constants.pending_order = trade['order']  # todo
@@ -185,8 +186,8 @@ class AlpacaTrader:
     def _buy_quantity(self, price):
 
         # Calculate maximum shares factoring in the commission
-        return int(float(self.account.buying_power) / (
-                price + constants.commission))  # todo check this wheather when calling saved variable account.cash all ways get new cash value
+        return int(float(self.account.buying_power) / (price + constants.commission))
+        # todo check this, when calling saved variable account.cash, all ways get new cash value
 
 
 # t = AlpacaTrader()
@@ -200,15 +201,15 @@ class AlpacaTrader:
 #     extended_hours=True
 # )
 #
-# # limit_order_data = LimitOrderRequest(
-# #     symbol=constants.symbol,
-# #     side=OrderSide.SELL,
-# #     time_in_force=TimeInForce.DAY,
-# #     qty=1,
-# #     limit_price=100,
-# #     extended_hours=True
-# # )
-# t.trading_client.submit_order(order_data=stop_order_data)
+# limit_order_data = LimitOrderRequest(
+#     symbol=constants.symbol,
+#     side=OrderSide.BUY,
+#     time_in_force=TimeInForce.DAY,
+#     qty=1,
+#     limit_price=200,
+#     extended_hours=True
+# )
+# t.trading_client.submit_order(order_data=limit_order_data)
 #
 
 

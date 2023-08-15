@@ -13,8 +13,8 @@ accepted_order = None
 
 symbol = "GOOGL"
 commission = 0.0  # 0.005
-min_price = 130
-median_volume = 85.82  # 24_585
+min_price = 128.8
+median_volume = 500
 file_id = datetime.now()
 stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{file_id}.csv')
 # tick_file_path = os.path.join(_parent_dir, 'datas', f'tick{file_id}.csv')
@@ -26,9 +26,9 @@ period_in_days = 10
 # your strategy dynamically sizes positions based on available cash,
 # it might attempt to different position when you change cash amount so
 # adjust`AllInSizer._getsizing()`if you get an error, also fractional sizes not allowed in backtrader for current config
-cash = 5_000
-# csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
-csv_file_path = os.path.join(_parent_dir, 'datas', 'data.csv')
+cash = 200
+csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
+# csv_file_path = os.path.join(_parent_dir, 'datas', 'data.csv')
 
 data_download = 0
 # time_for_rate_limit = 3

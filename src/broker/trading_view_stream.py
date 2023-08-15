@@ -1,6 +1,7 @@
 import re
 import ssl
 import threading
+
 import pandas as pd
 import websocket
 
@@ -10,16 +11,22 @@ def extract_data(data):
     results = []
 
     for point in data_points:
-        match = re.search(
-            r'"n":"NASDAQ:GOOGL".*?"volume":(\d+)(?:.*?"lp_time":(\d+))?(?:.*?"lp":([\d.]+))?(?:.*?"chp":([\d.]+))?(?:.*?"ch":([\d.]+))?',
-            point)
 
-        if match:
-            volume = match.group(1)
-            lp_time = match.group(2)
-            lp = match.group(3)
-            chp = match.group(4)
-            ch = match.group(5)
+        data_points = re.split(r'~m~\d+~m~', point)
+
+        for point in data_points:
+            match = re.search(
+                r'"n":"NASDAQ:GOOGL".*?"volume":(\d+)(?:.*?"lp_time":(\d+))?(?:.*?"lp":([\d.]+))?(?:.*?"chp":([\d.]+))?(?:.*?"ch":([\d.]+))?(?:.*?"rtc":([\d.-]+))?(?:.*?"rchp":([\d.-]+))?',
+                point)
+
+            if match:
+                volume = match.group(1)
+                lp_time = match.group(2)
+                lp = match.group(3)
+                chp = match.group(4)
+                ch = match.group(5)
+                rtc = match.group(6)
+                rchp = match.group(7)
 
             results.append({
                 "symbol": "GOOGL",
@@ -27,7 +34,9 @@ def extract_data(data):
                 "last_price": lp,
                 "datetime": lp_time,
                 "cumulative_change": ch,
-                "cc_percentage": chp
+                "cc_percentage": chp,
+                "extended_hours_price": rtc,
+                "ehp_change": rchp
 
             })
     print(results)
@@ -42,14 +51,13 @@ def write_to_csv(df4, filename='trading_view_output5.csv'):
 
 
 def build_dataframe(lists):
-
     # Flatten the list of lists into a single list of dictionaries
     flattened_data = [item for sublist in lists for item in sublist]
 
     # Convert this flattened list into a pandas DataFrame
 
     df3 = pd.DataFrame(flattened_data,
-                       columns=['symbol', 'volume', 'last_price', 'datetime', 'cumulative_change', 'cc_percentage'])
+                       columns=['symbol', 'volume', 'last_price', 'datetime', 'cumulative_change', 'cc_percentage', "extended_hours_price", "ehp_change"])
     df3['last_price'].fillna(method='ffill', inplace=True)
     df3['cumulative_change'].fillna(method='ffill', inplace=True)
     df3['cc_percentage'].fillna(method='ffill', inplace=True)
@@ -99,7 +107,9 @@ class TradingViewWebSocket:
             ws.send(message)
 
         else:
-            self.data_lists.append(extract_data(message))
+            d = extract_data(message)
+            self.data_lists.append(d)
+            self.data_queue.put(d)
 
     def on_error(self, error):
         print(f"Process terminated: {error}")
@@ -129,7 +139,6 @@ class TradingViewWebSocket:
 
         self.thread = threading.Thread(target=run_ws)
         self.thread.start()
-
 
 # # Example of how to use the class
 # if __name__ == "__main__":

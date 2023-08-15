@@ -5,7 +5,7 @@ import backtrader as bt
 import pandas
 
 from app.src import constants
-from app.src.TickData import CustomTickData
+# from app.src.TickData import CustomTickData
 from broker.alpaca_data import AlpacaStreamData
 # from app.src.alpaca_data import AlpacaHistoricalData
 from app.src.trade_analyzer import TradeAnalyzer
@@ -123,20 +123,19 @@ class BacktraderStrategy:
         # self.strategy_class = strategy_class
         self.cerebro = bt.Cerebro()
         # simulating
-        self.df = generate_data()  # DataHandler().load_data()
+        self.df = DataHandler().load_data()  #generate_data()
         # self.cerebro.cheat_on_close = True  # can execute Market orders on the close of the current bar
         self.cerebro.broker.setcommission(commission=constants.commission)
         if live:
-
             q = self._historical_and_live_queue()
-            # data = AlpacaStreamData(q=q)
-            data = StreamTickData(q=q)
+            data = AlpacaStreamData(q=q)
+            # data = StreamTickData(q=q)
             self.cerebro.adddata(data)
             # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
 
         else:
             data = bt.feeds.PandasData(dataname=self.df)
-            data = CustomTickData(dataname=self.df, timeframe=bt.TimeFrame.Ticks)
+            # data = CustomTickData(dataname=self.df, timeframe=bt.TimeFrame.Ticks)
             self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
 
 

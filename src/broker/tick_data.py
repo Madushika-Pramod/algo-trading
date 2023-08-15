@@ -8,7 +8,7 @@ from broker.trading_view_stream import TradingViewWebSocket
 
 
 class StreamTickData(bt.feed.DataBase):
-    lines = ('symbol', 'volume', 'last_price', 'lp_time', 'cumulative_change', 'cc_percentage',)
+    lines = ('symbol', 'volume', 'last_price', 'lp_time', 'cumulative_change', 'cc_percentage',"extended_hours_price","ehp_change")
 
     def __init__(self, q=queue.Queue()):
         super().__init__()
@@ -51,3 +51,5 @@ class StreamTickData(bt.feed.DataBase):
             self.lines.volume[0] = data_dict["volume"]
             self.lines.cumulative_change[0] = data_dict["cumulative_change"]
             self.lines.cc_percentage[0] = data_dict["cc_percentage"]
+            self.lines.extended_hours_price[0] = data_dict["extended_hours_price"]
+            self.lines.ehp_change[0] = data_dict["ehp_change"]

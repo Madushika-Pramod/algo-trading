@@ -50,7 +50,7 @@ class SmaCrossStrategy(bt.Strategy):
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
         # todo change profit * 10
-        if self.price_of_last_purchase is not None and self.p.profit_threshold * 10 < self.price_of_last_purchase - \
+        if self.price_of_last_purchase is not None and self.p.profit_threshold * 4 < self.price_of_last_purchase - \
                 self.data.close[0]:
             self.price_of_last_sale = self.data.close[0]
             self.sell()
@@ -84,7 +84,7 @@ class SmaCrossStrategy(bt.Strategy):
         elif self.order_active:
 
             # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
-            if self.p.profit_threshold > self.data.close[0] - self.price_of_last_purchase:
+            if self.p.profit_threshold / 2 > self.data.close[0] - self.price_of_last_purchase:
                 return
 
             # 8. Enter into sell state if the close price is near the highest price
@@ -279,6 +279,7 @@ class SmaCrossStrategy(bt.Strategy):
         #
         #     return
         if self.cerebro.params.live:
+
             if self.live_mode:
                 try:
                     self.live()
@@ -297,6 +298,7 @@ class SmaCrossStrategy(bt.Strategy):
                 self.total_return_on_investment = 0
                 constants.median_volume = 500
                 positions = self.trader.trading_client.get_all_positions()
+                print(len(positions))
                 if len(positions):  # todo test
                     # this is a fake sell state if any sell orders left in Alpaca
                     self.ready_to_buy = False
@@ -312,7 +314,7 @@ class SmaCrossStrategy(bt.Strategy):
                     self.order_active = False
                     # initially, make algorithm to ignore profit_threshold
                     self.price_of_last_sale = self.data.close[0] + self.p.profit_threshold + 0.01
-
+                print('316')
                 thread = threading.Thread(target=get_trade_updates)  # start trade updates
                 thread.start()
 
