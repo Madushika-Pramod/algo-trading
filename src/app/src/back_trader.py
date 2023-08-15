@@ -5,9 +5,11 @@ import backtrader as bt
 import pandas
 
 from app.src import constants
-from app.src.alpaca_data import AlpacaStreamData
+from app.src.TickData import CustomTickData
+from broker.alpaca_data import AlpacaStreamData
 # from app.src.alpaca_data import AlpacaHistoricalData
 from app.src.trade_analyzer import TradeAnalyzer
+from broker.tick_data import StreamTickData
 
 
 # from .alpaca_data import AlpacaHistoricalData
@@ -126,19 +128,24 @@ class BacktraderStrategy:
         self.cerebro.broker.setcommission(commission=constants.commission)
         if live:
 
-            data = self._historical_and_live_data()
+            q = self._historical_and_live_queue()
+            # data = AlpacaStreamData(q=q)
+            data = StreamTickData(q=q)
             self.cerebro.adddata(data)
             # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
 
         else:
             data = bt.feeds.PandasData(dataname=self.df)
-            self.cerebro.adddata(data)
+            data = CustomTickData(dataname=self.df, timeframe=bt.TimeFrame.Ticks)
             self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
+
+
+        self.cerebro.adddata(data)
 
         self.cerebro.broker.setcash(self.cash)
         self.cerebro.addsizer(AllInSizer)
 
-    def _historical_and_live_data(self):
+    def _historical_and_live_queue(self):
         q = queue.Queue()
 
         for row in self.df.to_dict(orient='records'):
@@ -150,8 +157,8 @@ class BacktraderStrategy:
         q.put({'close': 0, 'high': 0, 'low': 0, 'open': 0,
                'timestamp': datetime(2023, 8, 10, 12, 0, 0, tzinfo=timezone.utc), 'trade count': 0, 'volume': 0,
                'vwap': 0})
-        data = AlpacaStreamData(q=q)
-        return data
+
+        return q
 
     def add_strategy(self, strategy_with_params):
         strategy_class, params = strategy_with_params

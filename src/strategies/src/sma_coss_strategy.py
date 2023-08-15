@@ -3,7 +3,7 @@ import threading
 import backtrader as bt
 
 from app.src import constants
-from app.src.alpaca_trader import AlpacaTrader, get_trade_updates
+from broker.alpaca_trader import AlpacaTrader, get_trade_updates
 from app.src.constants import median_volume, min_price  # todo add these as parameters
 from app.src.voice_alert import voice_alert
 
