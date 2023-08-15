@@ -1,6 +1,6 @@
 import asyncio
 
-from app.src.alpaca_trader import AlpacaTrader, alpaca_trade_updates_ws
+from broker.alpaca_trader import AlpacaTrader, alpaca_trade_updates_ws
 from app.src import constants
 from strategies import SmaCrossStrategy
 

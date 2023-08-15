@@ -26,7 +26,7 @@ class AlpacaWebSocket:
 
     def on_message(self, ws, message):
         for d in json.loads(message):
-            print(d)
+            print(f'data update:{d}')
             if d.get('T') == 't':
                 self.data_queue.put(d)
 
@@ -62,6 +62,7 @@ class AlpacaWebSocket:
 
         self.thread = threading.Thread(target=run_ws)
         self.thread.start()
+        print('Alpaca WebSocket started')
 
     def stop(self):
         if self.ws:
@@ -80,6 +81,7 @@ class AlpacaStreamData(bt.feed.DataBase):
     def start(self):
         self.ws = AlpacaWebSocket(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
                                   constants.data_stream_wss, self.data_queue)
+
         self.ws.start()
 
     def stop(self):
@@ -93,7 +95,7 @@ class AlpacaStreamData(bt.feed.DataBase):
 
     def _load(self):
         try:
-            al_data = self.data_queue.get(timeout=120)  # get_nowait()
+            al_data = self.data_queue.get(timeout=60)  # get_nowait()
             # print("alpaca data =", al_data)
             self._map_bar(al_data)
         except queue.Empty:

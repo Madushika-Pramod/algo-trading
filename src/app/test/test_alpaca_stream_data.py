@@ -4,7 +4,7 @@ import unittest
 from unittest import mock
 
 from app.src import constants
-from app.src.alpaca_data import AlpacaStreamData
+from broker.alpaca_data import AlpacaStreamData
 
 
 class TestAlpacaStreamData(unittest.TestCase):
