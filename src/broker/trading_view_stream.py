@@ -16,7 +16,7 @@ def extract_data(data):
 
     for point in data_points:
         match1 = re.search(pattern1, point)
-        if match1 and match1.groups()[-1] is not None:
+        if match1 and match1.group(2) is not None:
             symbol = match1.group(1)
             vol = match1.group(2)
             lp_time = match1.group(3)
@@ -34,7 +34,7 @@ def extract_data(data):
 
         else:
             match2 = re.search(pattern2, point)
-            if match2 and match2.groups()[-1] is not None:
+            if match2 and match1.group(2) is not None:
                 symbol = match2.group(1)
                 rtc = match2.group(2)
                 rchp = match2.group(3)
