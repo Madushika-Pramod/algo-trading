@@ -4,11 +4,11 @@ from datetime import datetime
 import backtrader as bt
 
 from app.src.voice_alert import voice_alert
-from broker.trading_view_stream import TradingViewWebSocket
+from.trading_view_stream import TradingViewWebSocket
 
 
 class StreamTickData(bt.feed.DataBase):
-    lines = ('symbol', 'volume', 'last_price', 'lp_time', 'cumulative_change', 'cc_percentage',"extended_hours_price","ehp_change")
+    lines = ('symbol', 'volume', 'last_price', 'lp_time', 'cumulative_change', 'cc_percentage',"extended_hours_price","ehp_change","close",)
 
     def __init__(self, q=queue.Queue()):
         super().__init__()
@@ -53,3 +53,4 @@ class StreamTickData(bt.feed.DataBase):
             self.lines.cc_percentage[0] = data_dict["cc_percentage"]
             self.lines.extended_hours_price[0] = data_dict["extended_hours_price"]
             self.lines.ehp_change[0] = data_dict["ehp_change"]
+            self.lines.close[0] = self.lines.low[0] = self.lines.high[0] = self.lines.open[0] = data_dict["last_price"]

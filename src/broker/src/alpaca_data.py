@@ -6,7 +6,6 @@ import threading
 from datetime import datetime, timedelta
 
 import backtrader as bt
-import requests
 from alpaca.data import StockHistoricalDataClient, StockBarsRequest, TimeFrame
 from websocket import WebSocketApp
 
@@ -62,8 +61,6 @@ class AlpacaWebSocket:
 
         self.thread = threading.Thread(target=run_ws)
         self.thread.start()
-        print('Alpaca WebSocket started')
-
     def stop(self):
         if self.ws:
             self.ws.close()
@@ -73,7 +70,7 @@ class AlpacaWebSocket:
 class AlpacaStreamData(bt.feed.DataBase):
 
     def __init__(self, q=queue.Queue()):
-        super().__init__()
+        # super().__init__()
         self.ws = None
         self.data_queue = q
         # self.tick_data = ["timestamp", "open", "high", "low", "close", "volume", "trade count", "vwap"]  # todo for tick data volume
@@ -81,7 +78,6 @@ class AlpacaStreamData(bt.feed.DataBase):
     def start(self):
         self.ws = AlpacaWebSocket(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
                                   constants.data_stream_wss, self.data_queue)
-
         self.ws.start()
 
     def stop(self):
@@ -95,7 +91,7 @@ class AlpacaStreamData(bt.feed.DataBase):
 
     def _load(self):
         try:
-            al_data = self.data_queue.get(timeout=60)  # get_nowait()
+            al_data = self.data_queue.get(timeout=90)  # get_nowait()
             # print("alpaca data =", al_data)
             self._map_bar(al_data)
         except queue.Empty:
@@ -178,58 +174,57 @@ class AlpacaHistoricalData:
 
         print("Data has been written to '{}' file.".format(self.csv_file_path))
 
-
-class AlpacaHistoricalDataApi:
-    def __init__(self, symbol, period_in_days, csv_file_path):
-        self.csv_file_path = csv_file_path
-        self.symbol = symbol
-        self.days = period_in_days
-        self.url = f"https://data.alpaca.markets/v2/stocks/bars?symbols={self.symbol}&timeframe=1T"
-
-        self.headers = {
-            "accept": "application/json",
-            "APCA-API-KEY-ID": f'{os.environ.get("API_KEY")}',
-            "APCA-API-SECRET-KEY": f'{os.environ.get("SECRET_KEY")}'
-        }
-
-    def _get_stock_historical_data(self):
-
-        def request_data(token=None):
-            if token is not None:
-                return requests.get(self.url + f"&page_token={token}", headers=self.headers)
-            return requests.get(self.url, headers=self.headers)
-
-        json_list = []
-
-        start_date = datetime.now() - timedelta(days=self.days)
-        #  Sri lanka is 5 hours and 30 minutes ahead of UTC + 15 min
-        # todo check this on none trading time
-        end_date = datetime.now() - timedelta(minutes=345)
-
-        self.url += f"&start={start_date.isoformat()}Z&end={end_date.isoformat()}Z"
-        response = request_data()
-
-        json_list.append(response.json())
-        while response.json()['next_page_token'] is not None:
-            response = request_data(token=response.json()['next_page_token'])
-            json_list.append(response.json())
-        return json_list
-
-    def save_to_csv(self):
-        bars = self._get_stock_historical_data()
-
-        fieldnames = list(dict(bars[0]['bars'][self.symbol][0]).keys())
-        header = ["timestamp", "open", "high", "low", "close", "volume", "trade count", "vwap"]
-
-        with open(self.csv_file_path, 'w', newline='') as file:
-            csv.writer(file).writerow(header)
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-
-            for bar in bars:
-                for entry in bar['bars'][self.symbol]:
-                    writer.writerow(dict(entry))
-
-        print(f"Data has been written to '{self.csv_file_path}' file.")
+# class AlpacaHistoricalDataApi:
+#     def __init__(self, symbol, period_in_days, csv_file_path):
+#         self.csv_file_path = csv_file_path
+#         self.symbol = symbol
+#         self.days = period_in_days
+#         self.url = f"https://data.alpaca.markets/v2/stocks/bars?symbols={self.symbol}&timeframe=1T"
+#
+#         self.headers = {
+#             "accept": "application/json",
+#             "APCA-API-KEY-ID": f'{os.environ.get("API_KEY")}',
+#             "APCA-API-SECRET-KEY": f'{os.environ.get("SECRET_KEY")}'
+#         }
+#
+#     def _get_stock_historical_data(self):
+#
+#         def request_data(token=None):
+#             if token is not None:
+#                 return requests.get(self.url + f"&page_token={token}", headers=self.headers)
+#             return requests.get(self.url, headers=self.headers)
+#
+#         json_list = []
+#
+#         start_date = datetime.now() - timedelta(days=self.days)
+#         #  Sri lanka is 5 hours and 30 minutes ahead of UTC + 15 min
+#         # todo check this on none trading time
+#         end_date = datetime.now() - timedelta(minutes=345)
+#
+#         self.url += f"&start={start_date.isoformat()}Z&end={end_date.isoformat()}Z"
+#         response = request_data()
+#
+#         json_list.append(response.json())
+#         while response.json()['next_page_token'] is not None:
+#             response = request_data(token=response.json()['next_page_token'])
+#             json_list.append(response.json())
+#         return json_list
+#
+#     def save_to_csv(self):
+#         bars = self._get_stock_historical_data()
+#
+#         fieldnames = list(dict(bars[0]['bars'][self.symbol][0]).keys())
+#         header = ["timestamp", "open", "high", "low", "close", "volume", "trade count", "vwap"]
+#
+#         with open(self.csv_file_path, 'w', newline='') as file:
+#             csv.writer(file).writerow(header)
+#             writer = csv.DictWriter(file, fieldnames=fieldnames)
+#
+#             for bar in bars:
+#                 for entry in bar['bars'][self.symbol]:
+#                     writer.writerow(dict(entry))
+#
+#         print(f"Data has been written to '{self.csv_file_path}' file.")
 
 # AlpacaHistoricalData(constants.symbol, constants.period_in_days, constants.csv_file_path).save_to_csv()
 

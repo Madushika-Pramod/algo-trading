@@ -5,11 +5,12 @@ import backtrader as bt
 import pandas
 
 from app.src import constants
+from app.src.tick_data import CustomTickData
 # from app.src.TickData import CustomTickData
-from broker.alpaca_data import AlpacaStreamData
+from broker import AlpacaStreamData
 # from app.src.alpaca_data import AlpacaHistoricalData
 from app.src.trade_analyzer import TradeAnalyzer
-from broker.tick_data import StreamTickData
+# from broker.tick_data import StreamTickData
 
 
 # from .alpaca_data import AlpacaHistoricalData
@@ -135,11 +136,9 @@ class BacktraderStrategy:
 
         else:
             data = bt.feeds.PandasData(dataname=self.df)
-            # data = CustomTickData(dataname=self.df, timeframe=bt.TimeFrame.Ticks)
-            self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
-
-
-        self.cerebro.adddata(data)
+            # data = bt.feeds.CustomTickData(dataname=constants.tick_file_path, timeframe=bt.TimeFrame.Ticks)
+            # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
+            self.cerebro.adddata(data)
 
         self.cerebro.broker.setcash(self.cash)
         self.cerebro.addsizer(AllInSizer)

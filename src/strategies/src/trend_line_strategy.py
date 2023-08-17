@@ -16,12 +16,15 @@ class TrendLine(bt.Indicator):
 
     def __init__(self):
         self.addminperiod(self.p.period)
+        # self.count = 0
         # self.adx = bt.ind.AverageDirectionalMovementIndex()
 
     def plotlabel(self):
         return 'TrendLine Indicator'
 
     def next(self):
+        # self.count +=1
+        # print(self.count)
         ys = self.data.get(size=self.p.period)
         xs = np.arange(len(ys))
         coefs = np.polyfit(xs, ys, self.p.poly_degree)
@@ -61,7 +64,8 @@ class TrendLineStrategy(bt.Strategy):
         predicted_line_length=None,
         line_degree=None,
         devfactor=2.0,
-        b_band_period=2
+        b_band_period=2,
+        gain_value=2
 
     )
 
@@ -69,12 +73,17 @@ class TrendLineStrategy(bt.Strategy):
         self.order_status = False
         self.previous_low = None
         self.previous_high = None
-        self.bought_price = None
-        self.sold_price = None
+        self.price_of_last_sale = None
         self.roi = None
         self.buy_comm = None
+        self.trading_count = 0
+        self.total_return_on_investment = 0
+        self.commission_on_last_purchase = 0
+        self.price_of_last_sale = 0
+        self.price_of_last_purchase = 0
+        self.cumulative_profit = 0.0
         self.buy_price = None
-        self.start_cash = self.broker.get_cash()  # get initial cash
+        self.starting_balance = self.broker.get_cash()  # get initial cash
         self.realized_pnl = 0.0
         self.buy_status = False
         self.sell_status = False
@@ -95,12 +104,13 @@ class TrendLineStrategy(bt.Strategy):
         self.position_size = False  # if no buy orders
 
     def next(self):
+        # print('next')
         real_slope = self.trend_line.lines.real_slope[0]
         slope_predicted = self.trend_line.lines.slope_predicted[0]
         # todo improve with slope difference (give difference value)
         if not self.order_status:
             # todo abstract this to a class
-            if self.sold_price is None or self.p.gain_value < self.sold_price - self.data.close[0]:
+            if self.price_of_last_sale is None or self.p.gain_value < self.price_of_last_sale - self.data.close[0]:
                 if self.b_band_buy_signal > 0 or self.b_band_sell_signal > 0:
                     self.buy_status = True
                 elif self.b_band_buy_signal < 0 or self.b_band_sell_signal < 0:
@@ -112,10 +122,11 @@ class TrendLineStrategy(bt.Strategy):
                             self.buy()
                             self.buy_status = False
                             self.order_status = True
-                            self.bought_price = self.data.close[0]
+                            self.price_of_last_purchase = self.data.close[0]
+
                 self.previous_low = self.data.low[0]
         else:  # in the market
-            if self.p.gain_value > self.data.close[0] - self.bought_price:
+            if self.p.gain_value > self.data.close[0] - self.price_of_last_purchase:
                 return
             if self.b_band_sell_signal < 0 or self.b_band_buy_signal < 0:
                 self.sell_status = True
@@ -125,10 +136,11 @@ class TrendLineStrategy(bt.Strategy):
                 if self.previous_high is None or self.data.high[0] < self.previous_high:  # Lower high
 
                     if self.data.volume[0] > median_volume and real_slope > 0 > slope_predicted:
+                        self.price_of_last_sale = self.data.close[0]
                         self.sell()
                         self.sell_status = False  # now it's a buy status
                         self.order_status = False
-                        self.sold_price = self.data.close[0]
+
             self.previous_high = self.data.high[0]
 
         # if self.position_size and real_slope > 0 > slope_predicted and 0 > self.b_band_sell_signal:
@@ -147,11 +159,21 @@ class TrendLineStrategy(bt.Strategy):
     def notify_order(self, order):
         if order.status in [order.Completed]:
             if order.isbuy():
+                self.commission_on_last_purchase = order.executed.comm
+                self.log(f"Commission on Buy: {order.executed.comm}")
                 self.log('BUY EXECUTED, %.2f' % order.executed.price)
             elif order.issell():
+                self.cumulative_profit += (self.price_of_last_sale - self.price_of_last_purchase) * abs(
+                    order.executed.size) - self.commission_on_last_purchase
+
+                self.trading_count += 1
                 self.log('SELL EXECUTED, %.2f' % order.executed.price)
 
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log('Order Canceled/Margin/Rejected')
 
         self.order = None
+
+    def stop(self):
+        # Calculate the ROI based on the net profit and starting balance
+        self.total_return_on_investment = self.cumulative_profit / self.starting_balance
