@@ -300,16 +300,19 @@ class SmaCrossStrategy(bt.Strategy):
                 positions = self.trader.trading_client.get_all_positions()
                 print(len(positions))
                 if len(positions):  # todo test
-                    # this is a fake sell state if any sell orders left in Alpaca
+                    # this is a fake buy state if any buy orders left in Alpaca
+                    # make algorithm to sell in the future
                     self.ready_to_buy = False
                     self.order_active = True
+
                     if len(positions) == 2:  # if market order and stop order exists
                         self.price_of_last_purchase = positions[0].avg_entry_price if positions[0].qty > positions[
                             1].qty else positions[1].avg_entry_price
                     else:  # if 1 order exists
                         self.price_of_last_purchase = positions[0].avg_entry_price
                 else:
-                    # this is a fake buy state if no any sell orders left in Alpaca
+                    # this is a fake sell state if no any sell orders left in Alpaca
+                    # make algorithm to buy in the future
                     self.ready_to_sell = False
                     self.order_active = False
                     # initially, make algorithm to ignore profit_threshold

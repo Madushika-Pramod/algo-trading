@@ -1,3 +1,5 @@
+import json
+import queue
 import re
 import ssl
 import threading
@@ -9,41 +11,28 @@ import websocket
 def extract_data(data):
     data_points = re.split(r'~m~\d+~m~', data)[1:]
     results = []
-    pattern1 = (
-        r'(?:.*?"n":"NASDAQ:([\w]+)")?(?:.*?"volume":(\d+))?(?:.*?"lp_time":(\d+))?(?:.*?"lp":([\d.]+))?(?:.*?"chp":([\d.-]+))?(?:.*?"ch":([\d.-]+))?')
-
-    pattern2 = (r'(?:.*?"n":"NASDAQ:([\w]+)")?(?:.*?"rtc":([\d.-]+))?(?:.*?"rchp":([\d.-]+))?')
+    pattern = r'((?<=NASDAQ:)\w+).*v":({.+\d})'
 
     for point in data_points:
-        match1 = re.search(pattern1, point)
-        if match1 and match1.group(2) is not None:
-            symbol = match1.group(1)
-            vol = match1.group(2)
-            lp_time = match1.group(3)
-            lp = match1.group(4)
-            chp = match1.group(5)
-            ch = match1.group(6)
+
+        match = re.search(pattern, point)
+        if match:
+            symbol = match.group(1)
+            json_ob = json.loads(match.group(2))
+
             results.append({
                 "symbol": symbol,
-                "volume": vol,
-                "last_price": lp,
-                "datetime": lp_time,
-                "cumulative_change": ch,
-                "cc_percentage": chp
+                "volume": json_ob.get('volume'),
+                "last_price": json_ob.get('lp'),
+                "time": json_ob.get('lp_time'),
+                "p_change": json_ob.get('ch'),
+                "ch_percentage": json_ob.get('chp'),
+                "extended_hours_price": json_ob.get('rtc'),
+                "ehp_percentage": json_ob.get('rchp'),
+
             })
 
-        else:
-            match2 = re.search(pattern2, point)
-            if match2 and match1.group(2) is not None:
-                symbol = match2.group(1)
-                rtc = match2.group(2)
-                rchp = match2.group(3)
-
-                results.append({
-                    "symbol": symbol,
-                    "extended_hours_price": rtc,
-                    "ehp_change": rchp
-                })
+    # print(results)
     return results
 
 
@@ -60,27 +49,30 @@ def build_dataframe(lists):
 
     # Convert this flattened list into a pandas DataFrame
     df3 = pd.DataFrame(flattened_data,
-                           columns=['symbol', 'volume', 'last_price', 'datetime', 'cumulative_change', 'cc_percentage',
-                                    "extended_hours_price", "ehp_change"])
+                       columns=['symbol', 'volume', 'last_price', 'time', 'p_change', 'ch_percentage',
+                                "extended_hours_price", "ehp_percentage"])
 
-    df3['last_price'].fillna(method='ffill', inplace=True)
-    df3['cumulative_change'].fillna(method='ffill', inplace=True)
-    df3['cc_percentage'].fillna(method='ffill', inplace=True)
-    df3['symbol'].fillna(method='ffill', inplace=True)
+    # columns = ['symbol', 'volume', 'last_price', 'datetime', 'cumulative_change', 'cc_percentage',
+    #            "extended_hours_price", "ehp_change"])
+
+    # df3['last_price'].fillna(method='ffill', inplace=True)
+    # df3['p_change'].fillna(method='ffill', inplace=True)
+    # df3['ch_percentage'].fillna(method='ffill', inplace=True)
+    # df3['symbol'].fillna(method='ffill', inplace=True)
 
     # Convert the 'datetime' column to integers
     # Attempt to convert the 'datetime' column to integers, setting errors='coerce' to turn failures into NaN
-    df3['datetime'] = pd.to_numeric(df3['datetime'], errors='coerce').astype('Int64')
+    df3['time'] = pd.to_numeric(df3['time'], errors='coerce').astype('Int64')
 
     # Calculate the forward and backward fill
-    ffill = df3['datetime'].fillna(method='ffill')
-    bfill = df3['datetime'].fillna(method='bfill')
+    ffill = df3['time'].fillna(method='ffill')
+    bfill = df3['time'].fillna(method='bfill')
 
     # Calculate the midpoint
-    midpoint = (ffill + bfill) / 2  # Use // for integer division
+    midpoint = (ffill + bfill) // 2  # Use // for integer division
 
-    # Where the original 'datetime' column is NaN, replace with the midpoint
-    df3['datetime'] = df3['datetime'].where(df3['datetime'].notna(), midpoint)
+    # Where the original 'time' column is NaN, replace with the midpoint
+    df3['time'] = df3['time'].where(df3['time'].notna(), midpoint)
 
     return df3
 
@@ -134,6 +126,9 @@ class TradingViewWebSocket:
         print(f"Process closed: {status_code}:{msg}")
 
     def stop(self):
+        df2 = build_dataframe(self.data_lists)
+        write_to_csv(df2)
+        self.data_lists.clear()
         if self.ws:
             self.ws.close()
             self.thread.join()
@@ -147,12 +142,21 @@ class TradingViewWebSocket:
                 on_message=self.on_message,
                 on_close=self.on_close,
                 on_error=self.on_error)
+
             self.ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
 
-        self.thread = threading.Thread(target=run_ws)
+        self.thread = threading.Thread(target=run_ws, daemon=True)
         self.thread.start()
+
 
 # # Example of how to use the class
 # if __name__ == "__main__":
-#     tv_ws = TradingViewWebSocket()
-#     tv_ws.start()
+# tv_ws = TradingViewWebSocket(queue.Queue)
+# tv_ws.start()
+# try:
+#     tv_ws.thread.join()
+# except KeyboardInterrupt:
+#     print("Main loop interrupted. Cleaning up...")
+#     tv_ws.stop()
+
+# disable queue put
