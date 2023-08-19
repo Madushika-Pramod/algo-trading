@@ -25,18 +25,16 @@ class SmaCrossStrategy(bt.Strategy):
         self.algorithm_performed_sell_order_id = None
         self.algorithm_performed_buy_order_id = None
 
-        self.trade_active = None
+        self.trade_active = None  # None
         self.trading_count = 0
-        self.total_return_on_investment = None
-        self.commission_on_last_purchase = None
+        self.total_return_on_investment = 0
+        self.commission_on_last_purchase = 0
         self.price_of_last_sale = 0
         self.price_of_last_purchase = 0
         self.starting_balance = self.broker.get_cash()
         self.cumulative_profit = 0.0
         self.ready_to_buy = False
         self.ready_to_sell = False
-        # self.price_at_last_buy = None
-        # self.price_at_last_sell = None
 
         # Indicators for strategy
         fast_moving_avg = bt.ind.MovingAverageSimple(period=self.p.fast_ma_period)
@@ -50,7 +48,7 @@ class SmaCrossStrategy(bt.Strategy):
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
         # todo change profit * 10
-        if self.price_of_last_purchase is not None and self.p.profit_threshold * 4 < self.price_of_last_purchase - \
+        if self.price_of_last_purchase is not None and self.p.profit_threshold * 5 < self.price_of_last_purchase - \
                 self.data.close[0]:
             self.price_of_last_sale = self.data.close[0]
             self.sell()
@@ -149,6 +147,7 @@ class SmaCrossStrategy(bt.Strategy):
 
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
+        # todo introduce here a speed parameter and implement for both buy and sell
         if self.price_of_last_purchase is not None \
                 and self.p.profit_threshold * 4 < self.price_of_last_purchase - self.data.close[0]:
             r = self.traderself.trading_client.close_all_positions(cancel_orders=True)
@@ -300,7 +299,7 @@ class SmaCrossStrategy(bt.Strategy):
                 positions = self.trader.trading_client.get_all_positions()
                 print(len(positions))
                 if len(positions):  # todo test
-                    # this is a fake buy state if any buy orders left in Alpaca
+                    # this is a fake buy state if any buy orders left in Alpaca,
                     # make algorithm to sell in the future
                     self.ready_to_buy = False
                     self.trade_active = True
@@ -316,8 +315,7 @@ class SmaCrossStrategy(bt.Strategy):
                     self.ready_to_sell = False
                     self.trade_active = False
                     # initially, make algorithm to ignore profit_threshold
-                    self.price_of_last_sale = self.data.close[0] + self.p.profit_threshold + 0.01
-                print('316')
+                    self.price_of_last_sale += self.p.profit_threshold
                 thread = threading.Thread(target=get_trade_updates)  # start trade updates
                 thread.start()
 
