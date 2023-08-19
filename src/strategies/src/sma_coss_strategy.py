@@ -25,7 +25,7 @@ class SmaCrossStrategy(bt.Strategy):
         self.algorithm_performed_sell_order_id = None
         self.algorithm_performed_buy_order_id = None
 
-        self.order_active = None
+        self.trade_active = None
         self.trading_count = 0
         self.total_return_on_investment = None
         self.commission_on_last_purchase = None
@@ -59,7 +59,7 @@ class SmaCrossStrategy(bt.Strategy):
 
         # 2. If there's no existing buy order, consider buying
         # notice:we can't use `if not self.order_active:`
-        if self.order_active is False:
+        if self.trade_active is False:
 
             # 3. If there was a prior sell price, only buy if the difference
             # between the prior sell price and current price exceeds 'profit_threshold'
@@ -78,10 +78,10 @@ class SmaCrossStrategy(bt.Strategy):
                 0] > median_volume and self.moving_avg_crossover_indicator > 0:
                 self.buy()
                 self.ready_to_buy = False
-                self.order_active = True
+                self.trade_active = True
                 self.price_of_last_purchase = self.data.close[0]
         # 6. If a buy order has been executed, consider selling
-        elif self.order_active:
+        elif self.trade_active:
 
             # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
             if self.p.profit_threshold / 2 > self.data.close[0] - self.price_of_last_purchase:
@@ -99,15 +99,15 @@ class SmaCrossStrategy(bt.Strategy):
                 self.price_of_last_sale = self.data.close[0]
                 self.sell()
                 self.ready_to_sell = False
-                self.order_active = False
+                self.trade_active = False
 
 
         # Initiate strategy: If the current close price is below 'min_price', make the initial buy
-        elif self.order_active is None and self.data.close[0] <= min_price:
+        elif self.trade_active is None and self.data.close[0] <= min_price:
             self.price_of_last_purchase = self.data.close[0]
             self.buy()
             self.ready_to_buy = False
-            self.order_active = True
+            self.trade_active = True
 
     def live(self):
         print(f'live-{self.data.close[0]}--time-{self.data.datetime[0]}')
@@ -117,7 +117,7 @@ class SmaCrossStrategy(bt.Strategy):
             print("buy executed")
             self.buy()
             self.ready_to_buy = False
-            self.order_active = True
+            self.trade_active = True
             self.price_of_last_purchase = float(constants.accepted_order['stop_price'])
             constants.accepted_order = None
         # 12. sell only if when order has been executed on alpaca
@@ -127,21 +127,21 @@ class SmaCrossStrategy(bt.Strategy):
             self.price_of_last_sale = float(constants.accepted_order['stop_price'])
             self.sell()
             self.ready_to_sell = False
-            self.order_active = False
+            self.trade_active = False
             constants.accepted_order = None
 
 
         # cancel pending order if not executed
         elif constants.pending_order is not None and float(constants.pending_order['hwm']) - self.data.close[
             0] > self.p.profit_threshold / 4 \
-                and not self.order_active:
+                and not self.trade_active:
 
             self.trading_client.cancel_order_by_id(constants.pending_order['id'])
             voice_alert(f"say the buy order made at a price {constants.pending_order['hwm']} has been canceled", 2)
 
         elif constants.pending_order is not None and self.data.close[0] - float(
                 constants.pending_order['hwm']) > self.p.profit_threshold / 4 \
-                and self.order_active:
+                and self.trade_active:
 
             self.trading_client.cancel_order_by_id(constants.pending_order['id'])
             voice_alert(f"say the sell order made at a price {float(constants.pending_order['hwm'])} has been canceled",
@@ -162,7 +162,7 @@ class SmaCrossStrategy(bt.Strategy):
 
         # 2. If there's no existing buy order, consider buying
         # notice:we can't use `if not self.order_active:`
-        if self.order_active is False:
+        if self.trade_active is False:
 
             # 3. If there was a prior sell price, only buy if the difference
             # between the prior sell price and current price exceeds 'profit_threshold'
@@ -182,7 +182,7 @@ class SmaCrossStrategy(bt.Strategy):
                 self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
 
         # 6. If a buy order has been executed, consider selling
-        elif self.order_active:
+        elif self.trade_active:
 
             # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
             if self.p.profit_threshold > self.data.close[0] - self.price_of_last_purchase:
@@ -200,7 +200,7 @@ class SmaCrossStrategy(bt.Strategy):
                 self.algorithm_performed_sell_order_id = self.trader.sell(self.data.close[0])
 
         # this is just for buy test purpose only will be deleted in future
-        elif self.order_active is None and self.data.close[0] <= constants.min_price and self.data.close[-1] == 0:
+        elif self.trade_active is None and self.data.close[0] <= constants.min_price and self.data.close[-1] == 0:
             self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
             print(f'initial buy order Id={str(self.algorithm_performed_buy_order_id)}')
 
@@ -303,7 +303,7 @@ class SmaCrossStrategy(bt.Strategy):
                     # this is a fake buy state if any buy orders left in Alpaca
                     # make algorithm to sell in the future
                     self.ready_to_buy = False
-                    self.order_active = True
+                    self.trade_active = True
 
                     if len(positions) == 2:  # if market order and stop order exists
                         self.price_of_last_purchase = positions[0].avg_entry_price if positions[0].qty > positions[
@@ -314,7 +314,7 @@ class SmaCrossStrategy(bt.Strategy):
                     # this is a fake sell state if no any sell orders left in Alpaca
                     # make algorithm to buy in the future
                     self.ready_to_sell = False
-                    self.order_active = False
+                    self.trade_active = False
                     # initially, make algorithm to ignore profit_threshold
                     self.price_of_last_sale = self.data.close[0] + self.p.profit_threshold + 0.01
                 print('316')
