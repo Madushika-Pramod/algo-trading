@@ -327,6 +327,6 @@ def run_parallel(config_process, configurations):
 
 if __name__ == "__main__":
     # setup_logging()
-    run_single()
+    run_single(live=True)
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)
