@@ -297,7 +297,7 @@ class SmaCrossStrategy(bt.Strategy):
                 self.total_return_on_investment = 0
                 constants.median_volume = 500
                 positions = self.trader.trading_client.get_all_positions()
-                print(len(positions))
+                print(f'Number of Positions: {len(positions)}')
                 if len(positions):  # todo test
                     # this is a fake buy state if any buy orders left in Alpaca,
                     # make algorithm to sell in the future
