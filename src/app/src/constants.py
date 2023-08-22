@@ -11,7 +11,7 @@ accepted_order = None
 
 symbol = "GOOGL"
 commission = 0.0  # 0.005
-min_price = 128.8
+min_price = 127.4
 median_volume = 500
 
 voice_alert_frequency = 3
@@ -33,6 +33,10 @@ stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{file_id}.csv')
 csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
 # csv_file_path = os.path.join(_parent_dir, 'datas', 'data.csv')
 tick_file_path = os.path.join(_parent_dir, 'datas', 'tick.csv')
+
+mama_file_path = os.path.join(_parent_dir, 'datas', f'MAMA{file_id}.csv')
+mama_indicator_file_path = os.path.join(_parent_dir, 'datas', f'MAMA_indicator{file_id}.csv')
+
 
 
 data_download = 0

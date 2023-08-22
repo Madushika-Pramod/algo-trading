@@ -1,48 +1,48 @@
 import csv
 import multiprocessing
 import os
-import re
 
 from app.src import constants
 from app.src.back_trader import BacktraderStrategy
-from logging_config import setup_logging
-from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, AdaptiveStrategy
+from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, AdaptiveStrategy, TestStrategy
 
 
 def run_single(live=False):
-    strategy = (
-        SmaCrossStrategy,
-        dict(
+    # strategy = (
+    #     SmaCrossStrategy,
+    #     dict(
+    #
+    #         # fast_ma_period=14,
+    #         # slow_ma_period=52,
+    #         # high_low_period=20,
+    #         # high_low_tolerance=0.3,
+    #         # profit_threshold=2.5
+    #
+    #         # fast_ma_period=15,
+    #         # slow_ma_period=30,
+    #         # high_low_period=8,
+    #         # high_low_tolerance=0.2,
+    #         # profit_threshold=1.0
+    #
+    #         fast_ma_period=16,
+    #         slow_ma_period=30,
+    #         high_low_period=8,
+    #         high_low_tolerance=0.2,
+    #         profit_threshold=1.5
+    #
+    #         # //// 14/
+    #
+    #         # fast_ma_period=19,
+    #         # slow_ma_period=36,
+    #         # high_low_period=16,
+    #         # high_low_tolerance=0.3,
+    #         # profit_threshold=1.0
+    #
+    #     ))
+    # strategy = (TrendLineStrategy,
+    #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))
 
-            # fast_ma_period=14,
-            # slow_ma_period=52,
-            # high_low_period=20,
-            # high_low_tolerance=0.3,
-            # profit_threshold=2.5
-
-            # fast_ma_period=15,
-            # slow_ma_period=30,
-            # high_low_period=8,
-            # high_low_tolerance=0.2,
-            # profit_threshold=1.0
-
-            fast_ma_period=16,
-            slow_ma_period=30,
-            high_low_period=8,
-            high_low_tolerance=0.2,
-            profit_threshold=1.5
-
-            # //// 14/
-
-            # fast_ma_period=19,
-            # slow_ma_period=36,
-            # high_low_period=16,
-            # high_low_tolerance=0.3,
-            # profit_threshold=1.0
-
-        ))
-
-    # strategy = (AdaptiveStrategy, {})
+    strategy = (AdaptiveStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
     print(
         f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
@@ -327,6 +327,6 @@ def run_parallel(config_process, configurations):
 
 if __name__ == "__main__":
     # setup_logging()
-    run_single(live=True)
+    run_single()
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)

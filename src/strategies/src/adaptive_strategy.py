@@ -42,17 +42,65 @@
 #
 #         self.lines.vwap[0] = self.cum_vol_price[0] / self.cum_vol[0] if self.cum_vol[0] else 0
 
-# '''VWAP (Volume Weighted Average Price):
-#
-# Useful for institutional traders to compare their buy/sell order prices against. It gives an average price a security
-# has traded at throughout the day, based on both volume and price.'''
-
+import csv
 import logging
-import math
+from collections import deque
 
 import backtrader as bt
+import numpy as np
+import pandas
+import talib as TA
 
+from app.src import constants
 from app.src.constants import min_price
+
+
+def log_mama_to_csv(count, detrender, q1, i1, re, im, phase, delta_phase, hilbert_periods, alpha, mama, fama,
+                    filename=constants.mama_indicator_file_path):
+    """Log the MAMA class parameters to a CSV file.
+
+    Parameters:
+    - filename: The name of the CSV file.
+    - count: Iteration count.
+    - detrender: Detrender value.
+    - q1: Q1 value.
+    - i1: I1 value.
+    - re: Real part of the Hilbert Transform.
+    - im: Imaginary part of the Hilbert Transform.
+    - phase: Phase value.
+    - delta_phase: Delta Phase value.
+    - hilbert_periods: Hilbert Transform periods.
+    - alpha: Alpha value.
+    - mama: MAMA value.
+    - fama: FAMA value.
+    """
+    with open(filename, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([count, detrender, q1, i1, re, im, phase, delta_phase, hilbert_periods, alpha, mama, fama])
+
+
+def log_to_csv(iteration, mama, fama, fama_past, mama_past,roc_rmi,volume_factor,price_factor, filename=constants.mama_file_path):
+    """Log the values to a CSV file.
+
+    Parameters:
+    - filename: the name of the CSV file.
+    - iteration: iteration number or count.
+    - mama: current value of MAMA.
+    - fama: current value of FAMA.
+    - smoothed_mama: current value of Smoothed MAMA.
+    - fama_past: previous value of FAMA.
+    - mama_past: previous value of MAMA.
+
+    """
+    print(
+        f'iteration, mama, fama, fama_past, mama_past,roc_rmi,volume_factor,price_factor\n{iteration, mama, fama, fama_past, mama_past,roc_rmi,volume_factor,price_factor}')
+    with open(filename, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([iteration, mama, fama, fama_past, mama_past,roc_rmi,volume_factor,price_factor])
+
+
+def terminate(mes):
+    raise Exception(f'terminated-{mes}')
 
 
 class AdaptiveVWAP(bt.Indicator):
@@ -99,7 +147,7 @@ class AdaptiveVWAP(bt.Indicator):
         self.p.adaptiveness = new_adaptiveness
 
 
-class MAMA(bt.Indicator):
+class MAMAIndicator(bt.Indicator):
     """
     MESA Adaptive Moving Average (MAMA) and Following Adaptive Moving Average (FAMA).
 
@@ -118,153 +166,230 @@ class MAMA(bt.Indicator):
     - fama: Following Adaptive Moving Average.
     """
     lines = ('mama', 'fama')
-    params = (
-        ('fastlimit', 0.5),
-        ('slowlimit', 0.05),
-        ('smooth_period', 3),
-    )
+    params = dict(period=35)
 
     def __init__(self):
-        self.count = 0
-        from copy import deepcopy
-
-        self.addminperiod(7)
-
-        # Initialize LineBuffers for historical values
-        # self.hilbert_periods = bt.LineBuffer()
-        # self.prev_phase = bt.LineBuffer()
-        # self.re = bt.LineBuffer()
-        # self.im = bt.LineBuffer()
-
-        self.hilbert_periods = deepcopy(self.data.close) #todo change this in future
-        self.prev_phase = deepcopy(self.data.close)
-        self.re = deepcopy(self.data.close)
-        self.im = deepcopy(self.data.close)
-
-
-
-        # Initialize buffers with zeros to avoid NaN issues
-        for buffer in [self.hilbert_periods, self.prev_phase, self.re, self.im]:
-            buffer.maxlen = 7
-            buffer.addminperiod(7) # todo remove
-            # print(f'length-{buffer.maxlen}')
-
-        for buffer in [self.hilbert_periods, self.prev_phase, self.re, self.im]:
-            for idx in range(buffer.maxlen):
-                buffer.set(0.0, ago=idx)
-
-
-        # for buffer in [self.hilbert_periods, self.prev_phase, self.re, self.im]:
-        # #     for idx in range(7):
-        # #
-        # #         buffer.lines[0][idx] = 0.0
-
-        # Initialize the smoothed mama (not being used but can be used for future extensions)
-        self.smoothed_mama = bt.indicators.SmoothedMovingAverage(self.lines.mama, period=self.p.smooth_period)
-
-    def next(self):
-        print(self.count)
-        self.count += 1
-        # Detrend price
-        detrender = (4 * self.data.close + 3 * self.data.close(-1) + 2 * self.data.close(-2) + self.data.close(-3)) / 10
-
-        # Compute InPhase and Quadrature components
-        q1 = (detrender - self.data.close(-6)) / 2 + 0.378 * ((detrender - self.data.close(-4)) / 2)
-        i1 = self.data.close(-4) - 0.25 * (detrender + self.data.close(-7))
-
-        # Avoid divide by zero by initializing to a small number
-        self.re.lines[0] = 0.2 * (i1 + 0.878 * self.re(-1)) + 1e-10
-        self.im.lines[0] = 0.2 * (q1 + 0.878 * self.im(-1)) + 1e-10
-
-        # Compute phase of the cyclic component
-        phase = math.atan(self.im[0] / self.re[0]) if self.re[0] != 0 else 0.0
-
-        # Calculate delta phase and adjust for potential phase wrapping
-        delta_phase = phase - self.prev_phase[0]
-        if delta_phase > math.pi:
-            delta_phase -= 2 * math.pi
-        elif delta_phase < -math.pi:
-            delta_phase += 2 * math.pi
-
-        self.prev_phase[0] = phase
-
-        # Update the Hilbert Periods with constraints
-
-        # Break down the calculations
-        # current_hilbert = self.hilbert_periods[0] + 10 * delta_phase / math.pi + self.hilbert_periods(-1)
-        # adjusted_hilbert = current_hilbert / 2
-        #
-        # max_hilbert_limit = 1.5 * self.hilbert_periods(-1)
-        # min_hilbert_limit = 0.67 * self.hilbert_periods(-1)
-        #
-        # # Use explicit conditions for comparison
-        # if adjusted_hilbert > max_hilbert_limit:
-        #     adjusted_hilbert = max_hilbert_limit
-        # elif adjusted_hilbert < min_hilbert_limit:
-        #     adjusted_hilbert = min_hilbert_limit
-
-        # self.hilbert_periods[0] = adjusted_hilbert
-        self.hilbert_periods[0] = max(min((self.hilbert_periods[0] + 10 * delta_phase / math.pi + self.hilbert_periods[-1]) / 2,1.5 * self.hilbert_periods[-1]),0.67 * self.hilbert_periods[-1])
-
-        # Compute a dynamically smoothed period with adaptive alpha
-        alpha = ((self.p.fastlimit - self.p.slowlimit) / (
-                1 + self.hilbert_periods[0] - self.hilbert_periods[-1]) + self.p.slowlimit)
-        alpha = min(max(alpha, self.p.slowlimit), self.p.fastlimit) ** 2
-
-        # Compute the MESA Adaptive Moving Average
-        self.lines.mama[0] = alpha * self.data.close + (1 - alpha) * self.lines.mama[-1]
-
-        # Compute the FAMA as a simple moving average of MAMA
-        self.lines.fama[0] = (self.lines.mama[0] + self.lines.mama[-1]) / 2
-
-
-class ROC(bt.Indicator):
-    lines = ('roc', 'rmi')
-    params = (('period', 9), ('atr_period', 14))
-
-    def __init__(self):
-        """Initialization method for the ROC Indicator."""
         self.addminperiod(self.p.period)
-        self.atr = bt.indicators.AverageTrueRange(period=self.p.atr_period)
-
-        # Initialize logging
-        self.log = logging.getLogger(__name__)
-        # logging.basicConfig(level=logging.INFO)  # Adjust level as per need
+        self.last_N_prices = deque(maxlen=self.p.period)  # Use a deque to keep the last N prices
 
     def next(self):
-        """Calculate the ROC and RMI values."""
-        current_close = self.data.close[0]
-        prev_close = self.data.close[-self.p.period]
+        # Append the current close price to the deque
+        self.last_N_prices.append(self.data.close[0])
 
-        # Check if previous close is not zero to avoid DivisionByZero error.
-        if prev_close != 0:
-            roc_value = (current_close - prev_close) / prev_close * 100
-            self.lines.roc[0] = roc_value
+        # Convert the deque to a numpy array
+        data_series = np.array(self.last_N_prices)
 
-            # Check if atr is not zero before calculating RMI.
-            if self.atr[0] != 0:
-                self.lines.rmi[0] = roc_value / self.atr[0]
-            else:
-                self.lines.rmi[0] = 0
-                self.log.warning(f"ATR is zero on date {self.data.datetime.date(0)}")
+        df = pandas.DataFrame({
+            'open': data_series,
+            'close': data_series,
+            'high': data_series,
+            'low': data_series
+        })
+
+        # Then, use the DataFrame for TA.MAMA
+        mama, fama = TA.MAMA(df['close'].values)
+
+        # Set current values for the indicator lines
+        if len(mama) != 0 and mama[-1] is not None:
+            self.lines.mama[0] = mama[-1]
         else:
-            self.lines.roc[0] = 0
+            self.lines.mama[0] = float('nan')
+
+        if len(fama) != 0 and fama[-1] is not None:
+            self.lines.fama[0] = fama[-1]
+        else:
+            self.lines.fama[0] = float('nan')
+
+
+# custom implementation
+# class MAMA(bt.Indicator):
+#     """
+#     MESA Adaptive Moving Average (MAMA) and Following Adaptive Moving Average (FAMA).
+#
+#     The MAMA adjusts dynamically to price behavior and is used to identify
+#     the direction of the trend. The FAMA, on the other hand, is used to generate
+#     trading signals when it crosses over or under MAMA. Both are calculated using
+#     a combination of Hilbert Transform and Moving Average calculations.
+#
+#     Parameters:
+#     - fastlimit: Maximum value for the adaptive alpha smoothing factor.
+#     - slowlimit: Minimum value for the adaptive alpha smoothing factor.
+#     - smooth_period: Period for smoothed moving average (unused in the current version).
+#
+#     Output Lines:
+#     - mama: MESA Adaptive Moving Average.
+#     - fama: Following Adaptive Moving Average.
+#     """
+#     lines = ('mama', 'fama')
+#     params = dict(fastlimit=0.5, slowlimit=0.05, smooth_period=3)
+#
+#     def __init__(self):
+#         self.addminperiod(7)
+#         self.count = 0
+#
+#         # Initialize LineBuffers for historical values
+#         # self.hilbert_periods = bt.LineBuffer()
+#         # self.prev_phase = bt.LineBuffer()
+#         # self.re = bt.LineBuffer()
+#         # self.im = bt.LineBuffer()
+#
+#         self.hilbert_periods = deepcopy(self.data.close)  # todo change this in future
+#         self.prev_phase = deepcopy(self.data.close)
+#         self.re = deepcopy(self.data.close)
+#         self.im = deepcopy(self.data.close)
+#
+#         # Initialize buffers with zeros to avoid NaN issues
+#         for buffer in [self.hilbert_periods, self.prev_phase, self.re, self.im]:
+#             buffer.maxlen = 7
+#             buffer.addminperiod(7)  # todo remove
+#             # print(f'length-{buffer.maxlen}')
+#
+#         for buffer in [self.hilbert_periods, self.prev_phase, self.re, self.im]:
+#             for idx in range(buffer.maxlen):
+#                 buffer.set(0.0, ago=idx)
+#
+#         # for buffer in [self.hilbert_periods, self.prev_phase, self.re, self.im]:
+#         # #     for idx in range(7):
+#         # #
+#         # #         buffer.lines[0][idx] = 0.0
+#
+#         # Initialize the smoothed mama (not being used but can be used for future extensions)
+#         self.smoothed_mama = bt.indicators.SmoothedMovingAverage(self.lines.mama, period=self.p.smooth_period)
+#
+#     def prenext(self):
+#         print(f'MAMA pre-next executed-{self.count}')
+#         self.count += 1
+#
+#     def next(self):
+#         print(f'MAMA next executed-{self.count}')
+#         self.count += 1
+#
+#         # Detrend price
+#         detrender = (4 * self.data.close[0] + 3 * self.data.close[-1] + 2 * self.data.close[-2] + self.data.close[-3]) / 10
+#
+#         # Compute InPhase and Quadrature components
+#         q1 = (detrender - self.data.close[-6]) / 2 + 0.378 * ((detrender - self.data.close[-4]) / 2)
+#         i1 = self.data.close[-4] - 0.25 * (detrender + self.data.close[-7])
+#
+#         # Avoid divide by zero by initializing to a small number
+#         self.re[0] = 0.2 * (i1 + 0.878 * self.re[-1]) + 1e-10
+#         self.im[0] = 0.2 * (q1 + 0.878 * self.im[-1]) + 1e-10
+#
+#         # Compute phase of the cyclic component
+#         phase = math.atan2(self.im[0], self.re[0]) if self.re[0] != 0 else 0.0
+#         if phase < 0:
+#             phase += 2 * math.pi
+#
+#         # Calculate delta phase and adjust for potential phase wrapping
+#         delta_phase = phase - self.prev_phase[0]
+#         if delta_phase > math.pi:
+#             delta_phase -= 2 * math.pi
+#         elif delta_phase < -math.pi:
+#             delta_phase += 2 * math.pi
+#
+#         self.prev_phase[0] = phase
+#
+#         # Update the Hilbert Periods with constraints
+#
+#         # Break down the calculations
+#         # current_hilbert = self.hilbert_periods[0] + 10 * delta_phase / math.pi + self.hilbert_periods(-1)
+#         # adjusted_hilbert = current_hilbert / 2
+#         #
+#         # max_hilbert_limit = 1.5 * self.hilbert_periods(-1)
+#         # min_hilbert_limit = 0.67 * self.hilbert_periods(-1)
+#         #
+#         # # Use explicit conditions for comparison
+#         # if adjusted_hilbert > max_hilbert_limit:
+#         #     adjusted_hilbert = max_hilbert_limit
+#         # elif adjusted_hilbert < min_hilbert_limit:
+#         #     adjusted_hilbert = min_hilbert_limit
+#
+#         # self.hilbert_periods[0] = adjusted_hilbert
+#         self.hilbert_periods[0] = max(
+#             min((self.hilbert_periods[0] + 10 * delta_phase / math.pi + self.hilbert_periods[-1]) / 2,
+#                 1.5 * self.hilbert_periods[-1]), 0.67 * self.hilbert_periods[-1])
+#
+#         # Compute a dynamically smoothed period with adaptive alpha
+#         alpha = ((self.p.fastlimit - self.p.slowlimit) / (
+#                 1 + self.hilbert_periods[0] - self.hilbert_periods[-1]) + self.p.slowlimit)
+#         alpha = min(max(alpha, self.p.slowlimit), self.p.fastlimit) ** 2
+#
+#         # Compute the MESA Adaptive Moving Average
+#         self.lines.mama[0] = alpha * self.data.close + (1 - alpha) * self.lines.mama[-1]
+#
+#         # Compute the FAMA as a simple moving average of MAMA
+#         self.lines.fama[0] = (self.lines.mama[0] + self.lines.mama[-1]) / 2
+#         c = 0
+
+# class ROC(bt.Indicator):
+#     lines = ('roc', 'rmi')
+#     params = (('period', 9), ('atr_period', 14))
+#
+#     def __init__(self):
+#         """Initialization method for the ROC Indicator."""
+#         self.addminperiod(self.p.period)
+#         self.atr = bt.indicators.AverageTrueRange(period=self.p.atr_period)
+#
+#         # Initialize logging
+#         self.log = logging.getLogger(__name__)
+#         # logging.basicConfig(level=logging.INFO)  # Adjust level as per need
+#
+#     def next(self):
+#         """Calculate the ROC and RMI values."""
+#         current_close = self.data.close[0]
+#         prev_close = self.data.close[-self.p.period]
+#
+#         # Check if previous close is not zero to avoid DivisionByZero error.
+#         if prev_close != 0:
+#             roc_value = (current_close - prev_close) / prev_close * 100
+#             self.lines.roc[0] = roc_value
+#
+#             # Check if atr is not zero before calculating RMI.
+#             if self.atr[0] != 0:
+#                 self.lines.rmi[0] = roc_value / self.atr[0]
+#             else:
+#                 self.lines.rmi[0] = 0
+#                 self.log.warning(f"ATR is zero on date {self.data.datetime.date(0)}")
+#         else:
+#             self.lines.roc[0] = 0
+#             self.lines.rmi[0] = 0
+#             self.log.warning(f"Previous close is zero on date {self.data.datetime.date(0)}")
+
+
+
+class TALibROC(bt.Indicator):
+    lines = ('roc', 'rmi')
+    params = dict(period=9, atr_period=14)
+
+    def __init__(self):
+        # Ensure that we have enough data points before calculating the indicator
+        self.addminperiod(self.p.period)
+
+    def next(self):
+        # Using TA-Lib for the ROC calculation
+        roc_array = TA.ROC(np.array(self.data.close), timeperiod=self.p.period)
+
+        # Assign the latest ROC value to the current line value
+        self.lines.roc[0] = roc_array[-1]
+
+        # Using TA-Lib for ATR calculation
+        high_data = np.array(self.data.high)
+        low_data = np.array(self.data.low)
+        close_data = np.array(self.data.close)
+
+        atr_array = TA.ATR(high_data, low_data, close_data, timeperiod=self.p.atr_period)
+
+        # Check if atr is not zero before calculating RMI.
+        if atr_array[-1] != 0:
+            self.lines.rmi[0] = self.lines.roc[0] / atr_array[-1]
+        else:
             self.lines.rmi[0] = 0
-            self.log.warning(f"Previous close is zero on date {self.data.datetime.date(0)}")
+            # Logging or handling can be added if required
 
 
 class AdaptiveStrategy(bt.Strategy):
-    params = (
-        ('mama_fastlimit', 0.5),
-        ('mama_slowlimit', 0.05),
-        ('roc_period', 9),
-        ('roc_atr_period', 14),
-        ('mama_smooth_period', 3),
-        ('vwap_period', 30),
-        ('adjust_percentage', 0.05),
-        ('atr_period', 14),
-        ('volume_factor', 1.5)
-    )
+    params = dict(roc_period=9, roc_atr_period=14, vwap_period=30, adjust_percentage=0.05, atr_period=14,
+                  volume_factor=1.5)
 
     # self.vwap_period_current
     # '''Trading Efficiency: Whether the new approach (adjusting adaptiveness) or the old approach (adjusting the
@@ -274,6 +399,7 @@ class AdaptiveStrategy(bt.Strategy):
     # lookback window.'''
 
     def __init__(self):
+        self.MAMA_count = 0
         self.commission_on_last_purchase = 0
         self.total_return_on_investment = 0
         self.trading_count = 0
@@ -282,22 +408,19 @@ class AdaptiveStrategy(bt.Strategy):
         self.cumulative_profit = 0.0
         self.starting_balance = self.broker.get_cash()
 
-
         self.trade_active = None
 
-        self.mama = MAMA(self.data,
-                         fastlimit=self.p.mama_fastlimit,
-                         slowlimit=self.p.mama_slowlimit,
-                         smooth_period=self.p.mama_smooth_period)
-
-        self.roc = ROC(self.data,
-                       period=self.p.roc_period,
-                       atr_period=self.p.roc_atr_period)
+        self.mama = MAMAIndicator()
+        self.roc = TALibROC(self.data, period=self.p.roc_period, atr_period=self.p.roc_atr_period)
         self.vwap = AdaptiveVWAP(self.data, period=self.p.vwap_period)
         self.atr = bt.indicators.AverageTrueRange(period=self.p.atr_period)
-        self.volume_ma = bt.indicators.SimpleMovingAverage(self.data.volume, period=self.p.roc_period)
+        self.volume_ma = bt.ind.MovingAverageSimple(self.data.volume, period=self.p.roc_period)
+
 
     def next(self):
+        # terminate('326')
+        # self.MAMA_count += 1
+        # log_to_csv(self.MAMA_count,self.mama.mama[0], self.mama.fama[0], self.mama.fama[-1], self.mama.mama[-1],self.roc.rmi,self.volume_ma * self.p.volume_factor,self.vwap.vwap[0])
         # Adjust the VWAP adaptiveness based on ATR change.
         if len(self.data) > self.p.atr_period:  # ensure we have enough data for ATR
             current_atr = self.atr[0]
@@ -314,30 +437,38 @@ class AdaptiveStrategy(bt.Strategy):
             self.vwap.adjust_adaptiveness(new_adaptiveness)
 
         # Combined Strategy Logic
-        # Bullish Scenario
-        if self.trade_active is False:
-            if self.roc.rmi > 0 and self.data.volume > self.volume_ma * self.p.volume_factor:
-                if self.data.close > self.vwap.vwap[0] and self.data.close > self.mama.smoothed_mama:
-                    # if not self.position:
-                    self.buy()
-                    self.trade_active = True
+        # Bullish Scenario (Buy Logic)
+        if not self.trade_active:  # trade_active being False indicates no active trades
+            if self.mama.fama[0] > self.mama.mama[0] and self.mama.fama[-1] <= self.mama.mama[-1]:  # Crossing upwards
+                if self.roc.rmi > 0 and self.data.volume > self.volume_ma * self.p.volume_factor:
+                    if self.data.close > self.vwap.vwap[0]:
+                        self.buy()
+                        self.trade_active = True
 
-        # Bearish Scenario
-        elif self.trade_active:
-            if self.roc.rmi < 0 and self.data.volume > self.volume_ma * self.p.volume_factor:
-                if self.data.close < self.vwap.vwap[0] and self.data.close < self.mama.smoothed_mama:
-                    # if self.position:
-                    self.sell()
-                    self.trade_active = False
+        # Bearish Scenario (Sell Logic)
+        elif self.trade_active:  # Assuming trade_active being True indicates an active buy trade
+            if self.mama.fama[0] < self.mama.mama[0] and self.mama.fama[-1] >= self.mama.mama[-1]:  # Crossing downwards
+                if self.roc.rmi < 0 and self.data.volume > self.volume_ma * self.p.volume_factor:
+                    if self.data.close < self.vwap.vwap[0]:
+                        self.sell()
+                        self.trade_active = False
+
 
         elif self.trade_active is None and min_price >= self.data.close:
             self.buy()
             self.trade_active = True
+        # elif self.data.close == min_price:
+        #     terminate(self.data.close)
+        # elif self.data.close == '131.99':
+        #     terminate(self.data.close)
+
 
     def log(self, txt, dt=None):
         ''' Logging function for the strategy '''
         dt = dt or self.datas[0].datetime.date(0)
+        # todo add log here
         print(f'{dt.isoformat()}, {txt}')
+
 
     def notify_order(self, order):
         """Handle the events of executed orders."""
@@ -359,12 +490,13 @@ class AdaptiveStrategy(bt.Strategy):
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log('Order Canceled/Margin/Rejected')
 
+
     def stop(self):
         # Calculate the ROI based on the net profit and starting balance
         self.total_return_on_investment = self.cumulative_profit / self.starting_balance
         # if self.live_mode:
-        #     self.trader.trading_client.cancel_orders()
-        #     print("pending orders canceled")
+    #     self.trader.trading_client.cancel_orders()
+    #     print("pending orders canceled")
 
 # class CombinedAdaptiveStrategy(bt.Strategy):
 #     params = (

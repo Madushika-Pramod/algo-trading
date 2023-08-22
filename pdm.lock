@@ -6,7 +6,7 @@ groups = ["default"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:2e6855c214e88cbdf7332e0f29ef79fe8acb7f415f0e4ede558c221f04937ec0"
+content_hash = "sha256:f838443e93043fbd4a698669fcb6222f46e1674d8d597504038218e9be9c73c9"
 
 [[package]]
 name = "alpaca-py"
@@ -666,6 +666,17 @@ summary = "SSE client for Python"
 files = [
     {file = "sseclient-py-1.7.2.tar.gz", hash = "sha256:ba3197d314766eccb72a1dda80b5fa14a0fbba07d796a287654c07edde88fe0f"},
     {file = "sseclient_py-1.7.2-py2.py3-none-any.whl", hash = "sha256:a758653b13b78df42cdb696740635a26cb72ad433b75efb68dbbb163d099b6a9"},
+]
+
+[[package]]
+name = "ta-lib"
+version = "0.4.28"
+summary = "Python wrapper for TA-Lib"
+dependencies = [
+    "numpy",
+]
+files = [
+    {file = "TA-Lib-0.4.28.tar.gz", hash = "sha256:3f03847162e003e0d92a8a89d9e8b7192dfe1235507e2f7d1d0e66cd5af7a48e"},
 ]
 
 [[package]]
