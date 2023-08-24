@@ -44,16 +44,19 @@ class SmaCrossStrategy(bt.Strategy):
         self.recorded_highest_price = bt.indicators.Highest(self.data.close, period=self.p.high_low_period)
         self.recorded_lowest_price = bt.indicators.Lowest(self.data.close, period=self.p.high_low_period)
 
+    def _roi(self):
+        return self.cumulative_profit / self.starting_balance
+
     def back_test(self):
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
         # todo change profit * 10
-        if self.price_of_last_purchase is not None and self.p.profit_threshold * 5 < self.price_of_last_purchase - \
-                self.data.close[0]:
-            self.price_of_last_sale = self.data.close[0]
-            self.sell()
-            self.stop()
-            raise Exception("===xxx Trading Terminated xxx===")
+        # if self.price_of_last_purchase is not None and self.p.profit_threshold * 5 < self.price_of_last_purchase - \
+        #         self.data.close[0]:
+        #     self.price_of_last_sale = self.data.close[0]
+        #     self.sell()
+        #     self.stop()
+        #     raise Exception("===xxx Trading Terminated xxx===")
 
         # 2. If there's no existing buy order, consider buying
         # notice:we can't use `if not self.order_active:`
@@ -82,7 +85,7 @@ class SmaCrossStrategy(bt.Strategy):
         elif self.trade_active:
 
             # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
-            if self.p.profit_threshold / 2 > self.data.close[0] - self.price_of_last_purchase:
+            if self.p.profit_threshold > self.data.close[0] - self.price_of_last_purchase:
                 return
 
             # 8. Enter into sell state if the close price is near the highest price
@@ -135,6 +138,7 @@ class SmaCrossStrategy(bt.Strategy):
                 and not self.trade_active:
 
             self.trading_client.cancel_order_by_id(constants.pending_order['id'])
+            constants.pending_order = None
             voice_alert(f"say the buy order made at a price {constants.pending_order['hwm']} has been canceled", 2)
 
         elif constants.pending_order is not None and self.data.close[0] - float(
@@ -142,6 +146,7 @@ class SmaCrossStrategy(bt.Strategy):
                 and self.trade_active:
 
             self.trading_client.cancel_order_by_id(constants.pending_order['id'])
+            constants.pending_order = None
             voice_alert(f"say the sell order made at a price {float(constants.pending_order['hwm'])} has been canceled",
                         2)
 
@@ -230,7 +235,8 @@ class SmaCrossStrategy(bt.Strategy):
 
     def stop(self):
         # Calculate the ROI based on the net profit and starting balance
-        self.total_return_on_investment = self.cumulative_profit / self.starting_balance
+        self.total_return_on_investment = self._roi()
+        print(f'Last sale : {self.price_of_last_sale}')
         if self.live_mode:
             self.trader.trading_client.cancel_orders()
             print("pending orders canceled")
@@ -290,11 +296,14 @@ class SmaCrossStrategy(bt.Strategy):
 
             elif self.data.close[0] == 0:
 
+                print(f'Last sale : {self.price_of_last_sale}')
+                print(f"Number of Trades: {self.trading_count}\nReturn on investment: {round(self._roi() * 100, 3)}%")
                 self.live_mode = True
-                self.trader = AlpacaTrader()
-                self.starting_balance = float(self.trader.cash)
                 self.trading_count = 0
                 self.total_return_on_investment = 0
+
+                self.trader = AlpacaTrader()
+                self.starting_balance = float(self.trader.cash)
                 constants.median_volume = 500
                 positions = self.trader.trading_client.get_all_positions()
                 print(f'Number of Positions: {len(positions)}')
@@ -315,9 +324,12 @@ class SmaCrossStrategy(bt.Strategy):
                     self.ready_to_sell = False
                     self.trade_active = False
                     # initially, make algorithm to ignore profit_threshold
-                    self.price_of_last_sale += self.p.profit_threshold
+                    self.price_of_last_sale = constants.last_sale_price or self.price_of_last_sale # todo optimize this-> back test should find out this value
                 thread = threading.Thread(target=get_trade_updates)  # start trade updates
                 thread.start()
+            else:
+                self.back_test()
+
 
         else:
             self.back_test()

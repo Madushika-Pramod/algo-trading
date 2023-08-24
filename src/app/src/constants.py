@@ -9,10 +9,11 @@ pending_order = None
 accepted_order = None
 # <==
 
-symbol = "GOOGL"
+symbol = "TSLA"
 commission = 0.0  # 0.005
-min_price = 127.4
-median_volume = 500
+min_price = 239.41
+median_volume = 16721
+last_sale_price = None
 
 voice_alert_frequency = 3
 
