@@ -87,6 +87,10 @@ def get_last_trade_from_sdk():
     return client.get_stock_latest_trade(request)
 
 
+def _truncate_to_two_decimal(number):
+    return int(number * 100) / 100.0
+
+
 class AlpacaTrader:
     def __init__(self):
         self.algo_price = None
@@ -115,7 +119,7 @@ class AlpacaTrader:
         if trailing_stop_order_data.qty > 0:
             order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
             _ = self.market_buy(
-                notional=float(self.account.buying_power) - current_price * trailing_stop_order_data.qty).id
+                notional=_truncate_to_two_decimal(float(self.account.buying_power) - current_price * trailing_stop_order_data.qty))
             return order
 
         return ""
@@ -139,6 +143,8 @@ class AlpacaTrader:
     #     return ""
 
     def market_buy(self, notional=0.0, extended_hours=False):
+        if notional <= 0:
+            return
 
         market_order_data = MarketOrderRequest(
             symbol=constants.symbol,
@@ -151,6 +157,8 @@ class AlpacaTrader:
         return self.trading_client.submit_order(order_data=market_order_data)
 
     def market_sell(self, notional=0.0, extended_hours=False):
+        if notional <= 0:
+            return
         market_order_data = MarketOrderRequest(
             symbol=constants.symbol,
             side=OrderSide.SELL,
@@ -179,7 +187,7 @@ class AlpacaTrader:
         if trailing_stop_order_data.qty > 0:
             order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
             _ = self.market_sell(
-                notional=float(self.account.buying_power) - current_price * trailing_stop_order_data.qty).id
+                notional=_truncate_to_two_decimal(float(self.account.buying_power) - current_price * trailing_stop_order_data.qty))
             return order
         return ""
 
@@ -213,5 +221,7 @@ class AlpacaTrader:
 #
 
 # get_trade_updates()
+
+
 
 

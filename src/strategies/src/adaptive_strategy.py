@@ -43,10 +43,10 @@
 #         self.lines.vwap[0] = self.cum_vol_price[0] / self.cum_vol[0] if self.cum_vol[0] else 0
 
 import csv
-import logging
 from collections import deque
 
 import backtrader as bt
+import numpy
 import numpy as np
 import pandas
 import talib as TA
@@ -55,31 +55,8 @@ from app.src import constants
 from app.src.constants import min_price
 
 
-def log_mama_to_csv(count, detrender, q1, i1, re, im, phase, delta_phase, hilbert_periods, alpha, mama, fama,
-                    filename=constants.mama_indicator_file_path):
-    """Log the MAMA class parameters to a CSV file.
+def log_to_csv(data, filename=constants.mama_file_path):
 
-    Parameters:
-    - filename: The name of the CSV file.
-    - count: Iteration count.
-    - detrender: Detrender value.
-    - q1: Q1 value.
-    - i1: I1 value.
-    - re: Real part of the Hilbert Transform.
-    - im: Imaginary part of the Hilbert Transform.
-    - phase: Phase value.
-    - delta_phase: Delta Phase value.
-    - hilbert_periods: Hilbert Transform periods.
-    - alpha: Alpha value.
-    - mama: MAMA value.
-    - fama: FAMA value.
-    """
-    with open(filename, mode='a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow([count, detrender, q1, i1, re, im, phase, delta_phase, hilbert_periods, alpha, mama, fama])
-
-
-def log_to_csv(iteration, mama, fama, fama_past, mama_past,roc_rmi,volume_factor,price_factor, filename=constants.mama_file_path):
     """Log the values to a CSV file.
 
     Parameters:
@@ -92,11 +69,10 @@ def log_to_csv(iteration, mama, fama, fama_past, mama_past,roc_rmi,volume_factor
     - mama_past: previous value of MAMA.
 
     """
-    print(
-        f'iteration, mama, fama, fama_past, mama_past,roc_rmi,volume_factor,price_factor\n{iteration, mama, fama, fama_past, mama_past,roc_rmi,volume_factor,price_factor}')
-    with open(filename, mode='a', newline='') as file:
+
+    with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow([iteration, mama, fama, fama_past, mama_past,roc_rmi,volume_factor,price_factor])
+        writer.writerows(data)
 
 
 def terminate(mes):
@@ -119,23 +95,27 @@ class AdaptiveVWAP(bt.Indicator):
         """
         Initialize the AdaptiveVWAP indicator.
         """
-        self.addminperiod(self.p.period)
+        self.addminperiod(160)
         self.volume_weighted_price = self.data.volume * self.data.close
 
         # '''Simple Moving Average approach to calculating the VWAP'''
         # self.rolling_vol = bt.indicators.SumN(self.data.volume, period=self.p.period)
         # self.rolling_vol_price = bt.indicators.SumN(self.data.volume * self.data.close,
 
+    def prenext(self):
+        # If it's the first data point
+        self.lines.vwap[0] = self.data.close[0]
+        # print(f'pre next line.vwap: {self.lines.vwap[0]}')
+
     def next(self):
         """
         Update the vwap line for the current data point.
         """
-        if self.lines.vwap[0] == 0:  # If it's the first data point
-            self.lines.vwap[0] = self.data.close[0]
-        else:
-            # Exponential approach for dynamic adjustment
-            self.lines.vwap[0] = ((1 - self.p.adaptiveness) * self.lines.vwap[-1] +
-                                  self.p.adaptiveness * self.volume_weighted_price[0] / self.data.volume[0])
+        # return
+        # Exponential approach for dynamic adjustment
+        self.lines.vwap[0] = ((1 - self.p.adaptiveness) * self.lines.vwap[-1] +
+                              self.p.adaptiveness * self.volume_weighted_price[0] / self.data.volume[0])
+        # print(f'adjusted line.vwap: {self.lines.vwap[0]}')
 
     def adjust_adaptiveness(self, new_adaptiveness):
         """
@@ -166,13 +146,22 @@ class MAMAIndicator(bt.Indicator):
     - fama: Following Adaptive Moving Average.
     """
     lines = ('mama', 'fama')
-    params = dict(period=35)
+    params = dict(period=160)
 
     def __init__(self):
-        self.addminperiod(self.p.period)
+        self.count = 0
+        self.addminperiod(160)
         self.last_N_prices = deque(maxlen=self.p.period)  # Use a deque to keep the last N prices
 
+    def prenext(self):
+        self.count += 1
+        print(f'mama-pre count ={self.count}')
+        self.last_N_prices.append(self.data.close[0])
+
     def next(self):
+        # return
+        self.count += 1
+        # print(f'mama count ={self.count}')
         # Append the current close price to the deque
         self.last_N_prices.append(self.data.close[0])
 
@@ -356,35 +345,77 @@ class MAMAIndicator(bt.Indicator):
 #             self.log.warning(f"Previous close is zero on date {self.data.datetime.date(0)}")
 
 
-
-class TALibROC(bt.Indicator):
+class AdaptiveTALibROC(bt.Indicator):
+    '''thresholds (self.p.threshold) and the increment/decrement values for periods might need tuning to achieve
+    desirable results in practice.'''
     lines = ('roc', 'rmi')
-    params = dict(period=9, atr_period=14)
+    params = dict(period=9, atr_period=14, adapt_period=20, threshold=0.5)
 
     def __init__(self):
-        # Ensure that we have enough data points before calculating the indicator
-        self.addminperiod(self.p.period)
+        self.close_prices = deque(maxlen=self.p.adapt_period)
+        self.high_prices = deque(maxlen=self.p.adapt_period)
+        self.low_prices = deque(maxlen=self.p.adapt_period)
+        self.roc_values = deque(maxlen=self.p.adapt_period)
+        self.addminperiod(160)
+        self.count = 0
+
+    def prenext(self):
+        self.count += 1
+        # print(f'pre next roc{self.count}')
+        # Warm up data
+        self._append_data()
+        self._calculate_indicators()
 
     def next(self):
-        # Using TA-Lib for the ROC calculation
-        roc_array = TA.ROC(np.array(self.data.close), timeperiod=self.p.period)
+        self._append_data()
+        self._calculate_indicators()
 
-        # Assign the latest ROC value to the current line value
-        self.lines.roc[0] = roc_array[-1]
+        # # Adapt the periods if we have enough data
+        # if len(self.roc_values) >= self.p.adapt_period:
+        #     roc_std = np.std(self.roc_values)
+        #
+        #     # Adjust periods based on ROC volatility
+        #     if roc_std > self.p.threshold:
+        #         self.p.period = min(self.p.period + 1, 50)  # Maximum period of 20 for this example
+        #         self.p.atr_period = min(self.p.atr_period + 1, 55)  # Maximum period of 25 for this example
+        #     elif roc_std < self.p.threshold:
+        #         self.p.period = max(self.p.period - 1, 8)  # Minimum period of 5 for this example
+        #         self.p.atr_period = max(self.p.atr_period - 1, 10)  # Minimum period of 10 for this example
 
-        # Using TA-Lib for ATR calculation
-        high_data = np.array(self.data.high)
-        low_data = np.array(self.data.low)
-        close_data = np.array(self.data.close)
+    def _append_data(self):
+        close = self.data.close[0]
+        high = self.data.high[0]
+        low = self.data.low[0]
 
-        atr_array = TA.ATR(high_data, low_data, close_data, timeperiod=self.p.atr_period)
 
-        # Check if atr is not zero before calculating RMI.
-        if atr_array[-1] != 0:
-            self.lines.rmi[0] = self.lines.roc[0] / atr_array[-1]
+
+        self.close_prices.append(close)
+        self.high_prices.append(high)
+        self.low_prices.append(low)
+
+    def _calculate_indicators(self):
+        # Calculate ROC using TA-LIB
+
+
+        roc_array = TA.ROC(np.array(self.close_prices), timeperiod=self.p.period)
+        if not numpy.isnan(roc_array[-1]):
+
+
+            self.lines.roc[0] = roc_array[-1]
+            self.roc_values.append(self.lines.roc[0])
+
+            # Calculate ATR using TA-LIB
+            atr_array = TA.ATR(np.array(self.high_prices), np.array(self.low_prices), np.array(self.close_prices),
+                               timeperiod=self.p.atr_period)
+            atr_value = atr_array[-1]
+
+            # Calculate RMI
+            self.lines.rmi[0] = self.lines.roc[0] / atr_value if atr_value != 0 else 0
         else:
-            self.lines.rmi[0] = 0
-            # Logging or handling can be added if required
+            print(f'period {self.p.period}', f'alter{self.p.atr_period}')
+
+
+
 
 
 class AdaptiveStrategy(bt.Strategy):
@@ -399,6 +430,8 @@ class AdaptiveStrategy(bt.Strategy):
     # lookback window.'''
 
     def __init__(self):
+        self.table = [['Iteration', 'Price', 'MAMA', 'FAMA', 'FAMA_Past', 'MAMA_Past', 'ROC_RMI', 'Volume_Factor',
+                      'Price_Factor']]
         self.MAMA_count = 0
         self.commission_on_last_purchase = 0
         self.total_return_on_investment = 0
@@ -411,18 +444,16 @@ class AdaptiveStrategy(bt.Strategy):
         self.trade_active = None
 
         self.mama = MAMAIndicator()
-        self.roc = TALibROC(self.data, period=self.p.roc_period, atr_period=self.p.roc_atr_period)
+        self.roc = AdaptiveTALibROC(self.data, period=self.p.roc_period, atr_period=self.p.roc_atr_period)
         self.vwap = AdaptiveVWAP(self.data, period=self.p.vwap_period)
         self.atr = bt.indicators.AverageTrueRange(period=self.p.atr_period)
         self.volume_ma = bt.ind.MovingAverageSimple(self.data.volume, period=self.p.roc_period)
 
-
     def next(self):
         # terminate('326')
-        # self.MAMA_count += 1
-        # log_to_csv(self.MAMA_count,self.mama.mama[0], self.mama.fama[0], self.mama.fama[-1], self.mama.mama[-1],self.roc.rmi,self.volume_ma * self.p.volume_factor,self.vwap.vwap[0])
+        self.MAMA_count += 1
         # Adjust the VWAP adaptiveness based on ATR change.
-        if len(self.data) > self.p.atr_period:  # ensure we have enough data for ATR
+        if len(self.data) > self.p.atr_period:  # todo ensure we have enough data for ATR
             current_atr = self.atr[0]
             previous_atr = self.atr[-1]
 
@@ -435,40 +466,47 @@ class AdaptiveStrategy(bt.Strategy):
             # Ensure the adaptiveness remains within a valid range [0, 1]
             new_adaptiveness = min(max(0, new_adaptiveness), 1)
             self.vwap.adjust_adaptiveness(new_adaptiveness)
+        self.table.append([self.MAMA_count, self.data.close[0], self.mama.mama[0], self.mama.fama[0], self.mama.fama[-1],
+                          self.mama.mama[-1], self.roc.rmi[0], self.volume_ma * self.p.volume_factor,
+                          self.vwap.vwap[0]])
 
         # Combined Strategy Logic
         # Bullish Scenario (Buy Logic)
-        if not self.trade_active:  # trade_active being False indicates no active trades
+        if self.trade_active is False:  # trade_active being False indicates no active trades
             if self.mama.fama[0] > self.mama.mama[0] and self.mama.fama[-1] <= self.mama.mama[-1]:  # Crossing upwards
                 if self.roc.rmi > 0 and self.data.volume > self.volume_ma * self.p.volume_factor:
                     if self.data.close > self.vwap.vwap[0]:
+                        self.price_of_last_purchase = self.data.close[0]
                         self.buy()
                         self.trade_active = True
+                        print('buy')
 
         # Bearish Scenario (Sell Logic)
         elif self.trade_active:  # Assuming trade_active being True indicates an active buy trade
             if self.mama.fama[0] < self.mama.mama[0] and self.mama.fama[-1] >= self.mama.mama[-1]:  # Crossing downwards
                 if self.roc.rmi < 0 and self.data.volume > self.volume_ma * self.p.volume_factor:
                     if self.data.close < self.vwap.vwap[0]:
+                        self.price_of_last_sale = self.data.close[0]
                         self.sell()
                         self.trade_active = False
+                        print('sell')
 
 
         elif self.trade_active is None and min_price >= self.data.close:
+            self.price_of_last_purchase = self.data.close[0]
             self.buy()
             self.trade_active = True
+            print('buy')
         # elif self.data.close == min_price:
         #     terminate(self.data.close)
         # elif self.data.close == '131.99':
         #     terminate(self.data.close)
-
 
     def log(self, txt, dt=None):
         ''' Logging function for the strategy '''
         dt = dt or self.datas[0].datetime.date(0)
         # todo add log here
         print(f'{dt.isoformat()}, {txt}')
-
 
     def notify_order(self, order):
         """Handle the events of executed orders."""
@@ -485,13 +523,13 @@ class AdaptiveStrategy(bt.Strategy):
                     order.executed.size) - self.commission_on_last_purchase
 
                 self.trading_count += 1
-                self.log('SELL EXECUTED, %.2f' % order.executed.price)
+                self.log('SELL EXECUTED, %.2f' % self.price_of_last_sale)
                 print(f"total profit on trades:{self.cumulative_profit}")
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log('Order Canceled/Margin/Rejected')
 
-
     def stop(self):
+        log_to_csv(self.table)
         # Calculate the ROI based on the net profit and starting balance
         self.total_return_on_investment = self.cumulative_profit / self.starting_balance
         # if self.live_mode:

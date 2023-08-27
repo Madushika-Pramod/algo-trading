@@ -11,8 +11,8 @@ accepted_order = None
 
 symbol = "TSLA"
 commission = 0.0  # 0.005
-min_price = 239.41
-median_volume = 16721
+min_price = 236.7
+median_volume = 15240
 last_sale_price = None
 
 voice_alert_frequency = 3
@@ -36,7 +36,6 @@ csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.cs
 tick_file_path = os.path.join(_parent_dir, 'datas', 'tick.csv')
 
 mama_file_path = os.path.join(_parent_dir, 'datas', f'MAMA{file_id}.csv')
-mama_indicator_file_path = os.path.join(_parent_dir, 'datas', f'MAMA_indicator{file_id}.csv')
 
 
 

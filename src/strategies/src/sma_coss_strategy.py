@@ -3,9 +3,10 @@ import threading
 import backtrader as bt
 
 from app.src import constants
-from broker import AlpacaTrader, get_trade_updates
+# from broker import AlpacaTrader, get_trade_updates
 from app.src.constants import median_volume, min_price  # todo add these as parameters
 from app.src.voice_alert import voice_alert
+from broker import AlpacaTrader, get_trade_updates
 
 
 class SmaCrossStrategy(bt.Strategy):
@@ -111,7 +112,7 @@ class SmaCrossStrategy(bt.Strategy):
             self.trade_active = True
 
     def live(self):
-        print(f'live-{self.data.close[0]}--time-{self.data.datetime[0]}')
+        # print(f'live-{self.data.close[0]}--time-{self.data.datetime[0]}')
         # 11. buy only if when order has been executed on alpaca
         if constants.accepted_order is not None and constants.accepted_order['id'] == str(
                 self.algorithm_performed_buy_order_id):
@@ -211,7 +212,7 @@ class SmaCrossStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         ''' Logging function for the strategy '''
         dt = dt or self.datas[0].datetime.date(0)
-        print(f'{dt.isoformat()}, {txt}')
+        # print(f'{dt.isoformat()}, {txt}')
 
     def notify_order(self, order):
         """Handle the events of executed orders."""
@@ -228,7 +229,7 @@ class SmaCrossStrategy(bt.Strategy):
                     order.executed.size) - self.commission_on_last_purchase
 
                 self.trading_count += 1
-                self.log('SELL EXECUTED, %.2f' % order.executed.price)
+                self.log('SELL EXECUTED, %.2f' % order.executed.price)  #todo put real executed price
                 print(f"total profit on trades:{self.cumulative_profit}")
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log('Order Canceled/Margin/Rejected')
@@ -304,7 +305,7 @@ class SmaCrossStrategy(bt.Strategy):
 
                 self.trader = AlpacaTrader()
                 self.starting_balance = float(self.trader.cash)
-                constants.median_volume = 500
+                constants.median_volume = 99
                 positions = self.trader.trading_client.get_all_positions()
                 print(f'Number of Positions: {len(positions)}')
                 if len(positions):  # todo test
@@ -314,10 +315,11 @@ class SmaCrossStrategy(bt.Strategy):
                     self.trade_active = True
 
                     if len(positions) == 2:  # if market order and stop order exists
-                        self.price_of_last_purchase = positions[0].avg_entry_price if positions[0].qty > positions[
+                        self.price_of_last_purchase = float(positions[0].avg_entry_price) if positions[0].qty > positions[
                             1].qty else positions[1].avg_entry_price
                     else:  # if 1 order exists
-                        self.price_of_last_purchase = positions[0].avg_entry_price
+                        self.price_of_last_purchase = float(positions[0].avg_entry_price)
+                    print(f'Last buy : {self.price_of_last_purchase}')
                 else:
                     # this is a fake sell state if no any sell orders left in Alpaca
                     # make algorithm to buy in the future
