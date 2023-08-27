@@ -4,7 +4,7 @@ import os
 
 from app.src import constants
 from app.src.back_trader import BacktraderStrategy
-from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, AdaptiveStrategy, TestStrategy
+from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, AdaptiveStrategy, TestStrategy, DemoStrategy
 
 
 def run_single(live=False):
@@ -42,7 +42,7 @@ def run_single(live=False):
     # strategy = (TrendLineStrategy,
     #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))
 
-    strategy = (AdaptiveStrategy, {})
+    strategy = (DemoStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
     print(
         f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
@@ -327,6 +327,6 @@ def run_parallel(config_process, configurations):
 
 if __name__ == "__main__":
     # setup_logging()
-    run_single()
+    run_single(live=True)
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)

@@ -8,7 +8,7 @@ from.trading_view_stream import TradingViewWebSocket
 
 
 class StreamTickData(bt.feed.DataBase):
-    lines = ('symbol', 'volume', 'last_price', 'lp_time', 'cumulative_change', 'cc_percentage',"extended_hours_price","ehp_change","close",)
+    lines = ('volume', 'last_price', 'lp_time', 'cumulative_change', 'cc_percentage',"extended_hours_price","ehp_percentage",'close')
 
     def __init__(self, q=queue.Queue()):
         super().__init__()
@@ -40,17 +40,15 @@ class StreamTickData(bt.feed.DataBase):
         return True
 
     def _map_tick(self, data_dict):
-        date_string = data_dict.get('t')
-        if date_string and data_dict.get('T') == 't':
-            # Trim the string to remove nanoseconds and trailing 'Z'
-            date_string_trimmed = date_string[:23]
-            # Convert the string to a datetime object
-            date = datetime.strptime(date_string_trimmed, '%Y-%m-%dT%H:%M:%S.%f')
+        date_string = data_dict.get('time')
+        if date_string:
+            # Convert the string to a datetime object (time in UTC)
+            date = datetime.utcfromtimestamp(date_string)
+
             self.lines.datetime[0] = bt.date2num(date)
-            self.lines.last_price[0] = data_dict["last_price"]
-            self.lines.volume[0] = data_dict["volume"]
-            self.lines.cumulative_change[0] = data_dict["cumulative_change"]
-            self.lines.cc_percentage[0] = data_dict["cc_percentage"]
-            self.lines.extended_hours_price[0] = data_dict["extended_hours_price"]
-            self.lines.ehp_change[0] = data_dict["ehp_change"]
-            self.lines.close[0] = self.lines.low[0] = self.lines.high[0] = self.lines.open[0] = data_dict["last_price"]
+            self.lines.last_price[0] = self.lines.close[0] = data_dict.get('last_price')
+            self.lines.volume[0] = data_dict.get('volume')
+            self.lines.cumulative_change[0] = data_dict.get('p_change')
+            self.lines.cc_percentage[0] = data_dict.get('ch_percentage')
+            self.lines.extended_hours_price[0] = data_dict.get('extended_hours_price')
+            self.lines.ehp_percentage[0] = data_dict.get('ehp_percentage')

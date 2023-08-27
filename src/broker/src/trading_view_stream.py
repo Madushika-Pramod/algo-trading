@@ -1,11 +1,13 @@
 import json
-import queue
+import os
 import re
 import ssl
 import threading
 
 import pandas as pd
 import websocket
+
+from app.src import constants
 
 
 def extract_data(data):
@@ -33,14 +35,19 @@ def extract_data(data):
             })
 
     # print(results)
-    return results
+    sorted_data = sorted(results, key=lambda x: x['time'])  # sort by time
+
+    return sorted_data
 
 
-def write_to_csv(df4, filename='trading_view_output5.csv'):
-    # Write the DataFrame to a CSV file
-    df4.to_csv(filename, index=False)
-
-    print(f"Data written to {filename}")
+def write_to_csv(df4, filename=constants.trading_view_file_path):
+    # Check if the file already exists
+    if not os.path.exists(filename):
+        # Write the DataFrame to a CSV file
+        df4.to_csv(filename, index=False)
+        print(f"Data written to {filename}")
+    else:
+        print(f"File '{filename}' already exists. No data was written.")
 
 
 def build_dataframe(lists):
@@ -54,7 +61,7 @@ def build_dataframe(lists):
 
     # columns = ['symbol', 'volume', 'last_price', 'datetime', 'cumulative_change', 'cc_percentage',
     #            "extended_hours_price", "ehp_change"])
-
+    # todo fill na
     # df3['last_price'].fillna(method='ffill', inplace=True)
     # df3['p_change'].fillna(method='ffill', inplace=True)
     # df3['ch_percentage'].fillna(method='ffill', inplace=True)
@@ -97,7 +104,7 @@ class TradingViewWebSocket:
         self.data_queue = data_queue
 
     def on_open(self, ws):
-        print("Websocket opened")
+        print("TradingViewWebSocket opened")
         # ws.send('~m~36~m~{"m":"set_data_quality","p":["low"]}')
         ws.send('~m~52~m~{"m":"quote_create_session","p":["qs_2YiWuxHOASlh"]}')
         ws.send(
@@ -110,21 +117,22 @@ class TradingViewWebSocket:
             ws.send(message)
 
         else:
-            d = extract_data(message)
-            if len(d) > 0:
-                self.data_lists.append(d)
-                self.data_queue.put(d)
-                print(d)
+            data = extract_data(message)
+            if len(data) > 0:
+                self.data_lists.append(data)
+                for d in data:
+                    self.data_queue.put(d)
+                    # print(d)
 
     def on_error(self, error):
-        print(f"Process terminated: {error}")
+        print(f"TradingViewWebSocket Process terminated: {error}")
 
     def on_close(self, ws, status_code, msg):
 
         df2 = build_dataframe(self.data_lists)
         write_to_csv(df2)
         self.data_lists.clear()
-        print(f"Process closed: {status_code}:{msg}")
+        print(f"TradingViewWebSocket Process closed: {status_code}:{msg}")
 
     def stop(self):
         df2 = build_dataframe(self.data_lists)
@@ -148,7 +156,6 @@ class TradingViewWebSocket:
 
         self.thread = threading.Thread(target=run_ws, daemon=True)
         self.thread.start()
-
 
 # # Example of how to use the class
 # if __name__ == "__main__":
