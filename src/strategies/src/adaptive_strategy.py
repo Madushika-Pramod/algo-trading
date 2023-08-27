@@ -484,8 +484,8 @@ class AdaptiveStrategy(bt.Strategy):
         # Bearish Scenario (Sell Logic)
         elif self.trade_active:  # Assuming trade_active being True indicates an active buy trade
             if self.mama.fama[0] < self.mama.mama[0] and self.mama.fama[-1] >= self.mama.mama[-1]:  # Crossing downwards
-                if self.roc.rmi < 0 and self.data.volume > self.volume_ma * self.p.volume_factor:
-                    if self.data.close < self.vwap.vwap[0]:
+                if  self.data.volume > self.volume_ma * self.p.volume_factor: # self.roc.rmi < 0 and
+                    # if self.data.close < self.vwap.vwap[0]:
                         self.price_of_last_sale = self.data.close[0]
                         self.sell()
                         self.trade_active = False
