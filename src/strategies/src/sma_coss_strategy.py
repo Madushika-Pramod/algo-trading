@@ -220,7 +220,7 @@ class SmaCrossStrategy(bt.Strategy):
             if order.isbuy():
                 self.commission_on_last_purchase = order.executed.comm
                 self.log(f"Commission on Buy: {order.executed.comm}")
-                # self.log('BUY EXECUTED, %.2f' % order.executed.price)  # executing.price for a buy is next bar's open price
+                self.log('BUY EXECUTED, %.2f' % order.executed.price)  # executing.price for a buy is next bar's open price
                 self.log('BUY EXECUTED, %.2f' % self.price_of_last_purchase)
             elif order.issell():
 
