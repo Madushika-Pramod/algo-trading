@@ -167,8 +167,7 @@ class SmaCrossStrategy(bt.Strategy):
 
         # 2. If there's no existing buy order, consider buying
         # notice:we can't use `if not self.order_active:`
-        if self.trade_active is False:
-
+        if not self.trade_active:  # is False:
             # 3. If there was a prior sell price, only buy if the difference
             # between the prior sell price and current price exceeds 'profit_threshold'
             if self.price_of_last_sale is not None and self.p.profit_threshold > self.price_of_last_sale - \
@@ -205,14 +204,17 @@ class SmaCrossStrategy(bt.Strategy):
                 self.algorithm_performed_sell_order_id = self.trader.sell(self.data.close[0])
 
         # this is just for buy test purpose only will be deleted in future
-        elif self.trade_active is None and self.data.close[0] <= constants.min_price and self.data.close[-1] == 0:
-            self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
-            print(f'initial buy order Id={str(self.algorithm_performed_buy_order_id)}')
+
+        # elif self.trade_active is None and self.data.close[-1] == 0:
+        #         if self.data.close[0] <= self.min_price :
+        #             self.trade_active = False
+        #     self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
+        #     print(f'initial buy order Id={str(self.algorithm_performed_buy_order_id)}')
 
     def log(self, txt, dt=None):
         ''' Logging function for the strategy '''
         dt = dt or self.datas[0].datetime.date(0)
-        # print(f'{dt.isoformat()}, {txt}')
+        print(f'{dt.isoformat()}, {txt}')
 
     def notify_order(self, order):
         """Handle the events of executed orders."""
@@ -220,7 +222,7 @@ class SmaCrossStrategy(bt.Strategy):
             if order.isbuy():
                 self.commission_on_last_purchase = order.executed.comm
                 self.log(f"Commission on Buy: {order.executed.comm}")
-                self.log('BUY EXECUTED, %.2f' % order.executed.price)  # executing.price for a buy is next bar's open price
+                # self.log('BUY EXECUTED, %.2f' % order.executed.price)  # executing.price for a buy is next bar's open price
                 self.log('BUY EXECUTED, %.2f' % self.price_of_last_purchase)
             elif order.issell():
 
@@ -229,15 +231,15 @@ class SmaCrossStrategy(bt.Strategy):
                     order.executed.size) - self.commission_on_last_purchase
 
                 self.trading_count += 1
-                self.log('SELL EXECUTED, %.2f' % order.executed.price)  #todo put real executed price
-                print(f"total profit on trades:{self.cumulative_profit}")
+                self.log('SELL EXECUTED, %.2f' % order.executed.price)
+                # print(f"total profit on trades:{self.cumulative_profit}")
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log('Order Canceled/Margin/Rejected')
 
     def stop(self):
         # Calculate the ROI based on the net profit and starting balance
         self.total_return_on_investment = self._roi()
-        print(f'Last sale : {self.price_of_last_sale}')
+        # print(f'Last sale : {self.price_of_last_sale}')
         if self.live_mode:
             self.trader.trading_client.cancel_orders()
             print("pending orders canceled")
@@ -299,13 +301,16 @@ class SmaCrossStrategy(bt.Strategy):
 
                 print(f'Last sale : {self.price_of_last_sale}')
                 print(f"Number of Trades: {self.trading_count}\nReturn on investment: {round(self._roi() * 100, 3)}%")
+
                 self.live_mode = True
                 self.trading_count = 0
                 self.total_return_on_investment = 0
 
                 self.trader = AlpacaTrader()
                 self.starting_balance = float(self.trader.cash)
+
                 constants.median_volume = 99
+
                 positions = self.trader.trading_client.get_all_positions()
                 print(f'Number of Positions: {len(positions)}')
                 if len(positions):  # todo test
@@ -315,8 +320,7 @@ class SmaCrossStrategy(bt.Strategy):
                     self.trade_active = True
 
                     if len(positions) == 2:  # if market order and stop order exists
-                        self.price_of_last_purchase = float(positions[0].avg_entry_price) if positions[0].qty > positions[
-                            1].qty else positions[1].avg_entry_price
+                        self.price_of_last_purchase = float(positions[0].avg_entry_price) if positions[0].qty > positions[1].qty else positions[1].avg_entry_price
                     else:  # if 1 order exists
                         self.price_of_last_purchase = float(positions[0].avg_entry_price)
                     print(f'Last buy : {self.price_of_last_purchase}')
@@ -326,7 +330,7 @@ class SmaCrossStrategy(bt.Strategy):
                     self.ready_to_sell = False
                     self.trade_active = False
                     # initially, make algorithm to ignore profit_threshold
-                    self.price_of_last_sale = constants.last_sale_price or self.price_of_last_sale # todo optimize this-> back test should find out this value
+                    self.price_of_last_sale = constants.last_sale_price or self.price_of_last_sale  # todo optimize this-> back test should find out this value
                 thread = threading.Thread(target=get_trade_updates)  # start trade updates
                 thread.start()
             else:

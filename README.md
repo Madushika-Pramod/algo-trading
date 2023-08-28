@@ -14,6 +14,7 @@ We strongly advise understanding the potential financial risks associated with a
 
 - Python 3.11
 - Pdm ([Installation Guide](https://pdm.fming.dev/latest/))
+- Python wrapper for TA-Lib & Any dependencies needed by it (for example numpy)
 - Mac Os (for voice alerts) 
 
 ## 💻 Installation & Configuration Steps
@@ -35,6 +36,7 @@ We strongly advise understanding the potential financial risks associated with a
     ```
    Use `pdm add <package name>` to add new packages.
 
+   ta-lib installation details are on the GitHub repository
 ## 🔐 Alpaca API Keys Setup
 
 Input your Alpaca API_KEY and SECRET_KEY in your environment variables. If you require assistance in acquiring these keys, please refer to the [Alpaca API documentation](https://alpaca.markets/docs/api-documentation/).

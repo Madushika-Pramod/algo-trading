@@ -8,7 +8,7 @@ from.trading_view_stream import TradingViewWebSocket
 
 
 class StreamTickData(bt.feed.DataBase):
-    lines = ('volume', 'last_price', 'lp_time', 'cumulative_change', 'cc_percentage',"extended_hours_price","ehp_percentage",'close')
+    lines = ('volume', 'last_price', 'lp_time', 'cumulative_change', 'cc_percentage',"extended_hours_price","ehp_percentage",'close', 'open', 'high', 'low')
 
     def __init__(self, q=queue.Queue()):
         super().__init__()
@@ -46,9 +46,18 @@ class StreamTickData(bt.feed.DataBase):
             date = datetime.utcfromtimestamp(date_string)
 
             self.lines.datetime[0] = bt.date2num(date)
-            self.lines.last_price[0] = self.lines.close[0] = data_dict.get('last_price')
+            self.lines.last_price[0] = self.lines.close[0] = self.lines.low[0] = self.lines.high[0] = self.lines.open[0] = data_dict.get('last_price')
             self.lines.volume[0] = data_dict.get('volume')
             self.lines.cumulative_change[0] = data_dict.get('p_change')
             self.lines.cc_percentage[0] = data_dict.get('ch_percentage')
             self.lines.extended_hours_price[0] = data_dict.get('extended_hours_price')
             self.lines.ehp_percentage[0] = data_dict.get('ehp_percentage')
+        else:
+            date_string = data_dict.get('timestamp')
+            if date_string:
+                self.lines.datetime[0] = bt.date2num(date_string)
+                self.lines.open[0] = data_dict['open']
+                self.lines.high[0] = data_dict['high']
+                self.lines.low[0] = data_dict['low']
+                self.lines.close[0] = data_dict['close']
+                self.lines.volume[0] = data_dict['volume']

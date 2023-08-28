@@ -118,8 +118,17 @@ class AlpacaTrader:
         trailing_stop_order_data.qty = self._buy_quantity(current_price)
         if trailing_stop_order_data.qty > 0:
             order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
-            _ = self.market_buy(
-                notional=_truncate_to_two_decimal(float(self.account.buying_power) - current_price * trailing_stop_order_data.qty))
+
+            buying_power = float(self.account.buying_power)
+            if buying_power < current_price * trailing_stop_order_data.qty:
+                try:
+                    _ = self.market_buy(notional=buying_power)
+                    constants.market_buy_order = True
+                except:
+                    # todo check
+                    _ = self.market_buy(notional=_truncate_to_two_decimal(buying_power))
+                    constants.market_buy_order = True
+
             return order
 
         return ""
@@ -171,7 +180,6 @@ class AlpacaTrader:
     def sell(self, price):
         self.account = self.trading_client.get_account()
         self.algo_price = price
-        current_price = get_last_trade_from_sdk()[constants.symbol].price
 
         trailing_stop_order_data = TrailingStopOrderRequest(
             symbol=constants.symbol,
@@ -180,14 +188,21 @@ class AlpacaTrader:
             time_in_force=TimeInForce.DAY,
             trail_percent=0.1,
         )
+
+        current_price = get_last_trade_from_sdk()[constants.symbol].price
         if current_price > self.algo_price:  # price increasing
             print(f"algo price={self.algo_price} < current price={current_price} <=> price increasing")
             return ""
         # execute new trailing stop order
         if trailing_stop_order_data.qty > 0:
             order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
-            _ = self.market_sell(
-                notional=_truncate_to_two_decimal(float(self.account.buying_power) - current_price * trailing_stop_order_data.qty))
+            buying_power = float(self.account.buying_power)
+            if buying_power < current_price * trailing_stop_order_data.qty and not constants.market_buy_order:
+                try:
+                    _ = self.market_sell(notional=buying_power)
+                except:
+                    # todo check
+                    _ = self.market_sell(notional=_truncate_to_two_decimal(buying_power))
             return order
         return ""
 

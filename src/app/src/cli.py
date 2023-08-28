@@ -8,41 +8,55 @@ from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy
 
 
 def run_single(live=False):
-    # strategy = (
-    #     SmaCrossStrategy,
-    #     dict(
-    #
-    #         # fast_ma_period=14,
-    #         # slow_ma_period=52,
-    #         # high_low_period=20,
-    #         # high_low_tolerance=0.3,
-    #         # profit_threshold=2.5
-    #
-    #         # fast_ma_period=15,
-    #         # slow_ma_period=30,
-    #         # high_low_period=8,
-    #         # high_low_tolerance=0.2,
-    #         # profit_threshold=1.0
-    #
-    #         # fast_ma_period=16,
-    #         # slow_ma_period=30,
-    #         # high_low_period=8,
-    #         # high_low_tolerance=0.2,
-    #         # profit_threshold=1.5
-    #
-    #         # //// 14/
-    #
-    #         fast_ma_period=20,
-    #         slow_ma_period=69,
-    #         high_low_period=15,
-    #         high_low_tolerance=0.4,
-    #         profit_threshold=3.0
-    #
-    #     ))
+    strategy = (
+        SmaCrossStrategy,
+        dict(
+
+            # fast_ma_period=14,
+            # slow_ma_period=52,
+            # high_low_period=20,
+            # high_low_tolerance=0.3,
+            # profit_threshold=2.5
+
+            # fast_ma_period=15,
+            # slow_ma_period=30,
+            # high_low_period=8,
+            # high_low_tolerance=0.2,
+            # profit_threshold=1.0
+
+            # fast_ma_period=16,
+            # slow_ma_period=30,
+            # high_low_period=8,
+            # high_low_tolerance=0.2,
+            # profit_threshold=1.5
+
+            # //// 14/
+            # aug 23 tesla
+            # fast_ma_period=20,
+            # slow_ma_period=69,
+            # high_low_period=15,
+            # high_low_tolerance=0.4,
+            # profit_threshold=3.0
+
+            # # aug 24 tesla
+            # fast_ma_period=20,
+            # slow_ma_period=25,
+            # high_low_period=22,
+            # high_low_tolerance=0.5,
+            # profit_threshold=1.0
+ # aug 27
+            fast_ma_period=8,
+            slow_ma_period=26,
+            high_low_period=24,
+            high_low_tolerance=0.5,
+            profit_threshold=1.0
+
+
+        ))
     # strategy = (TrendLineStrategy,
     #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))
 
-    strategy = (DemoStrategy, {})
+    # strategy = (AdaptiveStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
     print(
         f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")

@@ -7,13 +7,15 @@ from datetime import datetime
 #variables ==>
 pending_order = None
 accepted_order = None
+market_buy_order = False
 # <==
 
 symbol = "TSLA"
 commission = 0.0  # 0.005
-min_price = 236.7
-median_volume = 15240
+min_price = 212.61
+median_volume = 16265.5
 last_sale_price = None
+cash = 500
 
 voice_alert_frequency = 3
 
@@ -23,7 +25,7 @@ period_in_days = 10
 # your strategy dynamically sizes positions based on available cash,
 # it might attempt to different position when you change cash amount so
 # adjust`AllInSizer._getsizing()`if you get an error, also fractional sizes not allowed in backtrader for current config
-cash = 5000
+
 
 # Get the directory of the current file
 _current_dir = os.path.dirname(os.path.abspath(__file__))
