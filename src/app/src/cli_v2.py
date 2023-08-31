@@ -90,7 +90,7 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
         ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error",
          "Buy Gain Value", "Sell Gain value"]]
     try:
-        for p in range(high_low_period, 30, 2):
+        for p in range(high_low_period, 50):
             p2 = p
             if p == high_low_period + 6:
                 # print(
@@ -145,18 +145,17 @@ configurations_for_sma_cross_v2 = [
     dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
     dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2)
-    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=14, high_low_tolerance=2, profit_threshold=2,
-    #      pre_count=36065),
-    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=12, high_low_tolerance=2, profit_threshold=2,
-    #      pre_count=36401),
-    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=2, profit_threshold=2,
-    #      pre_count=36454),
-    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=10, high_low_tolerance=2, profit_threshold=2,
-    #      pre_count=36447),
-    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=18, high_low_tolerance=2, profit_threshold=2,
-    #      pre_count=36039),
-    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=20, high_low_tolerance=2, profit_threshold=2,
+         sell_profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=28, high_low_tolerance=5, buy_profit_threshold=2,
+         sell_profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=34, high_low_tolerance=5, buy_profit_threshold=2,
+             sell_profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=40, high_low_tolerance=5, buy_profit_threshold=2,
+             sell_profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=46, high_low_tolerance=5, buy_profit_threshold=2,
+             sell_profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=52, high_low_tolerance=5, buy_profit_threshold=2,
+             sell_profit_threshold=2)
     #      pre_count=36587),
     # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
     #      pre_count=36585),
