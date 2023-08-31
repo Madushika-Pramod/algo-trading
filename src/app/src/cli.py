@@ -1,10 +1,13 @@
+# Importing logger_config to set up application-wide logging and exception handling
+import logger_config
 import csv
+import logging
 import multiprocessing
 import os
 
 from app.src import constants
 from app.src.back_trader import BacktraderStrategy
-from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, AdaptiveStrategy, TestStrategy, DemoStrategy
+from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, DemoStrategy
 
 
 def run_single(live=False):
@@ -30,35 +33,43 @@ def run_single(live=False):
             # high_low_tolerance=0.2,
             # profit_threshold=1.5
 
-            # //// 14/
-            # aug 23 tesla
+            #  aug 23
             # fast_ma_period=20,
             # slow_ma_period=69,
             # high_low_period=15,
             # high_low_tolerance=0.4,
             # profit_threshold=3.0
-
-            # # aug 24 tesla
+            # aug 24
             # fast_ma_period=20,
             # slow_ma_period=25,
             # high_low_period=22,
             # high_low_tolerance=0.5,
             # profit_threshold=1.0
- # aug 27
-            fast_ma_period=8,
-            slow_ma_period=26,
-            high_low_period=24,
+            # fast_ma_period=8,
+            # slow_ma_period=26,
+            # high_low_period=24,
+            # high_low_tolerance=0.5,
+            # profit_threshold=1.0
+            # aug 29
+            # fast_ma_period=8,
+            # slow_ma_period=26,
+            # high_low_period=18,
+            # high_low_tolerance=0.5,
+            # profit_threshold=1.0
+
+            #aug 30
+            fast_ma_period=6,
+            slow_ma_period=32,
+            high_low_period=22,
             high_low_tolerance=0.5,
             profit_threshold=1.0
-
-
         ))
     # strategy = (TrendLineStrategy,
     #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))
 
-    # strategy = (AdaptiveStrategy, {})
+    # strategy = (DemoStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
-    print(
+    logging.info(
         f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
 
 
@@ -74,7 +85,7 @@ def run_single(live=False):
 
 def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
                                           high_low_tolerance=None,
-                                          profit_threshold=None, pre_count=None):
+                                          profit_threshold=None, pre_count=1000):
     p2 = None
     count = 0
     roi_count = 0
@@ -82,24 +93,22 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_
         ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error",
          "Gain Value"]]
     try:
-        for p in range(high_low_period, 30):
+        for p in range(high_low_period, 30, 2):
             p2 = p
-            if p == high_low_period + 1:
+            if p == high_low_period + 6:
                 # print(
                 #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
-                print(p - 1)
+                print(p - 2)
                 print(f"Total Count: {count}")
                 print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
                 write_csv(statistics)
-                for x in range(10):
-                    os.system('afplay /System/Library/Sounds/Ping.aiff')
 
-                raise Exception("===xxxxxx===")
+                raise Exception("=== Parameter Tunining su cessfully terminatedxx===")
             for pf in range(fast_ma_period, 31):
                 for ps in range(slow_ma_period, 61):
                     if pf > ps:
                         continue
-                    for x in range(high_low_tolerance, 10):
+                    for x in range(high_low_tolerance, 6):
                         # Dev-Factor from 1, 1.5, 2
                         e = x / 10
                         for y in range(profit_threshold, 9):
@@ -129,22 +138,25 @@ def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_
 
 
 configurations_for_sma_cross = [
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=14, high_low_tolerance=2, profit_threshold=2,
-         pre_count=36065),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=12, high_low_tolerance=2, profit_threshold=2,
-         pre_count=36401),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=2, profit_threshold=2,
-         pre_count=36454),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=10, high_low_tolerance=2, profit_threshold=2,
-         pre_count=36447),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=18, high_low_tolerance=2, profit_threshold=2,
-         pre_count=36039),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=20, high_low_tolerance=2, profit_threshold=2,
-         pre_count=36587),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
-         pre_count=36585),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=2, profit_threshold=2,
-         pre_count=36164)
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=10, high_low_tolerance=5, profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=5, profit_threshold=2),
+    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=5, profit_threshold=2)
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=14, high_low_tolerance=2, profit_threshold=2,
+    #      pre_count=36065),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=12, high_low_tolerance=2, profit_threshold=2,
+    #      pre_count=36401),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=2, profit_threshold=2,
+    #      pre_count=36454),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=10, high_low_tolerance=2, profit_threshold=2,
+    #      pre_count=36447),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=18, high_low_tolerance=2, profit_threshold=2,
+    #      pre_count=36039),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=20, high_low_tolerance=2, profit_threshold=2,
+    #      pre_count=36587),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
+    #      pre_count=36585),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=2, profit_threshold=2,
+    #      pre_count=36164)
 
 ]
 
@@ -165,8 +177,8 @@ def get_bollinger_rsi_strategy_optimum_params(best_roi=0.0, bbperiod=13, rsiperi
             bp2 = bp
             if bp == bbperiod + 1:
                 print(bp - 1)
-                print(f"Total Count: {count}")
-                print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
+                logging.info(f"finished-Total Count: {count}")
+                logging.info(f"finished-Best ROI: {best_roi * 100}% at count : {roi_count}")
                 write_csv(statistics)
                 for x in range(10):
                     os.system('afplay /System/Library/Sounds/Ping.aiff')
@@ -197,7 +209,7 @@ def get_bollinger_rsi_strategy_optimum_params(best_roi=0.0, bbperiod=13, rsiperi
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...")
-        print(f"Bollinger Period: {bp2}-Total Count: {count}-Best ROI: {best_roi * 100}%")
+        logging.warning(f"KeyboardInterrupt-Bollinger Period: {bp2}-Total Count: {count}-Best ROI: {best_roi * 100}%")
         write_csv(statistics)
 
 
@@ -245,9 +257,9 @@ def get_trend_line_strategy_optimum_params(best_roi=-1.0, period=2, curve_degree
                 # print(
                 #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
                 print(bp - 1)
-                print(f"Total Count: {count}")
-                print(
-                    f"Best ROI: {best_roi}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
+                logging.info(f"finished-Total Count: {count}")
+                logging.info(
+                    f"finished-Best ROI: {best_roi}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
                 for x in range(10):
                     os.system('say "task completed"')
                 raise Exception("===xxxxxx===")
@@ -290,8 +302,8 @@ def get_trend_line_strategy_optimum_params(best_roi=-1.0, period=2, curve_degree
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...")
-        print(
-            f"Best ROI: {best_roi2}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
+        logging.warning(
+            f"KeyboardInterrupt-Best ROI: {best_roi2}\nPeriod: {period2}\nDegree: {curve_degree2}\nLine Length: {predicted_line_length2}\nLine Degree: {line_degree2}\nDev Factor: {deviation_factor}\n Bollinger Period: {b_band_period2}")
 
 
 configurations_for_trend_line = [
@@ -336,11 +348,10 @@ def run_parallel(config_process, configurations):
     for p in processes:
         p.join()
 
-    print('All functions have finished executing')
+    logging.info('All functions have finished executing')
 
 
 if __name__ == "__main__":
-    # setup_logging()
     run_single(live=True)
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)

@@ -1,3 +1,4 @@
+import logging
 import queue
 from datetime import datetime, timezone, timedelta
 
@@ -70,7 +71,7 @@ class AllInSizer(bt.Sizer):
         if isbuy:
             # Divide all available cash by the closing price to get the number of shares we can buy
             size = int(cash / (data.close[0] * (1 + constants.commission)))
-            print(f"Number of shares brought {size}")
+            logging.info(f"Number of shares brought {size}")
         else:
             # If we're selling, sell all shares
             size = self.broker.getposition(data).size
@@ -106,18 +107,18 @@ class DataHandler:
         return df
 
 
-def display_statistics(analysis):
-    print(f"\n\n<== Statistics for {analysis['strategy']} ==>")
-    print('Trade Count: ', analysis["trade_count"])
-    print('Win Count: ', analysis["win_count"])
-    print('Loss Count: ', analysis["loss_count"])
-    print('Win Rate: ', f"{round(analysis['win_rate'] * 100, 2)}%")
-    print('ROI: ', analysis["total_roi"])
-    print('Invest: ', analysis["invest"])
-    print('Profit: ', analysis["profit"])
-    print(f'Profit: {round(analysis["total_roi"] * 100, 2)}%')
-
-    print("<== ==End== ==>\n\n")
+# def display_statistics(analysis):
+#     print(f"\n\n<== Statistics for {analysis['strategy']} ==>")
+#     print('Trade Count: ', analysis["trade_count"])
+#     print('Win Count: ', analysis["win_count"])
+#     print('Loss Count: ', analysis["loss_count"])
+#     print('Win Rate: ', f"{round(analysis['win_rate'] * 100, 2)}%")
+#     print('ROI: ', analysis["total_roi"])
+#     print('Invest: ', analysis["invest"])
+#     print('Profit: ', analysis["profit"])
+#     print(f'Profit: {round(analysis["total_roi"] * 100, 2)}%')
+#
+#     print("<== ==End== ==>\n\n")
 
 
 class BacktraderStrategy:
@@ -133,7 +134,7 @@ class BacktraderStrategy:
         if live:
             q = self._historical_and_live_queue()
             # q = queue.Queue()
-            data = AlpacaStreamData(q=q)
+            # data = AlpacaStreamData(q=q)
             data = StreamTickData(q=q)
             self.cerebro.adddata(data)
             # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")

@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 import os
 import queue
 import threading
@@ -10,6 +11,7 @@ from alpaca.data import StockHistoricalDataClient, StockBarsRequest, TimeFrame
 from websocket import WebSocketApp
 
 from app.src import constants
+from app.src.notify import news
 from app.src.voice_alert import voice_alert
 
 
@@ -25,18 +27,20 @@ class AlpacaWebSocket:
 
     def on_message(self, ws, message):
         for d in json.loads(message):
-            print(f'data update:{d}')
+            # print(f'data update:{d}')
             if d.get('T') == 't':
                 self.data_queue.put(d)
 
     def on_error(self, ws, error):
-        print(f"Error occurred on live data stream: {error}")
+        logging.critical(f"Error occurred on live data stream: {error}")
+        news(f"Error occurred on alpaca live data stream: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        print("live data stream closed")
+        logging.warning("live data stream closed")
+        news("live data stream closed")
 
     def on_open(self, ws):
-        print("live data stream opened")
+        logging.info("live data stream opened")
         auth_data = {
             "action": "auth",
             "key": self.key,
@@ -55,8 +59,9 @@ class AlpacaWebSocket:
             self.ws = WebSocketApp(self.url,
                                    on_message=self.on_message,
                                    on_error=self.on_error,
-                                   on_close=self.on_close)
-            self.ws.on_open = self.on_open
+                                   on_close=self.on_close,
+                                   on_open=self.on_open)
+
             self.ws.run_forever()
 
         self.thread = threading.Thread(target=run_ws)
@@ -97,15 +102,19 @@ class AlpacaStreamData(bt.feed.DataBase):
         except queue.Empty:
 
             voice_alert('say the queue is empty')
-            print("queue empty")
+            logging.warning("queue empty")
+            news("⚠️ queue empty")
             return False
         except KeyboardInterrupt:
-            print("KeyboardInterrupt")
-            voice_alert('say the trading has been terminated', 1)
+            logging.warning("KeyboardInterrupt-the trading has been terminated")
+            news("KeyboardInterrupt-the trading has been terminated")
+            # voice_alert('say the trading has been terminated', 1)
             return False
 
         except Exception as e:
-            print("An error occurred: ", e)
+            logging.error(f"An error occurred from AlpacaStreamData: {e}")
+            news(f"An error occurred from AlpacaStreamData: {e}")
+            return False
 
         return True
 
@@ -172,7 +181,7 @@ class AlpacaHistoricalData:
             for entry in bars[self.symbol]:
                 writer.writerow(dict(entry))
 
-        print("Data has been written to '{}' file.".format(self.csv_file_path))
+        logging.info("Data has been written to '{}' file.".format(self.csv_file_path))
 
 # class AlpacaHistoricalDataApi:
 #     def __init__(self, symbol, period_in_days, csv_file_path):

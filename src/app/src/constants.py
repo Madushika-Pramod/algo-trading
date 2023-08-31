@@ -2,9 +2,12 @@
 import os
 from datetime import datetime
 
+# variables ==>
+# trading_view_data = {}
+trading_view_data = dict(volume=-1000, last_price=-1000, lp_time=-1000, cumulative_change=-1000, cc_percentage=-1000,
+                         extended_hours_price=-1000, ehp_percentage=-1000, close=-1000, open=-1000, high=-1000,
+                         low=-1000)
 
-
-#variables ==>
 pending_order = None
 accepted_order = None
 market_buy_order = False
@@ -12,8 +15,8 @@ market_buy_order = False
 
 symbol = "TSLA"
 commission = 0.0  # 0.005
-min_price = 212.61
-median_volume = 16265.5
+min_price = 254.69
+median_volume = 4782.0  #14350.0
 last_sale_price = None
 cash = 500
 
@@ -40,12 +43,9 @@ trading_view_file_path = os.path.join(_parent_dir, 'datas', f'tw_{symbol}{period
 
 mama_file_path = os.path.join(_parent_dir, 'datas', f'MAMA{file_id}.csv')
 
-
-
 data_download = 0
 # time_for_rate_limit = 3
 market_data_url = 'https://data.alpaca.markets/v2/stocks/'
 trade_stream_wss = 'wss://paper-api.alpaca.markets/stream'
 data_stream_wss = 'wss://stream.data.alpaca.markets/v2/iex'
 # best_strategy = MovingAverageADXStrategy
-

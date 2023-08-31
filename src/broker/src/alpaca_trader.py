@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 
 import websockets
@@ -10,6 +11,7 @@ from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, TrailingStopOrderRequest, LimitOrderRequest, StopOrderRequest
 
 from app.src import constants
+from app.src.notify import news
 from app.src.voice_alert import voice_alert
 
 
@@ -18,11 +20,11 @@ def get_trade_updates():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        print('Receiving alpaca trading updates')
+        logging.info('Receiving alpaca trading updates')
         # Now use this loop to run your async function
         loop.run_until_complete(alpaca_trade_updates_ws())
     finally:
-        print("trading updates stopped")
+        logging.info("trading updates stopped")
         loop.close()
 
 
@@ -58,22 +60,25 @@ async def alpaca_trade_updates_ws():
                 constants.pending_order = trade['order']  # todo
                 voice_alert(f"say a {trade['order']['side']} order is placed", 1)
                 voice_alert("say placed", 1)
-                print(
+                logging.info(
                     f"a {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                news(f"a *{trade['order']['side']}* order is placed at price *{trade['order']['hwm']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
             elif trade['event'] == 'filled':
                 constants.accepted_order = trade['order']
                 voice_alert(f"say a {trade['order']['side']} order is executed", 1)
                 voice_alert("say executed", 1)
-                print(
+                logging.info(
                     f"a {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                news(f"a *{trade['order']['side']}* order is executed at price *{trade['order']['stop_price']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
             elif trade['event'] == 'canceled':
 
                 voice_alert(f"say a {trade['order']['side']} order is canceled", 1)
                 voice_alert("say canceled", 1)
-                print(
+                logging.info(
                     f"a {trade['order']['side']} order is canceled at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                news(f"a *{trade['order']['side']}* order is canceled at price *{trade['order']['stop_price']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
             # q.put(message)
 
@@ -111,7 +116,7 @@ class AlpacaTrader:
         current_price = get_last_trade_from_sdk()[constants.symbol].price
 
         if current_price < self.algo_price:  # or self.account.daytrade_count == 3:  # price decreasing or day trade count reach
-            print(f"algo price={self.algo_price} > current price={current_price} <=> price decreasing")
+            logging.info(f"algo price={self.algo_price} > current price={current_price} <=> price decreasing")
             return ""
 
         # execute new trailing stop order
@@ -191,7 +196,7 @@ class AlpacaTrader:
 
         current_price = get_last_trade_from_sdk()[constants.symbol].price
         if current_price > self.algo_price:  # price increasing
-            print(f"algo price={self.algo_price} < current price={current_price} <=> price increasing")
+            logging.info(f"algo price={self.algo_price} < current price={current_price} <=> price increasing")
             return ""
         # execute new trailing stop order
         if trailing_stop_order_data.qty > 0:
