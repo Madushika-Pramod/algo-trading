@@ -235,7 +235,9 @@ class AlpacaHistoricalData:
 #
 #         print(f"Data has been written to '{self.csv_file_path}' file.")
 
+# from app.src import logger_config
 # AlpacaHistoricalData(constants.symbol, constants.period_in_days, constants.csv_file_path).save_to_csv()
+
 
 # ws = AlpacaWebSocket(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
 #                                   constants.data_stream_wss, queue.Queue())

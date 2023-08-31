@@ -15,8 +15,8 @@ market_buy_order = False
 
 symbol = "TSLA"
 commission = 0.0  # 0.005
-min_price = 254.69
-median_volume = 4782.0  #14350.0
+min_price = 220.83
+median_volume = 15710.0
 last_sale_price = None
 cash = 500
 

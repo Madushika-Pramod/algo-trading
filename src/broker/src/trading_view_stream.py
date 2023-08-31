@@ -1,13 +1,18 @@
 import json
+import logging
 import os
+import queue
 import re
 import ssl
 import threading
+import time
 
 import pandas as pd
 import websocket
 
 from app.src import constants
+from app.src.notify import news
+from broker.src.alpaca_data import AlpacaWebSocket
 
 
 def extract_data(data):
@@ -45,9 +50,9 @@ def write_to_csv(df4, filename=constants.trading_view_file_path):
     if not os.path.exists(filename):
         # Write the DataFrame to a CSV file
         df4.to_csv(filename, index=False)
-        print(f"Data written to {filename}")
+        logging.info(f"Data written to {filename}")
     else:
-        print(f"File '{filename}' already exists. No data was written.")
+        logging.info(f"File '{filename}' already exists. No data was written.")
 
 
 def build_dataframe(lists):
@@ -87,6 +92,8 @@ def build_dataframe(lists):
 
 class TradingViewWebSocket:
     def __init__(self, data_queue):
+        # self.restart_required = False
+
         self.thread = None
         self.ws = None
         self.headers = {
@@ -109,32 +116,44 @@ class TradingViewWebSocket:
         ws.send('~m~52~m~{"m":"quote_create_session","p":["qs_2YiWuxHOASlh"]}')
         ws.send(
             '~m~474~m~{"m":"quote_set_fields","p":["qs_2YiWuxHOASlh","base-currency-logoid","ch","chp","currency-logoid","currency_code","currency_id","base_currency_id","current_session","description","exchange","format","fractional","is_tradable","language","local_description","listed_exchange","logoid","lp","lp_time","minmov","minmove2","original_name","pricescale","pro_name","short_name","type","typespecs","update_mode","volume","value_unit_id","rchp","rtc","country_code","provider_id"]}')
-        ws.send('~m~64~m~{"m":"quote_add_symbols","p":["qs_2YiWuxHOASlh","NASDAQ:GOOGL"]}')
+        if constants.symbol == "TSLA":
+            ws.send('~m~63~m~{"m":"quote_add_symbols","p":["qs_2YiWuxHOASlh","NASDAQ:TSLA"]}')
+        elif constants.symbol == "GOOGL":
+            ws.send('~m~64~m~{"m":"quote_add_symbols","p":["qs_2YiWuxHOASlh","NASDAQ:GOOGL"]}')
 
     def on_message(self, ws: websocket, message):
+        if message is None or message == "":
+            return
+        # print(f'msg{message}')
         pattern = r"^~m~\d+~m~~h~\d+"
         if re.match(pattern, message):
             ws.send(message)
 
         else:
             data = extract_data(message)
-            if len(data) > 0:
+            if data is not None and len(data) > 0:
                 self.data_lists.append(data)
                 for d in data:
                     self.data_queue.put(d)
                     # print(d)
 
-    def on_error(self, error):
-        print(f"TradingViewWebSocket Process terminated: {error}")
-
+    def on_error(self, error, _):
+        logging.error(f"At TradingViewWebSocket Process: {error}")
+        news(f"Error occurred on trading view live data stream: {error}")
     def on_close(self, ws, status_code, msg):
 
         df2 = build_dataframe(self.data_lists)
         write_to_csv(df2)
         self.data_lists.clear()
-        print(f"TradingViewWebSocket Process closed: {status_code}:{msg}")
+        logging.info(f"TradingViewWebSocket Process closed: {status_code}:{msg}")
+        # self.restart_required = True
+
+        # self.ws2 = AlpacaWebSocket(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
+        #                            constants.data_stream_wss, self.data_queue)
+        # self.ws2.start()
 
     def stop(self):
+        # self.restart_required = False
         df2 = build_dataframe(self.data_lists)
         write_to_csv(df2)
         self.data_lists.clear()
@@ -144,6 +163,7 @@ class TradingViewWebSocket:
 
     def start(self):
         def run_ws():
+            # while self.restart_required or not self.ws:
             self.ws = websocket.WebSocketApp(
                 'wss://data.tradingview.com/socket.io/websocket',
                 header=self.headers,
@@ -153,13 +173,15 @@ class TradingViewWebSocket:
                 on_error=self.on_error)
 
             self.ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+                # if self.restart_required:
+                #     time.sleep(2)
 
         self.thread = threading.Thread(target=run_ws, daemon=True)
         self.thread.start()
 
 # # Example of how to use the class
 # if __name__ == "__main__":
-# tv_ws = TradingViewWebSocket(queue.Queue)
+# tv_ws = TradingViewWebSocket(queue.Queue())
 # tv_ws.start()
 # try:
 #     tv_ws.thread.join()

@@ -50,6 +50,7 @@ class SmaCrossStrategy(bt.Strategy):
         return self.cumulative_profit / self.starting_balance
 
     def back_test(self):
+
         # print(self.data.open[0], self.data.volume[0])
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
@@ -64,6 +65,7 @@ class SmaCrossStrategy(bt.Strategy):
         # 2. If there's no existing buy order, consider buying
         # notice:we can't use `if not self.order_active:`
         if self.trade_active is False:
+
 
             # 3. If there was a prior sell price, only buy if the difference
             # between the prior sell price and current price exceeds 'profit_threshold'
@@ -83,7 +85,6 @@ class SmaCrossStrategy(bt.Strategy):
                 self.ready_to_buy = False
                 self.trade_active = True
                 self.price_of_last_purchase = self.data.close[0]
-                logging.debug(f'trade_active:{self.trade_active}<==>profit_threshold > price_of_last_sale - close price{self.p.profit_threshold} > {self.price_of_last_sale} - {self.data.close[0]}<==>close price - recorded_lowest_price < high_low_tolerance={self.data.close[0]} - {self.recorded_lowest_price[0]} < {self.p.high_low_tolerance}<==>ready_to_buy: {self.ready_to_buy},volume > median_volume ={self.data.volume[0]} > {median_volume} <==> moving_avg_crossover_indicator > 0 = {self.moving_avg_crossover_indicator}')
         # 6. If a buy order has been executed, consider selling
         elif self.trade_active:
 
@@ -104,7 +105,6 @@ class SmaCrossStrategy(bt.Strategy):
                 self.sell()
                 self.ready_to_sell = False
                 self.trade_active = False
-                logging.debug(f'trade_active:{self.trade_active}<==>profit_threshold > close - price_of_last_purchase{self.p.profit_threshold} > {self.data.close[0]} - {self.price_of_last_purchase}<==>recorded_highest_price - close < high_low_tolerance={self.recorded_highest_price[0]} - {self.data.close[0]} < {self.p.high_low_tolerance}<==>ready_to_sell: {self.ready_to_sell},volume > median_volume ={self.data.volume[0]} > {median_volume} <==> moving_avg_crossover_indicator < 0 = {self.moving_avg_crossover_indicator}')
 
 
 
@@ -116,11 +116,12 @@ class SmaCrossStrategy(bt.Strategy):
             self.trade_active = True
 
     def live(self):
+
         print(f'live-{self.data.close[0]}')
         # 11. buy only if when order has been executed on alpaca
         if constants.accepted_order is not None and constants.accepted_order['id'] == str(
                 self.algorithm_performed_buy_order_id):
-            logging.info("buy executed")
+            logging.info("124 -buy executed")
             self.buy()
             self.ready_to_buy = False
             self.trade_active = True
@@ -129,7 +130,7 @@ class SmaCrossStrategy(bt.Strategy):
         # 12. sell only if when order has been executed on alpaca
         elif constants.accepted_order is not None and constants.accepted_order['id'] == str(
                 self.algorithm_performed_sell_order_id):
-            logging.info("sell executed")
+            logging.info("133 -sell executed")  # line number added for to search and for test purpose
             self.price_of_last_sale = float(constants.accepted_order['stop_price'])
             self.sell()
             self.ready_to_sell = False
@@ -141,20 +142,20 @@ class SmaCrossStrategy(bt.Strategy):
         elif constants.pending_order is not None and float(constants.pending_order['hwm']) - self.data.close[
             0] > self.p.profit_threshold / 4 and not self.trade_active:
 
-            self.trading_client.cancel_order_by_id(constants.pending_order['id'])
+            self.trader.trading_client.cancel_order_by_id(constants.pending_order['id'])
             constants.pending_order = None
-            news(f"buy order made at a price {constants.pending_order['hwm']} has been canceled")
-            # voice_alert(f"say the buy order made at a price {constants.pending_order['hwm']} has been canceled", 2)
-            logging.info(f"buy order made at a price {constants.pending_order['hwm']} has been canceled")
+            news(f"buy order placed at the price {constants.pending_order['hwm']} has been canceled")
+            # voice_alert(f"say the buy order placed at the price {constants.pending_order['hwm']} has been canceled", 2)
+            logging.info(f"149 -buy order placed at the price {constants.pending_order['hwm']} has been canceled")
 
         elif constants.pending_order is not None and self.data.close[0] - float(
                 constants.pending_order['hwm']) > self.p.profit_threshold / 4 and self.trade_active:
 
-            self.trading_client.cancel_order_by_id(constants.pending_order['id'])
+            self.trader.trading_client.cancel_order_by_id(constants.pending_order['id'])
             constants.pending_order = None
-            news(f"the sell order made at a price {(constants.pending_order['hwm'])} has been canceled")
-            # voice_alert(f"say the sell order made at a price {float(constants.pending_order['hwm'])} has been canceled",2)
-            logging.info(f"sell order made at a price {constants.pending_order['hwm']} has been canceled")
+            news(f"the sell order placed at the price {(constants.pending_order['hwm'])} has been canceled")
+            # voice_alert(f"say the sell order placed at the price {float(constants.pending_order['hwm'])} has been canceled",2)
+            logging.info(f"158 -sell order placed at the price {constants.pending_order['hwm']} has been canceled")
 
         # 1. If the price drops more than 'profit_threshold' from the bought price,
         # sell immediately and stop trading
@@ -162,7 +163,7 @@ class SmaCrossStrategy(bt.Strategy):
         if self.price_of_last_purchase is not None and self.p.profit_threshold * 4 < self.price_of_last_purchase - \
                 self.data.close[0]:
             r = self.traderself.trading_client.close_all_positions(cancel_orders=True)
-            logging.info('close_all_positions:{r}')
+            logging.info('166 -close_all_positions:{r}')
             news("⚠️ The price has dropped significantly low. Trading has been stopped.")
             # voice_alert("say Warning! The price has dropped significantly low. Trading has been stopped.", 5)
             logging.critical("immediately sold")
@@ -179,39 +180,50 @@ class SmaCrossStrategy(bt.Strategy):
             # between the prior sell price and current price exceeds 'profit_threshold'
             if self.price_of_last_sale is not None and self.p.profit_threshold > self.price_of_last_sale - \
                     self.data.close[0]:
+                logging.info('183 -inactive trade returned')
                 return
 
             # 4. Enter into buy state if the close price is near the lowest price
             if self.data.close[0] - self.recorded_lowest_price[0] < self.p.high_low_tolerance:
                 self.ready_to_buy = True
+                logging.info('189 -ready_to_buy = True')
             else:
                 self.ready_to_buy = False
+                logging.info('192 -ready_to_buy = False')
 
             # 5. If in buy state, and volume is sufficient, and there's a positive crossover, then buy
             if self.ready_to_buy and self.data.volume[
                 0] > constants.median_volume and self.moving_avg_crossover_indicator > 0:
 
                 self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
-                logging.debug(f'buy id: {self.algorithm_performed_buy_order_id}')
+                logging.debug(f'199 -buy id: {self.algorithm_performed_buy_order_id}')
+                logging.debug(f'trade_active:{self.trade_active}<==>profit_threshold > price_of_last_sale - close price{self.p.profit_threshold} > {self.price_of_last_sale} - {self.data.close[0]}<==>close price - recorded_lowest_price < high_low_tolerance={self.data.close[0]} - {self.recorded_lowest_price[0]} < {self.p.high_low_tolerance}<==>ready_to_buy: {self.ready_to_buy},volume > median_volume ={self.data.volume[0]} > {median_volume} <==> moving_avg_crossover_indicator > 0 = {self.moving_avg_crossover_indicator}')
+
 
         # 6. If a buy order has been executed, consider selling
         elif self.trade_active:
 
             # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
             if self.p.profit_threshold > self.data.close[0] - self.price_of_last_purchase:
+                logging.info('183 -active trade returned')
                 return
 
             # 8. Enter into sell state if the close price is near the highest price
             if self.recorded_highest_price[0] - self.data.close[0] < self.p.high_low_tolerance:
                 self.ready_to_sell = True
+                logging.info('214 -ready_to_sell = True')
             else:
                 self.ready_to_sell = False
+                logging.info('217 -ready_to_sell = False')
 
             # 9. If in sell state, and volume is sufficient, and there's a negative crossover, then sell
             if self.ready_to_sell and self.data.volume[
                 0] > constants.median_volume and self.moving_avg_crossover_indicator < 0:
+
                 self.algorithm_performed_sell_order_id = self.trader.sell(self.data.close[0])
-                logging.debug(f'sell id: {self.algorithm_performed_sell_order_id}')
+                logging.debug(f'224 -sell id: {self.algorithm_performed_sell_order_id}')
+                logging.debug(f'trade_active:{self.trade_active}<==>profit_threshold > close - price_of_last_purchase{self.p.profit_threshold} > {self.data.close[0]} - {self.price_of_last_purchase}<==>recorded_highest_price - close < high_low_tolerance={self.recorded_highest_price[0]} - {self.data.close[0]} < {self.p.high_low_tolerance}<==>ready_to_sell: {self.ready_to_sell},volume > median_volume ={self.data.volume[0]} > {median_volume} <==> moving_avg_crossover_indicator < 0 = {self.moving_avg_crossover_indicator}')
+
         # this is just for buy test purpose only will be deleted in future
 
         # elif self.trade_active is None and self.data.close[-1] == 0:
@@ -251,7 +263,7 @@ class SmaCrossStrategy(bt.Strategy):
         # print(f'Last sale : {self.price_of_last_sale}')
         if self.live_mode:
             self.trader.trading_client.cancel_orders()
-            logging.info("pending orders canceled")
+            logging.info("266 -pending orders canceled")
 
     # Main strategy logic
     def next(self):
@@ -303,7 +315,7 @@ class SmaCrossStrategy(bt.Strategy):
                 except KeyboardInterrupt:
                     print("KeyboardInterrupt received. shutting down trader...")
                     self.trader.trading_client.cancel_orders()
-                    logging.info("KeyboardInterrupt")
+                    logging.info("318 -KeyboardInterrupt")
                     # todo add stop order for pre-market period
                     # doesn't reach todo
 

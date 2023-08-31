@@ -8,7 +8,7 @@ from alpaca.data.historical.stock import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestTradeRequest
 from alpaca.trading import OrderSide, TimeInForce
 from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import MarketOrderRequest, TrailingStopOrderRequest, LimitOrderRequest, StopOrderRequest
+from alpaca.trading.requests import MarketOrderRequest, TrailingStopOrderRequest
 
 from app.src import constants
 from app.src.notify import news
@@ -56,30 +56,45 @@ async def alpaca_trade_updates_ws():
             message = await ws.recv()
             print(f'trade update: {message}')
             trade = json.loads(message)['data']
+
+            # '''new: The order has been received by Alpaca, but not yet routed to the exchange.
+            #    accepted: The order has been routed to the exchange, but not yet confirmed by the exchange.'''
             if trade['event'] == 'new' or trade['event'] == 'accepted':
                 constants.pending_order = trade['order']  # todo
-                voice_alert(f"say a {trade['order']['side']} order is placed", 1)
-                voice_alert("say placed", 1)
+                # voice_alert(f"say a {trade['order']['side']} order is placed", 1)
+                # voice_alert("say placed", 1)
                 logging.info(
-                    f"a {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
-                news(f"a *{trade['order']['side']}* order is placed at price *{trade['order']['hwm']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: *{trade['event']}*\na {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                news(
+                    f"event type: *{trade['event']}*\na *{trade['order']['side']}* order is *placed* at price *{trade['order']['hwm']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
-            elif trade['event'] == 'filled':
+            # '''partial_fill: The order has been partially executed by the exchange, meaning that some but not
+            # all the requested quantity has been filled. fill: The order has been fully executed by the exchange,
+            # meaning that all the requested quantity has been filled.'''
+            elif trade['event'] == 'filled' or trade['event'] == 'partial_fill':
                 constants.accepted_order = trade['order']
                 voice_alert(f"say a {trade['order']['side']} order is executed", 1)
                 voice_alert("say executed", 1)
                 logging.info(
-                    f"a {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
-                news(f"a *{trade['order']['side']}* order is executed at price *{trade['order']['stop_price']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: *{trade['event']}*\na {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                news(
+                    f"event type: *{trade['event']}*\na *{trade['order']['side']}* order is *executed* at price *{trade['order']['stop_price']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
+            # '''canceled: The order has been canceled by either the user or Alpaca, meaning that it will not be
+            # executed. This could happen if the user requests to cancel the order, or if the order expires due to
+            # its time in force parameter. '''
             elif trade['event'] == 'canceled':
 
-                voice_alert(f"say a {trade['order']['side']} order is canceled", 1)
-                voice_alert("say canceled", 1)
+                # voice_alert(f"say a {trade['order']['side']} order is canceled", 1)
+                # voice_alert("say canceled", 1)
                 logging.info(
-                    f"a {trade['order']['side']} order is canceled at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
-                news(f"a *{trade['order']['side']}* order is canceled at price *{trade['order']['stop_price']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
-
+                    f"event type: *{trade['event']}*\na {trade['order']['side']} order is canceled at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                news(
+                    f"event type: *{trade['event']}*\na *{trade['order']['side']}* order is *canceled* at price *{trade['order']['stop_price']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+            else:
+                logging.info(
+                    f"alpaca event > event type: *{trade['event']}*")
+                news(f"alpaca event > event type: *{trade['event']}*")
             # q.put(message)
 
 
@@ -217,7 +232,6 @@ class AlpacaTrader:
         return int(float(self.account.buying_power) / (price + constants.commission))
         # todo check this, when calling saved variable account.cash, all ways get new cash value
 
-
 # t = AlpacaTrader()
 # #
 # stop_order_data = StopOrderRequest(
@@ -241,7 +255,3 @@ class AlpacaTrader:
 #
 
 # get_trade_updates()
-
-
-
-
