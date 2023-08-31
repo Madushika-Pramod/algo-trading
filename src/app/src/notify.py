@@ -27,10 +27,10 @@ def news(text):
 
 
 def _news_to_telegram(text):
-    base_url = f"https://api.telegram.org/bot{os.environ.get('TOKEN')}/sendMessage"
+    base_url = f"https://api.telegram.org/bot{os.environ.get('ALGO_TOKEN')}/sendMessage"
     payload = {
         "chat_id": os.environ.get('CHAT_ID'),
         "text": text
     }
     response = requests.post(base_url, data=payload)
-    print('notified')
+    print('notified',response)

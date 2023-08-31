@@ -7,12 +7,12 @@ import os
 
 from app.src import constants
 from app.src.back_trader import BacktraderStrategy
-from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, DemoStrategy
+from strategies import BollingerRSIStrategy, TrendLineStrategy, SmaCrossStrategy, SmaCrossstrategyV2, DemoStrategy
 
 
 def run_single(live=False):
     strategy = (
-        SmaCrossStrategy,
+        SmaCrossstrategyV2,
         dict(
 
             # fast_ma_period=14,
@@ -58,18 +58,18 @@ def run_single(live=False):
             # profit_threshold=1.0
 
             # #aug 30
-            # fast_ma_period=6,
-            # slow_ma_period=32,
-            # high_low_period=22,
-            # high_low_tolerance=0.5,
-            # profit_threshold=1.0
+            fast_ma_period=6,
+            slow_ma_period=32,
+            high_low_period=22,
+            high_low_tolerance=0.5,
+            profit_threshold=1.0
 
             # aug 30
-            fast_ma_period=8,
-            slow_ma_period=54,
-            high_low_period=10,
-            high_low_tolerance=0.5,
-            profit_threshold=4.0
+            # fast_ma_period=8,
+            # slow_ma_period=54,
+            # high_low_period=10,
+            # high_low_tolerance=0.5,
+            # profit_threshold=4.0
         ))
     # strategy = (TrendLineStrategy,
     #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))
@@ -88,6 +88,8 @@ def run_single(live=False):
 #     for strategy in strategies:
 #         score = BacktraderStrategy(live=False).add_strategy(strategy).run()
 #         print(score)
+
+
 
 
 def get_sma_cross_strategy_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
@@ -359,6 +361,6 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    run_single(live=True)
+    run_single()
     # run_parallel(bollinger_config_process, configurations_for_bollinger)
     # run_parallel(sma_cross_config_process, configurations_for_sma_cross)

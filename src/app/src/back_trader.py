@@ -134,8 +134,8 @@ class BacktraderStrategy:
         if live:
             q = self._historical_and_live_queue()
             # q = queue.Queue()
-            # data = AlpacaStreamData(q=q)
-            data = StreamTickData(q=q)
+            data = AlpacaStreamData(q=q)
+            # data = StreamTickData(q=q)
             self.cerebro.adddata(data)
             # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
 
