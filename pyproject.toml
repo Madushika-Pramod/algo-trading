@@ -15,9 +15,19 @@ dependencies = [
     "Alpaca-py>=0.9.0",
     "websocket-client>=1.6.1",
     "TA-Lib>=0.4.28",
+    "wheel>=0.41.2",
+    "setuptools>=68.1.2",
+    "asyncio>=3.4.3",
+    "aiokafka>=0.8.1",
+    "aiofiles>=23.2.1",
 ]
 requires-python = ">=3.11"
 license = {text = "MIT"}
+
+[tool.pdm.dev-dependencies]
+lint = [
+    "black"
+]
 
 [tool.pdm]
 src_layout = true

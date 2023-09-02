@@ -1,0 +1,10 @@
+
+[project]
+name = "algo_trading.pipeline"
+version = "0.1"
+description = ""
+dependencies = [
+]
+
+[tool.pdm]
+src_layout = true
