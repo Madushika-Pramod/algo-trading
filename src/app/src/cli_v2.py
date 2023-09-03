@@ -1,4 +1,6 @@
 # Importing logger_config to set up application-wide logging and exception handling
+# import logger_config
+import logger_config
 import csv
 import logging
 import multiprocessing
@@ -196,5 +198,5 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    # run_single()
-    run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
+    run_single()
+    # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
