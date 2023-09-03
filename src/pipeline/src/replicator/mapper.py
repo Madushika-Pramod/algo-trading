@@ -1,7 +1,7 @@
 from pipeline.src.api import Tick
 
 
-class TradeViewTickToTickMapper:
+class TradingViewTickToTickMapper:
     @staticmethod
     def from_json(json_ob):
         is_extended_hours = 'rtc' in json_ob and 'rchp' in json_ob

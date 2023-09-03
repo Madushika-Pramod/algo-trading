@@ -2,7 +2,7 @@ import asyncio
 
 from aiokafka import AIOKafkaProducer
 
-from pipeline.src.replicator.data_source import CsvDataSource
+from pipeline.src.replicator.data_sources import CsvDataSource
 from pipeline.src.replicator.gateway import MessageGateway
 from pipeline.src.replicator.observer import MessageForwarder
 
