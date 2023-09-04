@@ -4,7 +4,7 @@ import backtrader as bt
 
 from app.src import constants
 # from broker import AlpacaTrader, get_trade_updates
-from app.src.constants import median_volume, min_price  # todo add these as parameters
+from app.src.constants import median_volume  # todo add these as parameters
 from app.src.notify import news
 from broker import AlpacaTrader
 
@@ -42,7 +42,7 @@ class SmaCrossstrategyV2(bt.Strategy):
         self.commission_on_last_purchase = 0
         self.price_of_last_sale = 0
         self.price_of_last_purchase = 0
-        # self.starting_balance = self.broker.get_cash()
+        self.starting_balance = self.broker.get_cash()
         self.cumulative_profit = 0.0
         self.ready_to_buy = False
         self.ready_to_sell = False
@@ -63,112 +63,8 @@ class SmaCrossstrategyV2(bt.Strategy):
     def _roi(self):
         return self.cumulative_profit / self.starting_balance
 
-    def back_test(self):
-
-        # print(self.data.open[0], self.data.volume[0])
-        # 1. If the price drops more than 'profit_threshold' from the bought price,
-        # sell immediately and stop trading
-        # todo change profit * 10
-        # if self.price_of_last_purchase is not None and self.p.profit_threshold * 5 < self.price_of_last_purchase - \
-        #         self.data.close[0]:
-        #     self.price_of_last_sale = self.data.close[0]
-        #     self.sell()
-        #     self.stop()
-        #     raise Exception("===xxx Trading Terminated xxx===")
-
-        # 2. If there's no existing buy order, consider buying
-        # notice:we can't use `if not self.order_active:`
-        if self.trade_active is False:
-
-            # 3. If there was a prior sell price, only buy if the difference
-            # between the prior sell price and current price exceeds 'profit_threshold'
-            if self.price_of_last_sale is not None and self.p.buy_profit_threshold > self.price_of_last_sale - \
-                    self.data.close[0]:
-                return
-
-            # 4. Enter into buy state if the close price is near the lowest price
-            if self.data.close[0] - self.recorded_lowest_price[0] < self.p.high_low_tolerance:
-                self.ready_to_buy = True
-            else:
-                self.ready_to_buy = False
-
-            # 5. If in buy state, and volume is sufficient, and there's a positive crossover, then buy
-            if self.ready_to_buy and self.data.volume[
-                0] > median_volume and self.moving_avg_crossover_indicator > 0:
-                self.buy()
-                self.ready_to_buy = False
-                self.trade_active = True
-                self.price_of_last_purchase = self.data.close[0]
-        # 6. If a buy order has been executed, consider selling
-        elif self.trade_active:
-
-            # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
-            if self.p.sell_profit_threshold > self.data.close[0] - self.price_of_last_purchase:
-                return
-
-            # 8. Enter into sell state if the close price is near the highest price
-            if self.recorded_highest_price[0] - self.data.close[0] < self.p.high_low_tolerance:
-                self.ready_to_sell = True
-            else:
-                self.ready_to_sell = False
-
-            # 9. If in sell state, and volume is sufficient, and there's a negative crossover, then sell
-            if self.ready_to_sell and self.data.volume[
-                0] > median_volume and self.moving_avg_crossover_indicator < 0:
-                self.price_of_last_sale = self.data.close[0]
-                self.sell()
-                self.ready_to_sell = False
-                self.trade_active = False
-
-
-
-        # Initiate strategy: If the current close price is below 'min_price', make the initial buy
-        elif self.trade_active is None and self.data.close[0] <= min_price:
-            self.price_of_last_purchase = self.data.close[0]
-            self.buy()
-            self.ready_to_buy = False
-            self.trade_active = True
-
-    # new live mthod with sub methods
-    def live2(self):
-        print(f'live-{self.data.close[0]}')
-
-        # Check and execute buy orders on alpaca
-        if self._buy_orders_ready_on_alpaca():
-            self._execute_buy_orders()
-
-        # Check and execute sell orders on alpaca
-        elif self._sell_orders_ready_on_alpaca():
-            self._execute_sell_orders()
-
-        # Cancel any pending buy order
-        elif self._need_to_cancel_buy_order():
-            self._cancel_buy_order()
-            news(f"buy order placed at the price {constants.pending_order['hwm']} has been canceled")
-
-        # Cancel any pending sell order
-        elif self._need_to_cancel_sell_order():
-            self._cancel_sell_order()
-            news(f"the sell order placed at the price {(constants.pending_order['hwm'])} has been canceled")
-
-        # Halt trading if there's a significant drop in stock prices
-        elif self._significant_stock_price_drop():
-            self._halt_trading_and_alert()
-            news("⚠️ The price has dropped significantly low. Trading has been stopped.")
-
-        # Initiate a buy if conditions are met
-        elif self._conditions_met_for_buy():
-            self._start_buy_process()
-
-        # Initiate a sell if conditions are met
-        elif self._conditions_met_for_sell():
-            self._start_sell_process()
-
-        elif self._is_initial_buy_condition():
-            self._initial_buy()
-
     def _is_initial_buy_condition(self):
-        return self.trade_active is None
+        return self.trade_active is None and self.data.close[0] <= constants.min_price
 
     def _buy_orders_ready_on_alpaca(self):
         return constants.accepted_order is not None and constants.accepted_order['id'] == str(
@@ -210,7 +106,7 @@ class SmaCrossstrategyV2(bt.Strategy):
         logging.info(f"213 -sell order placed at the price {constants.pending_order['hwm']} has been canceled")
 
     def _significant_stock_price_drop(self):
-        return self.price_of_last_purchase is not None and self.p.buy_profit_threshold * 4 < self.price_of_last_purchase - \
+        return self.price_of_last_purchase is not None and constants.loss_value < self.price_of_last_purchase - \
             self.data.close[0]
 
     def _halt_trading_and_alert(self):
@@ -220,32 +116,37 @@ class SmaCrossstrategyV2(bt.Strategy):
                 TODO: introduce here a sps mopeed parameter and implement for both buy and sell.
                 """
         _ = self.trader.trading_client.close_all_positions(cancel_orders=True)
-        logging.info(f'221 -close_all_positions:{_}')
+        # logging.info(f'119 -close_all_positions:{_}')
         logging.critical("immediately sold")
         self.stop()
-        raise Exception("===xxx Trading Terminated xxx===")
+        raise Exception(f"Trading Terminated and immediately sold due to significant drop of price,\nbuy_profit_threshold * 4 < price_of_last_purchase - current price = {self.p.buy_profit_threshold} x 4 < {self.price_of_last_purchase} - {self.data.close[0]}  ")
 
     def _conditions_met_for_buy(self):
         return self.trade_active is False  # todo chnage this
 
     def _start_buy_process(self):
         """If there's no existing buy order, consider buying"""
-        if self._is_prior_sell_price_close():
-            logging.info('229 -inactive trade returned')
+        if self._is_prior_sell_price_close_to_current():
+            logging.info('130 -inactive trade returned')
             return
 
         if self._is_price_near_lowest():
             self.ready_to_buy = True
-            logging.info('234 -ready_to_buy = True')
+            logging.info('239 -ready_to_buy = True')
         else:
             self.ready_to_buy = False
-            logging.info('236 -ready_to_buy = False')
+            logging.info('241 -ready_to_buy = False')
 
-        if self._is_ready_to_buy_based_on_volume_and_crossover():
+        if self.live_mode and self._is_ready_to_buy_based_on_volume_and_crossover():
             self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
             logging.debug(f'242 -buy id: {self.algorithm_performed_buy_order_id}')
             logging.debug(
                 f'trade_active:{self.trade_active}<==>profit_threshold > price_of_last_sale - close price{self.p.buy_profit_threshold} > {self.price_of_last_sale} - {self.data.close[0]}<==>close price - recorded_lowest_price < high_low_tolerance={self.data.close[0]} - {self.recorded_lowest_price[0]} < {self.p.high_low_tolerance}<==>ready_to_buy: {self.ready_to_buy},volume > median_volume ={self.data.volume[0]} > {median_volume} <==> moving_avg_crossover_indicator > 0 = {self.moving_avg_crossover_indicator}')
+        if not self.live_mode and self._is_ready_to_buy_based_on_volume_and_crossover():
+
+            self.buy()
+            self._reset_buy_state()
+            self.price_of_last_purchase = self.data.close[0]
 
     def _conditions_met_for_sell(self):
         """If a buy order has been executed, consider selling"""
@@ -253,27 +154,33 @@ class SmaCrossstrategyV2(bt.Strategy):
 
     def _start_sell_process(self):
         if not self._profit():
-            logging.info('250 -active trade returned')
+            # logging.info('156 -active trade returned')
             return
 
         if self._is_price_near_highest():
             self.ready_to_sell = True
-            logging.info('255 -ready_to_sell = True')
+            # logging.info('255 -ready_to_sell = True')
         else:
             self.ready_to_sell = False
-            logging.info('258 -ready_to_sell = False')
+            # logging.info('258 -ready_to_sell = False')
 
-        if self._is_ready_to_sell_based_on_volume_and_crossover():
-            self.algorithm_performed_sell_order_id = self.trader.sell(self.data.close[0])
+        if self.live_mode and self._is_ready_to_sell_based_on_volume_and_crossover():
+            self.algorithm_performed_sell_order_id = self.trader.sell(self.data.close[0]) # this step executing
             logging.debug(f'263 -sell id: {self.algorithm_performed_sell_order_id}')
             logging.debug(
                 f'trade_active:{self.trade_active}<==>profit_threshold > close - price_of_last_purchase{self.p.sell_profit_threshold} > {self.data.close[0]} - {self.price_of_last_purchase}<==>recorded_highest_price - close < high_low_tolerance={self.recorded_highest_price[0]} - {self.data.close[0]} < {self.p.high_low_tolerance}<==>ready_to_sell: {self.ready_to_sell},volume > median_volume ={self.data.volume[0]} > {median_volume} <==> moving_avg_crossover_indicator < 0 = {self.moving_avg_crossover_indicator}')
 
+        elif not self.live_mode and self._is_ready_to_sell_based_on_volume_and_crossover():
+            self.price_of_last_sale = self.data.close[0]
+            self.sell()
+            self._reset_sell_state()
+
     def _initial_buy(self):
-        if self.data.close[0] <= constants.min_price:
-            self.trade_active = False
-            self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
-            print(f'initial buy order Id={str(self.algorithm_performed_buy_order_id)}')
+        """Initiate strategy: If the current close price is below 'min_price', make the initial buy"""
+
+        self.price_of_last_purchase = self.data.close[0]
+        self.buy()
+        self._reset_buy_state()
 
     def _reset_buy_state(self):
         self.ready_to_buy = False
@@ -286,7 +193,7 @@ class SmaCrossstrategyV2(bt.Strategy):
     def _cancel_order(self, order_id):
         self.trader.trading_client.cancel_order_by_id(order_id)
 
-    def _is_prior_sell_price_close(self):
+    def _is_prior_sell_price_close_to_current(self):
         """If there was a prior sell price, only buy if the difference between the prior sell price and current price 
         exceeds 'profit_threshold'"""
         return self.price_of_last_sale is not None and self.p.buy_profit_threshold > self.price_of_last_sale - \
@@ -314,125 +221,58 @@ class SmaCrossstrategyV2(bt.Strategy):
         return self.ready_to_sell and self.data.volume[
             0] > constants.median_volume and self.moving_avg_crossover_indicator < 0
 
-    # Other existing methods of your class
-    # ...
+    def _start_trade(self):
+        # Initiate a buy if conditions are met
+        if self._conditions_met_for_buy():
+            self._start_buy_process()
+
+        # Initiate a sell if conditions are met
+        elif self._conditions_met_for_sell():
+            self._start_sell_process()
+
+        # it doesn't execute this step if live trading
+        elif self._is_initial_buy_condition():
+            # print('235')
+            self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
+            logging.debug(f'236 -buy id: {self.algorithm_performed_buy_order_id}')
+
+            # self._initial_buy()
+
+    def _check_alpaca_status(self):
+        # Check and execute buy orders on alpaca
+        if self._buy_orders_ready_on_alpaca():
+            self._execute_buy_orders()
+
+        # Check and execute sell orders on alpaca
+        elif self._sell_orders_ready_on_alpaca():
+            self._execute_sell_orders()
+
+        # Cancel any pending buy order
+        if self._need_to_cancel_buy_order():
+            self._cancel_buy_order()
+            news(f"buy order placed at the price {constants.pending_order['hwm']} has been canceled")
+
+        # Cancel any pending sell order
+        elif self._need_to_cancel_sell_order():
+            self._cancel_sell_order()
+            news(f"the sell order placed at the price {(constants.pending_order['hwm'])} has been canceled")
+
+        # Halt trading if there's a significant drop in stock prices
+        if self._significant_stock_price_drop():
+            self._halt_trading_and_alert()
+            news("⚠️ The price has dropped significantly low. Trading has been stopped.")
+
+    def back_test(self):
+        self._start_trade()
 
     def live(self):
 
         print(f'live-{self.data.close[0]}')
-        # 11. buy only if when order has been executed on alpaca
-        if constants.accepted_order is not None and constants.accepted_order['id'] == str(
-                self.algorithm_performed_buy_order_id):
-            logging.info("124 -buy executed")
-            self.buy()
-            self.ready_to_buy = False
-            self.trade_active = True
-            self.price_of_last_purchase = float(constants.accepted_order['stop_price'])
-            constants.accepted_order = None
-        # 12. sell only if when order has been executed on alpaca
-        elif constants.accepted_order is not None and constants.accepted_order['id'] == str(
-                self.algorithm_performed_sell_order_id):
-            logging.info("133 -sell executed")  # line number added for to search and for test purpose
-            self.price_of_last_sale = float(constants.accepted_order['stop_price'])
-            self.sell()
-            self.ready_to_sell = False
-            self.trade_active = False
-            constants.accepted_order = None
 
+        # todo turn this to an event
+        self._check_alpaca_status()
 
-        # cancel pending order if not executed
-        elif constants.pending_order is not None and float(constants.pending_order['hwm']) - self.data.close[
-            0] > self.p.buy_profit_threshold / 4 and not self.trade_active:
-
-            self.trader.trading_client.cancel_order_by_id(constants.pending_order['id'])
-            constants.pending_order = None
-            news(f"buy order placed at the price {constants.pending_order['hwm']} has been canceled")
-            # voice_alert(f"say the buy order placed at the price {constants.pending_order['hwm']} has been canceled", 2)
-            logging.info(f"149 -buy order placed at the price {constants.pending_order['hwm']} has been canceled")
-
-        elif constants.pending_order is not None and self.data.close[0] - float(
-                constants.pending_order['hwm']) > self.p.sell_profit_threshold / 4 and self.trade_active:
-
-            self.trader.trading_client.cancel_order_by_id(constants.pending_order['id'])
-            constants.pending_order = None
-            news(f"the sell order placed at the price {(constants.pending_order['hwm'])} has been canceled")
-            # voice_alert(f"say the sell order placed at the price {float(constants.pending_order['hwm'])} has been canceled",2)
-            logging.info(f"158 -sell order placed at the price {constants.pending_order['hwm']} has been canceled")
-
-        # 1. If the price drops more than 'profit_threshold' from the bought price,
-        # sell immediately and stop trading
-        # todo introduce here a speed parameter and implement for both buy and sell
-        if self.price_of_last_purchase is not None and self.p.buy_profit_threshold * 4 < self.price_of_last_purchase - \
-                self.data.close[0]:
-            r = self.traderself.trading_client.close_all_positions(cancel_orders=True)
-            logging.info('166 -close_all_positions:{r}')
-            news("⚠️ The price has dropped significantly low. Trading has been stopped.")
-            # voice_alert("say Warning! The price has dropped significantly low. Trading has been stopped.", 5)
-            logging.critical("immediately sold")
-
-            self.stop()
-            raise Exception("===xxx Trading Terminated xxx===")
-        # ========== al_data = self.data_queue.get_nowait() ==========#
-        # =========== if al_data:
-
-        # 2. If there's no existing buy order, consider buying
-        # notice:we can't use `if not self.order_active:`
-        if self.trade_active is False:
-            # 3. If there was a prior sell price, only buy if the difference
-            # between the prior sell price and current price exceeds 'profit_threshold'
-            if self.price_of_last_sale is not None and self.p.buy_profit_threshold > self.price_of_last_sale - \
-                    self.data.close[0]:
-                logging.info('199 -inactive trade returned')
-                return
-
-            # 4. Enter into buy state if the close price is near the lowest price
-            if self.data.close[0] - self.recorded_lowest_price[0] < self.p.high_low_tolerance:
-                self.ready_to_buy = True
-                logging.info('189 -ready_to_buy = True')
-            else:
-                self.ready_to_buy = False
-                logging.info('192 -ready_to_buy = False')
-
-            # 5. If in buy state, and volume is sufficient, and there's a positive crossover, then buy
-            if self.ready_to_buy and self.data.volume[
-                0] > constants.median_volume and self.moving_avg_crossover_indicator > 0:
-                self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
-                logging.debug(f'199 -buy id: {self.algorithm_performed_buy_order_id}')
-                logging.debug(
-                    f'trade_active:{self.trade_active}<==>profit_threshold > price_of_last_sale - close price{self.p.buy_profit_threshold} > {self.price_of_last_sale} - {self.data.close[0]}<==>close price - recorded_lowest_price < high_low_tolerance={self.data.close[0]} - {self.recorded_lowest_price[0]} < {self.p.high_low_tolerance}<==>ready_to_buy: {self.ready_to_buy},volume > median_volume ={self.data.volume[0]} > {median_volume} <==> moving_avg_crossover_indicator > 0 = {self.moving_avg_crossover_indicator}')
-
-
-        # 6. If a buy order has been executed, consider selling
-        elif self.trade_active:
-
-            # 7. If the gain from the bought price exceeds 'profit_threshold', continue without selling
-            if self.p.sell_profit_threshold > self.data.close[0] - self.price_of_last_purchase:
-                logging.info('183 -active trade returned')
-                return
-
-            # 8. Enter into sell state if the close price is near the highest price
-            if self.recorded_highest_price[0] - self.data.close[0] < self.p.high_low_tolerance:
-                self.ready_to_sell = True
-                logging.info('214 -ready_to_sell = True')
-            else:
-                self.ready_to_sell = False
-                logging.info('217 -ready_to_sell = False')
-
-            # 9. If in sell state, and volume is sufficient, and there's a negative crossover, then sell
-            if self.ready_to_sell and self.data.volume[
-                0] > constants.median_volume and self.moving_avg_crossover_indicator < 0:
-                self.algorithm_performed_sell_order_id = self.trader.sell(self.data.close[0])
-                logging.debug(f'224 -sell id: {self.algorithm_performed_sell_order_id}')
-                logging.debug(
-                    f'trade_active:{self.trade_active}<==>profit_threshold > close - price_of_last_purchase{self.p.sell_profit_threshold} > {self.data.close[0]} - {self.price_of_last_purchase}<==>recorded_highest_price - close < high_low_tolerance={self.recorded_highest_price[0]} - {self.data.close[0]} < {self.p.high_low_tolerance}<==>ready_to_sell: {self.ready_to_sell},volume > median_volume ={self.data.volume[0]} > {median_volume} <==> moving_avg_crossover_indicator < 0 = {self.moving_avg_crossover_indicator}')
-
-        # this is just for buy test purpose only will be deleted in future
-
-        elif self.trade_active is None:
-            if self.data.close[0] <= constants.min_price:
-                self.trade_active = False
-                self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
-                print(f'initial buy order Id={str(self.algorithm_performed_buy_order_id)}')
+        self._start_trade()
 
     def log(self, txt, dt=None):
         """ Logging function for the strategy """
@@ -465,7 +305,7 @@ class SmaCrossstrategyV2(bt.Strategy):
         # print(f'Last sale : {self.price_of_last_sale}')
         if self.live_mode:
             self.trader.trading_client.cancel_orders()
-            logging.info("266 -pending orders canceled")
+            # logging.info("266 -pending orders canceled")
 
     # Main strategy logic
     def next(self):

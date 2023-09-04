@@ -14,19 +14,19 @@ class CustomHandler(logging.Handler):
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)  # or whatever level you want
 
-# Configure File Handler
+# Configure File Handler -> write to file
 file_handler = logging.FileHandler('app.log')
 file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(file_formatter)
 logger.addHandler(file_handler)
 
-# Configure Stream Handler
+# Configure Stream Handler -> write to console
 stream_handler = logging.StreamHandler()
 stream_formatter = logging.Formatter('%(levelname)s: %(message)s')
 stream_handler.setFormatter(stream_formatter)
 logger.addHandler(stream_handler)
 
-# Add Custom Handler
+# Add Custom Handler -> telegram
 custom_handler = CustomHandler()
 custom_handler.setFormatter(file_formatter)
 custom_handler.setLevel(logging.ERROR)  # Set the level to ERROR

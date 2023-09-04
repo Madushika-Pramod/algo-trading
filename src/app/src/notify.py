@@ -23,7 +23,7 @@ import requests
 def news(text):
     thread = threading.Thread(target=_news_to_telegram, args=(text,))
     thread.start()
-    thread.join()
+    # thread.join()
 
 
 def _news_to_telegram(text):
