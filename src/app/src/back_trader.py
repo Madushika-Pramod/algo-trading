@@ -141,8 +141,8 @@ class BacktraderStrategy:
 
         else:
             data = bt.feeds.PandasData(dataname=self.df)
-            # data = bt.feeds.CustomTickData(dataname=constants.tick_file_path, timeframe=bt.TimeFrame.Ticks)
-            # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
+                # data = bt.feeds.CustomTickData(dataname=constants.tick_file_path, timeframe=bt.TimeFrame.Ticks)
+                # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
             self.cerebro.adddata(data)
 
         self.cerebro.broker.setcash(self.cash)

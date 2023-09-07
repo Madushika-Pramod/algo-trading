@@ -29,10 +29,13 @@ class SmaCrossstrategyV2(bt.Strategy):
 
     )
 
-    def __init__(self):
+    def __init__(self, trader=None):
+        if trader is None:
+            trader = AlpacaTrader()
+        self.trader = trader
 
         self.live_mode = False
-        self.trader = None
+        # self.trader = None
         self.algorithm_performed_sell_order_id = None
         self.algorithm_performed_buy_order_id = None
 
@@ -56,9 +59,9 @@ class SmaCrossstrategyV2(bt.Strategy):
         self.recorded_highest_price = bt.indicators.Highest(self.data.close, period=self.p.high_low_period)
         self.recorded_lowest_price = bt.indicators.Lowest(self.data.close, period=self.p.high_low_period)
 
-        self.trader = AlpacaTrader()
+        self.trader = trader
         self.live_mode = True
-        self.starting_balance = float(self.trader.cash)  # to be commented out
+        # self.starting_balance = float(self.trader.cash)  # to be commented out
 
     def _roi(self):
         return self.cumulative_profit / self.starting_balance
@@ -132,12 +135,14 @@ class SmaCrossstrategyV2(bt.Strategy):
 
         if self._is_price_near_lowest():
             self.ready_to_buy = True
+            news("I'm ready to place a buy order")
             logging.info('239 -ready_to_buy = True')
         else:
             self.ready_to_buy = False
             logging.info('241 -ready_to_buy = False')
 
         if self.live_mode and self._is_ready_to_buy_based_on_volume_and_crossover():
+            news("I placed a buy order")
             self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
             logging.debug(f'242 -buy id: {self.algorithm_performed_buy_order_id}')
             logging.debug(
@@ -159,12 +164,14 @@ class SmaCrossstrategyV2(bt.Strategy):
 
         if self._is_price_near_highest():
             self.ready_to_sell = True
+            news("I'm ready to place a sell order")
             # logging.info('255 -ready_to_sell = True')
         else:
             self.ready_to_sell = False
             # logging.info('258 -ready_to_sell = False')
 
         if self.live_mode and self._is_ready_to_sell_based_on_volume_and_crossover():
+            news("I placed a sell order")
             self.algorithm_performed_sell_order_id = self.trader.sell(self.data.close[0]) # this step executing
             logging.debug(f'263 -sell id: {self.algorithm_performed_sell_order_id}')
             logging.debug(
@@ -194,7 +201,7 @@ class SmaCrossstrategyV2(bt.Strategy):
         self.trader.trading_client.cancel_order_by_id(order_id)
 
     def _is_prior_sell_price_close_to_current(self):
-        """If there was a prior sell price, only buy if the difference between the prior sell price and current price 
+        """If there was a prior sell price, only buy if the difference between the prior sell price and current price
         exceeds 'profit_threshold'"""
         return self.price_of_last_sale is not None and self.p.buy_profit_threshold > self.price_of_last_sale - \
             self.data.close[0]
@@ -240,11 +247,11 @@ class SmaCrossstrategyV2(bt.Strategy):
 
     def _check_alpaca_status(self):
         # Check and execute buy orders on alpaca
-        if self._buy_orders_ready_on_alpaca():
+        if self._buy_orders_ready_on_trader():
             self._execute_buy_orders()
 
         # Check and execute sell orders on alpaca
-        elif self._sell_orders_ready_on_alpaca():
+        elif self._sell_orders_ready_on_trader():
             self._execute_sell_orders()
 
         # Cancel any pending buy order
@@ -309,6 +316,7 @@ class SmaCrossstrategyV2(bt.Strategy):
 
     # Main strategy logic
     def next(self):
+        print(f'price-{self.data.close[0]}')
         self.live()
 
         # if self.cerebro.params.live:

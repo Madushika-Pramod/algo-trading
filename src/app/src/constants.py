@@ -15,11 +15,10 @@ market_buy_order = False
 
 symbol = "TSLA"
 commission = 0.0  # 0.005
-min_price = 223.83
-median_volume = 15710.0
-loss_value = 10  # assign max diff of all the time
+min_price = 237.22 #220.83
+median_volume = 13399.5 #15710.0
 last_sale_price = None
-cash = 500
+cash = 840
 
 voice_alert_frequency = 3
 

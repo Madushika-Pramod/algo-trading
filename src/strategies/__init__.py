@@ -8,6 +8,6 @@ from .src.sma_rsi_macd_strategy import SmaRsiMacdStrategy
 from .src.bollinger_rsi_strategy import BollingerRSIStrategy
 from .src.adaptive_strategy import AdaptiveStrategy
 from .src.TestStrategy import TestStrategy
-from .src.sma_coss_strategy_v2 import SmaCrossstrategyV2
+from strategies.src.sma_coss_strategy_v2 import SmaCrossstrategyV2
 
 # __all__ = ["TrendLineStrategy", "DemoStrategy", "SmaCrossStrategy", "MovingAverageADXStrategy"]
