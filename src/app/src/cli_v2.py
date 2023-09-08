@@ -13,7 +13,7 @@ from strategies.src.sma.sma_cross_strategy import SmaCrossStrategyBt
 
 def run_single(live=False):
     strategy = (
-        SmaCrossStrategyBt,
+        SmaCrossstrategyV2,
         dict(
 
             # fast_ma_period=14,
@@ -59,12 +59,12 @@ def run_single(live=False):
             # profit_threshold=1.0
 
             # #aug 30
-            fast_ma_period=6,
-            slow_ma_period=32,
-            high_low_period=22,
-            high_low_tolerance=0.5,
-            buy_profit_threshold=1.0,
-            sell_profit_threshold=1.0
+            # fast_ma_period=6,
+            # slow_ma_period=32,
+            # high_low_period=22,
+            # high_low_tolerance=0.5,
+            # buy_profit_threshold=1.0,
+            # sell_profit_threshold=1.0
 
             # aug 30
             # fast_ma_period=8,
@@ -72,6 +72,13 @@ def run_single(live=False):
             # high_low_period=10,
             # high_low_tolerance=0.5,
             # profit_threshold=4.0
+
+            fast_ma_period=3,
+            slow_ma_period=10,
+            high_low_period=12,
+            high_low_tolerance=0.5,
+            buy_profit_threshold=1.0,
+            sell_profit_threshold=6
         ))
     # strategy = (TrendLineStrategy,
     #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))
@@ -79,7 +86,10 @@ def run_single(live=False):
     # strategy = (DemoStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
     logging.info(
-        f"Number of Trades: {result.state.trading_count}\nReturn on investment: {round(result.state.total_return_on_investment * 100, 3)}%")
+        f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
+
+    # logging.info(
+    #     f"Number of Trades: {result.state.trading_count}\nReturn on investment: {round(result.state.total_return_on_investment * 100, 3)}%")
 
 
 

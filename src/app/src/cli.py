@@ -70,6 +70,8 @@ def run_single(live=False):
             # high_low_period=10,
             # high_low_tolerance=0.5,
             # profit_threshold=4.0
+
+
         ))
     # strategy = (TrendLineStrategy,
     #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))

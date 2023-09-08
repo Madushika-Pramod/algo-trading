@@ -1,4 +1,5 @@
 import logging
+import threading
 
 import backtrader as bt
 
@@ -7,6 +8,7 @@ from app.src import constants
 from app.src.constants import median_volume  # todo add these as parameters
 from app.src.notify import news
 from broker import AlpacaTrader
+from broker.src.alpaca_trader import get_trade_updates
 
 
 class TALibSMA(bt.Indicator):
@@ -135,7 +137,7 @@ class SmaCrossstrategyV2(bt.Strategy):
 
         if self._is_price_near_lowest():
             self.ready_to_buy = True
-            news("I'm ready to place a buy order")
+            # news("I'm ready to place a buy order")
             logging.info('239 -ready_to_buy = True')
         else:
             self.ready_to_buy = False
@@ -164,7 +166,7 @@ class SmaCrossstrategyV2(bt.Strategy):
 
         if self._is_price_near_highest():
             self.ready_to_sell = True
-            news("I'm ready to place a sell order")
+            # news("I'm ready to place a sell order")
             # logging.info('255 -ready_to_sell = True')
         else:
             self.ready_to_sell = False
@@ -240,10 +242,10 @@ class SmaCrossstrategyV2(bt.Strategy):
         # it doesn't execute this step if live trading
         elif self._is_initial_buy_condition():
             # print('235')
-            self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
-            logging.debug(f'236 -buy id: {self.algorithm_performed_buy_order_id}')
+            # self.algorithm_performed_buy_order_id = self.trader.buy(self.data.close[0])
+            # logging.debug(f'236 -buy id: {self.algorithm_performed_buy_order_id}')
 
-            # self._initial_buy()
+            self._initial_buy()
 
     def _check_alpaca_status(self):
         # Check and execute buy orders on alpaca
@@ -316,63 +318,63 @@ class SmaCrossstrategyV2(bt.Strategy):
 
     # Main strategy logic
     def next(self):
-        print(f'price-{self.data.close[0]}')
-        self.live()
+        # print(f'price-{self.data.close[0]}')
+        # self.live()
 
-        # if self.cerebro.params.live:
-        #
-        #     if self.live_mode:
-        #         try:
-        #             self.live()
-        #         except KeyboardInterrupt:
-        #             print("KeyboardInterrupt received. shutting down trader...")
-        #             self.trader.trading_client.cancel_orders()
-        #             logging.info("318 -KeyboardInterrupt")
-        #             # todo add stop order for pre-market period
-        #             # doesn't reach todo
-        #
-        #     elif self.data.close[0] == 0:
-        #
-        #         logging.info(f'Last sale : {self.price_of_last_sale}')
-        #         logging.info(
-        #             f"Number of Trades: {self.trading_count}\nReturn on investment: {round(self._roi() * 100, 3)}%")
-        #
-        #         self.live_mode = True
-        #         self.trading_count = 0
-        #         self.total_return_on_investment = 0
-        #
-        #         self.trader = AlpacaTrader()
-        #         self.starting_balance = float(self.trader.cash)
-        #
-        #         constants.median_volume = 99
-        #
-        #         positions = self.trader.trading_client.get_all_positions()
-        #         logging.info(f'Number of Positions: {len(positions)}')
-        #         if len(positions):  # todo test
-        #             # this is a fake buy state if any buy orders left in Alpaca,
-        #             # make algorithm to sell in the future
-        #             self.ready_to_buy = False
-        #             self.trade_active = True
-        #
-        #             if len(positions) == 2:  # if market order and stop order exists
-        #                 self.price_of_last_purchase = float(positions[0].avg_entry_price) if positions[0].qty > \
-        #                                                                                      positions[
-        #                                                                                          1].qty else positions[
-        #                     1].avg_entry_price
-        #             else:  # if 1 order exists
-        #                 self.price_of_last_purchase = float(positions[0].avg_entry_price)
-        #             logging.info(f'Last buy : {self.price_of_last_purchase}')
-        #         else:
-        #             # this is a fake sell state if no any sell orders left in Alpaca
-        #             # make algorithm to buy in the future
-        #             self.ready_to_sell = False
-        #             self.trade_active = False
-        #             # initially, make algorithm to ignore profit_threshold
-        #             self.price_of_last_sale = constants.last_sale_price or self.price_of_last_sale  # todo optimize this-> back test should find out this value
-        #         thread = threading.Thread(target=get_trade_updates)  # start trade updates
-        #         thread.start()
-        #     else:
-        #         self.back_test()
-        #
-        # else:
-        #     self.back_test()
+        if self.cerebro.params.live:
+
+            if self.live_mode:
+                try:
+                    self.live()
+                except KeyboardInterrupt:
+                    print("KeyboardInterrupt received. shutting down trader...")
+                    self.trader.trading_client.cancel_orders()
+                    logging.info("318 -KeyboardInterrupt")
+                    # todo add stop order for pre-market period
+                    # doesn't reach todo
+
+            elif self.data.close[0] == 0:
+
+                logging.info(f'Last sale : {self.price_of_last_sale}')
+                logging.info(
+                    f"Number of Trades: {self.trading_count}\nReturn on investment: {round(self._roi() * 100, 3)}%")
+
+                self.live_mode = True
+                self.trading_count = 0
+                self.total_return_on_investment = 0
+
+                self.trader = AlpacaTrader()
+                self.starting_balance = float(self.trader.cash)
+
+                constants.median_volume = 99
+
+                positions = self.trader.trading_client.get_all_positions()
+                logging.info(f'Number of Positions: {len(positions)}')
+                if len(positions):  # todo test
+                    # this is a fake buy state if any buy orders left in Alpaca,
+                    # make algorithm to sell in the future
+                    self.ready_to_buy = False
+                    self.trade_active = True
+
+                    if len(positions) == 2:  # if market order and stop order exists
+                        self.price_of_last_purchase = float(positions[0].avg_entry_price) if positions[0].qty > \
+                                                                                             positions[
+                                                                                                 1].qty else positions[
+                            1].avg_entry_price
+                    else:  # if 1 order exists
+                        self.price_of_last_purchase = float(positions[0].avg_entry_price)
+                    logging.info(f'Last buy : {self.price_of_last_purchase}')
+                else:
+                    # this is a fake sell state if no any sell orders left in Alpaca
+                    # make algorithm to buy in the future
+                    self.ready_to_sell = False
+                    self.trade_active = False
+                    # initially, make algorithm to ignore profit_threshold
+                    self.price_of_last_sale = constants.last_sale_price or self.price_of_last_sale  # todo optimize this-> back test should find out this value
+                thread = threading.Thread(target=get_trade_updates)  # start trade updates
+                thread.start()
+            else:
+                self.back_test()
+
+        else:
+            self.back_test()
