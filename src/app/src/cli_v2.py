@@ -13,7 +13,7 @@ from strategies.src.sma.sma_cross_strategy import SmaCrossStrategyBt
 
 def run_single(live=False):
     strategy = (
-        SmaCrossstrategyV2,
+        SmaCrossStrategyBt,
         dict(
 
             # fast_ma_period=14,
@@ -86,7 +86,7 @@ def run_single(live=False):
     # strategy = (DemoStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
     logging.info(
-        f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
+        f"Number of Trades: {result.state.trading_count}\nReturn on investment: {round(result.state.total_return_on_investment * 100, 3)}%")
 
     # logging.info(
     #     f"Number of Trades: {result.state.trading_count}\nReturn on investment: {round(result.state.total_return_on_investment * 100, 3)}%")
