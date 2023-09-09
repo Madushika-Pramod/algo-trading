@@ -7,17 +7,52 @@ from app.src import constants
 from app.src.constants import median_volume  # todo add these as parameters
 from app.src.notify import news
 from broker import AlpacaTrader, get_trade_updates
+from strategies.src.indicators.talib_sma import TALibSMA
 
 
-class TALibSMA(bt.Indicator):
-    lines = ('kama',)
-    params = (('period', 15),)
+class SmaCrossStrategy(bt.Strategy):
+    params = dict(
+        fast_ma_period=3,  # Period for the fast moving average
+        slow_ma_period=15,  # Period for the slow moving average
+        high_low_period=20,  # Period for tracking highest and lowest prices
+        high_low_tolerance=0.15,  # Tolerance for approximating high or low prices
+        buy_profit_threshold=2,  # Threshold to decide when to sell based on profit
+        sell_profit_threshold=2,
+    )
 
     def __init__(self):
-        self.lines.kama = bt.talib.KAMA(self.data.close, timeperiod=self.p.period)
+        # self.trader = AlpacaTrader()
+        # self.state = _State(float(self.trader.buying_power) or constants.cash)
+        self.state = _State(constants.cash)
+        self.indicators = _Indicators(self.p, self.data)
+        self.strategy = _SmaCrossStrategy(self.indicators, self.state)
+
+    def next(self):
+        # self.data -> DataFrame class
+        # df = self.data
+        if self.cerebro.params.live:
+            try:
+                self.strategy.live()
+            except KeyboardInterrupt:
+                print("KeyboardInterrupt received. shutting down trader...")
+                logging.info("KeyboardInterrupt received on live trading")
+                self.trader.trading_client.cancel_orders()
+
+        else:
+            self.strategy.back_test()
+
+    def stop(self):
+        self.strategy.stop()
+        # # Calculate the ROI based on the net profit and starting balance
+        # self.s.total_return_on_investment = self._roi()
+        # # print(f'Last sale : {self.price_of_last_sale}')
+        # if self.live_mode:
+        #     self.trader.trading_client.cancel_orders()
+        #     # logging.info("266 -pending orders canceled")
 
 
-class SmaCrossStrategyState:
+
+class _State:
 
     def __init__(self, buying_power):
         self.starting_balance = buying_power  # to be commented out
@@ -48,7 +83,7 @@ class SmaCrossStrategyState:
         self.is_notified = False
 
 
-class SmaCrossStrategyIndicators:
+class _Indicators:
 
     def __init__(self, params, data):
         fast_moving_avg = TALibSMA(data, period=params.fast_ma_period)
@@ -61,8 +96,8 @@ class SmaCrossStrategyIndicators:
         self.params = params
 
 
-class SmaCrossStrategy:
-    def __init__(self, indicators: SmaCrossStrategyIndicators,state, trader=None):
+class _SmaCrossStrategy:
+    def __init__(self, indicators: _Indicators, state: _State, trader=None):
         self.trader = trader
         self.state = state
         self.indicators = indicators
@@ -411,46 +446,6 @@ class SmaCrossStrategy:
             self.log('SELL EXECUTED, %.2f' % self.state.price_of_last_sale)
             # print(f"total profit on trades:{self.cumulative_profit}")
 
-
-class SmaCrossStrategyBt(bt.Strategy):
-    params = dict(
-        fast_ma_period=3,  # Period for the fast moving average
-        slow_ma_period=15,  # Period for the slow moving average
-        high_low_period=20,  # Period for tracking highest and lowest prices
-        high_low_tolerance=0.15,  # Tolerance for approximating high or low prices
-        buy_profit_threshold=2,  # Threshold to decide when to sell based on profit
-        sell_profit_threshold=2,
-    )
-
-    def __init__(self):
-
-        self.trader = AlpacaTrader()
-        self.state = SmaCrossStrategyState(float(self.trader.buying_power) or constants.cash)
-        self.indicators = SmaCrossStrategyIndicators(self.p, self.data)
-        self.strategy = SmaCrossStrategy(self.indicators, self.state, trader=self.trader)
-
-    def next(self):
-        # self.data -> DataFrame class
-        # df = self.data
-        if self.cerebro.params.live:
-            try:
-                self.strategy.live()
-            except KeyboardInterrupt:
-                print("KeyboardInterrupt received. shutting down trader...")
-                logging.info("KeyboardInterrupt received on live trading")
-                self.trader.trading_client.cancel_orders()
-
-        else:
-            self.strategy.back_test()
-
-    def stop(self):
-        self.strategy.stop()
-        # # Calculate the ROI based on the net profit and starting balance
-        # self.s.total_return_on_investment = self._roi()
-        # # print(f'Last sale : {self.price_of_last_sale}')
-        # if self.live_mode:
-        #     self.trader.trading_client.cancel_orders()
-        #     # logging.info("266 -pending orders canceled")
 
 # def main():
 #     # Arrange

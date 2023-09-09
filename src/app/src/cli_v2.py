@@ -8,12 +8,12 @@ import multiprocessing
 from app.src import constants
 from app.src.back_trader import BacktraderStrategy
 from strategies import SmaCrossStrategy, SmaCrossstrategyV2
-from strategies.src.sma.sma_cross_strategy import SmaCrossStrategyBt
+from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 
 def run_single(live=False):
     strategy = (
-        SmaCrossStrategyBt,
+        SmaCrossStrategy,
         dict(
 
             # fast_ma_period=14,

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
+from strategies.src.sma.sma_cross_strategy import _SmaCrossStrategy
 
 
 # Import your strategy class here
@@ -34,7 +34,7 @@ class TestSmaCrossStrategy(unittest.TestCase):
         self.trader.trading_client.close_all_positions = MagicMock()
         self.trader.trading_client.cancel_order_by_id = MagicMock()
 
-        self.strategy = SmaCrossStrategy(self.indicators, self.state, self.trader)
+        self.strategy = _SmaCrossStrategy(self.indicators, self.state, self.trader)
 
     def test_get_roi(self):
         # Mock necessary data
