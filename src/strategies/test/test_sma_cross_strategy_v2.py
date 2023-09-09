@@ -1,3 +1,161 @@
+import unittest
+from unittest.mock import MagicMock, patch
+
+from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
+
+
+# Import your strategy class here
+
+
+class TestSmaCrossStrategy(unittest.TestCase):
+    def setUp(self):
+        # Mocking required objects
+        self.indicators = MagicMock()
+        self.indicators.data.close = [100]
+        self.indicators.data.volume = [100]
+        self.indicators.params.buy_profit_threshold = 5
+        self.indicators.params.sell_profit_threshold = 5
+        self.indicators.params.high_low_tolerance = 1
+        self.indicators.moving_avg_crossover_indicator = 0
+        self.indicators.recorded_lowest_price = [95]
+        self.indicators.recorded_highest_price = [105]
+
+        self.state = MagicMock()
+        self.state.trade_active = None
+        self.state.accepted_order = None
+        self.state.algorithm_performed_buy_order_id = "123"
+        self.state.algorithm_performed_sell_order_id = "456"
+        self.state.price_of_last_purchase = 98
+        self.state.price_of_last_sale = 102
+        self.state.starting_balance = 1000
+        self.state.cumulative_profit = 100
+
+        self.trader = MagicMock()
+        self.trader.trading_client.close_all_positions = MagicMock()
+        self.trader.trading_client.cancel_order_by_id = MagicMock()
+
+        self.strategy = SmaCrossStrategy(self.indicators, self.state, self.trader)
+
+    def test_get_roi(self):
+        # Mock necessary data
+        self.assertEqual(self.strategy.get_roi(), 0.1)    # ROI = cumulative_profit / starting_balance
+
+
+        # Add assertions based on what this function is expected to do
+    #
+    # def test_initial_buy_condition(self):
+    #     self.strategy._initial_buy_condition()
+    #     # Add assertions
+    #
+    # def test_buy_orders_ready_on_alpaca(self):
+    #     self.strategy._buy_orders_ready_on_alpaca()
+    #     # Add assertions
+    #
+    # def test_execute_buy_orders(self):
+    #     self.strategy._execute_buy_orders()
+    #     # Add assertions
+    #
+    # def test_sell_orders_ready_on_alpaca(self):
+    #     self.strategy._sell_orders_ready_on_alpaca()
+    #     # Add assertions
+    #
+    # def test_execute_sell_orders(self):
+    #     self.strategy._execute_sell_orders()
+    #     # Add assertions
+    #
+    # def test_need_to_cancel_buy_order(self):
+    #     self.strategy._need_to_cancel_buy_order()
+    #     # Add assertions
+    #
+    # def test_cancel_buy_order(self):
+    #     self.strategy._cancel_buy_order()
+    #     # Add assertions
+    #
+    # def test_need_to_cancel_sell_order(self):
+    #     self.strategy._need_to_cancel_sell_order()
+    #     # Add assertions
+    #
+    # def test_cancel_sell_order(self):
+    #     self.strategy._cancel_sell_order()
+    #     # Add assertions
+    #
+    # def test_significant_stock_price_drop(self):
+    #     self.strategy._significant_stock_price_drop()
+    #     # Add assertions
+    #
+    # def test_halt_trading_and_alert(self):
+    #     with patch('builtins.print') as mock_print:
+    #         self.strategy._halt_trading_and_alert()
+    #         mock_print.assert_called()
+    #
+    # def test_conditions_met_for_buy(self):
+    #     self.strategy._conditions_met_for_buy()
+    #     # Add assertions
+    #
+    # def test_start_buy_process(self):
+    #     self.strategy._start_buy_process()
+    #     # Add assertions
+    #
+    # def test_conditions_met_for_sell(self):
+    #     self.strategy._conditions_met_for_sell()
+    #     # Add assertions
+    #
+    # def test_start_sell_process(self):
+    #     self.strategy._start_sell_process()
+    #     # Add assertions
+    #
+    # def test_initial_buy(self):
+    #     self.strategy._initial_buy()
+    #     # Add assertions
+    #
+    # def test_reset_buy_state(self):
+    #     self.strategy._reset_buy_state()
+    #     # Add assertions
+    #
+    # def test_reset_sell_state(self):
+    #     self.strategy._reset_sell_state()
+    #     # Add assertions
+    #
+    # def test_cancel_order(self):
+    #     self.strategy._cancel_order()
+    #     # Add assertions
+    #
+    # def test_is_prior_sell_price_close_to_current(self):
+    #     self.strategy._is_prior_sell_price_close_to_current()
+    #     # Add assertions
+    #
+    # def test_is_price_near_lowest(self):
+    #     self.strategy._is_price_near_lowest()
+    #     # Add assertions
+    #
+    # def test_is_ready_to_buy_based_on_volume_and_crossover(self):
+    #     self.strategy._is_ready_to_buy_based_on_volume_and_crossover()
+    #     # Add assertions
+    #
+    # def test_is_profit(self):
+    #     self.strategy._is_profit()
+    #     # Add assertions
+    #
+    # def test_is_price_near_highest(self):
+    #     self.strategy._is_price_near_highest()
+    #     # Add assertions
+    #
+    # def test_is_ready_to_sell_based_on_volume_and_crossover(self):
+    #     self.strategy._is_ready_to_sell_based_on_volume_and_crossover()
+    #     # Add assertions
+    #
+    # def test_start_trade(self):
+    #     self.strategy._start_trade()
+    #     # Add assertions
+    #
+    # def test_check_alpaca_status(self):
+    #     self.strategy._check_alpaca_status()
+    #     # Add assertions
+
+
+unittest.main()
+
+# ==================== ==== ========= === ====== === ======
 # import unittest
 # from unittest.mock import MagicMock, patch, PropertyMock, Mock
 #

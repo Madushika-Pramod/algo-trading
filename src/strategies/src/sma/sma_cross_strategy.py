@@ -45,6 +45,8 @@ class SmaCrossStrategyState:
         self.accepted_order = None
         self.market_buy_order = False
 
+        self.is_notified = False
+
 
 class SmaCrossStrategyIndicators:
 
@@ -140,19 +142,25 @@ class SmaCrossStrategy:
     def _start_buy_process(self, buy):
         """If there's no existing buy order, consider buying"""
         if self._is_prior_sell_price_close_to_current():
-            logging.info('130 -inactive trade returned')
+            # logging.info('130 -inactive trade returned')
             return
 
         if self._is_price_near_lowest():
             self.state.ready_to_buy = True
-            # news("I'm ready to place a buy order")
-            logging.info('239 -ready_to_buy = True')
+            if not self.state.is_notified:
+                news("I'm ready to place a buy order")
+                self.state.is_notified = True
+            # logging.info('239 -ready_to_buy = True')
         else:
             self.state.ready_to_buy = False
-            logging.info('241 -ready_to_buy = False')
+            if self.state.is_notified:
+                news("I decided to not to place")
+                self.state.is_notified = False
+            # logging.info('241 -ready_to_buy = False')
 
         if self._is_ready_to_buy_based_on_volume_and_crossover():
             buy()
+            self.state.is_notified = False
         # if self.live_mode and self._is_ready_to_buy_based_on_volume_and_crossover():
         #     news("I placed a buy order")
         #     self.state.algorithm_performed_buy_order_id = self.trader.buy(self.indicators.data.close[0])
@@ -174,14 +182,20 @@ class SmaCrossStrategy:
 
         if self._is_price_near_highest():
             self.state.ready_to_sell = True
-            news("I'm ready to place a sell order")
+            if not self.state.is_notified:
+                news("I'm ready to place a sell order")
+                self.state.is_notified = True
             # logging.info('255 -ready_to_sell = True')
         else:
             self.state.ready_to_sell = False
+            if self.state.is_notified:
+                news("I decided to not to place")
+                self.state.is_notified = False
             # logging.info('258 -ready_to_sell = False')
 
         if self._is_ready_to_sell_based_on_volume_and_crossover():
             sell()
+            self.state.is_notified = False
         # if self.live_mode and self._is_ready_to_sell_based_on_volume_and_crossover():
         #     news("I placed a sell order")
         #     self.state.algorithm_performed_sell_order_id = self.trader.sell(self.indicators.data.close[0])  # this step executing
