@@ -1,10 +1,8 @@
 import logging
-import threading
 
 import backtrader as bt
 
 from app.src.notify import news
-from broker import AlpacaTrader, get_trade_updates
 from strategies.src.indicators.talib_sma import TALibSMA
 
 
@@ -25,10 +23,14 @@ class SmaCrossStrategy(bt.Strategy):
 
     def __init__(self):
         # self.trader = AlpacaTrader()
-        # self.state = _State(float(self.trader.buying_power) or constants.cash)
+        # self.state = _State(self.trader.get_buying_power() or self.p.buying_power)
+        self.starting_buying_power = self.trader.get_buying_power() or self.p.buying_power
         self.state = _State(self.p.buying_power)
         self.indicators = _Indicators(self.p, self.data)
         self.strategy = _SmaCrossStrategy(self.indicators, self.params, self.state)
+
+        self.total_return_on_investment = 0
+        self.trading_count = self.state.trading_count
 
     def next(self):
         # self.data -> DataFrame class
@@ -45,14 +47,14 @@ class SmaCrossStrategy(bt.Strategy):
             self.strategy.back_test()
 
     def stop(self):
-        self.strategy.stop()
-        # # Calculate the ROI based on the net profit and starting balance
-        # self.s.total_return_on_investment = self._roi()
+
+        # Calculate the ROI based on the net profit and starting balance
+        self.total_return_on_investment = (
+         self.starting_buying_power - self.trader.get_buying_power()) / self.starting_buying_power
         # # print(f'Last sale : {self.price_of_last_sale}')
         # if self.live_mode:
         #     self.trader.trading_client.cancel_orders()
         #     # logging.info("266 -pending orders canceled")
-
 
     def notify_order(self, order):
         super().notify_order(order)
@@ -65,8 +67,6 @@ class _State:
 
     def __init__(self, buying_power):
         self.starting_balance = buying_power  # to be commented out
-        self.current_balance = buying_power
-
         self.order_quantity = 0
         self.algorithm_performed_sell_order_id = None
         self.algorithm_performed_buy_order_id = None
@@ -76,7 +76,6 @@ class _State:
         self.commission_on_last_purchase = -1
         self.price_of_last_sale = -1
         self.price_of_last_purchase = -1
-        self.cumulative_profit = -1.0
         self.ready_to_buy = False
         self.ready_to_sell = False
         self.pending_order = None
@@ -93,8 +92,8 @@ class _Indicators:
         slow_moving_avg = TALibSMA(data, period=params.slow_ma_period)
 
         self.moving_avg_crossover_indicator = bt.ind.CrossOver(fast_moving_avg, slow_moving_avg)
-        self.recorded_highest_price = bt.indicators.Highest(data.close, period=params.high_low_period)
-        self.recorded_lowest_price = bt.indicators.Lowest(data.close, period=params.high_low_period)
+        self._recorded_highest_price = bt.indicators.Highest(data.close, period=params.high_low_period)
+        self._recorded_lowest_price = bt.indicators.Lowest(data.close, period=params.high_low_period)
         self._data = data
 
     def current_price(self):
@@ -106,6 +105,12 @@ class _Indicators:
     def current_volume(self):
         return self._data.volume[0]
 
+    def current_highest_price(self):
+        return self._recorded_highest_price[0]
+
+    def current_lowest_price(self):
+        return self._recorded_lowest_price[0]
+
 
 class _SmaCrossStrategy:
     def __init__(self, indicators: _Indicators, config, state: _State, trader=None):
@@ -114,15 +119,11 @@ class _SmaCrossStrategy:
         self.state = state
         self.indicators = indicators
 
-    def get_roi(self):
-        return self.state.cumulative_profit / self.state.starting_balance
-
     def initial_buy_condition(self):
         return self.state.trade_active is None and self.indicators.current_price() <= self.config.min_price
 
     def _buy_orders_ready_on_alpaca(self):
-        return self.state.accepted_order is not None and self.state.accepted_order['id'] == str(
-            self.state.algorithm_performed_buy_order_id)
+        return self.state.accepted_order is not None and self.state.accepted_order['id'] == str(self.state.algorithm_performed_buy_order_id)
 
     def _execute_buy_orders(self):
         logging.info("177 -buy executed")
@@ -280,8 +281,7 @@ class _SmaCrossStrategy:
 
     def _is_price_near_lowest(self):
         """Enter into buy state if the close price is near the lowest price"""
-        return self.indicators.current_price() - self.indicators.recorded_lowest_price[
-            0] < self.config.high_low_tolerance
+        return self.indicators.current_price() - self.indicators.current_lowest_price() < self.config.high_low_tolerance
 
     def _is_ready_to_buy_based_on_volume_and_crossover(self):
         """If in buy state, and volume is sufficient, and there's a positive crossover, then buy"""
@@ -293,7 +293,8 @@ class _SmaCrossStrategy:
 
     def _is_price_near_highest(self):
         """Enter into sell state if the close price is near the highest price"""
-        return self.indicators.recorded_highest_price[0] - self.indicators.current_price() < self.config.high_low_tolerance
+        return self.indicators._recorded_highest_price[
+            0] - self.indicators.current_price() < self.config.high_low_tolerance
 
     def _is_ready_to_sell_based_on_volume_and_crossover(self):
         """If in sell state, and volume is sufficient, and there's a negative crossover, then sell"""
@@ -339,7 +340,6 @@ class _SmaCrossStrategy:
         if self._significant_stock_price_drop():
             self._halt_trading_and_alert()
             news("⚠️ The price has dropped significantly low. Trading has been stopped.")
-
 
     def back_test(self):
         # print(f'date-{self.indicators.current_price()}')
@@ -387,9 +387,8 @@ class _SmaCrossStrategy:
             self.state.trade_active = False
             # initially, make algorithm to ignore profit_threshold
             self.state.price_of_last_sale = self.config.last_sale_price or self.state.price_of_last_sale  # todo optimize this-> back test should find out this value
-        thread = threading.Thread(target=get_trade_updates)  # start trade updates
-        thread.start()
-        print(f'live-{self.indicators.current_price()}')
+        # thread = threading.Thread(target=get_trade_updates)  # start trade updates
+        # thread.start()
 
         # todo turn this to an event
         self._check_alpaca_status()
@@ -397,9 +396,10 @@ class _SmaCrossStrategy:
         def buy():
             news("I placed a buy order")
             self.state.algorithm_performed_buy_order_id = self.trader.buy(self.indicators.current_price())
+            # todo create dic -> {self.state.algorithm_performed_buy_order_id : order}
             logging.debug(f'242 -buy id: {self.state.algorithm_performed_buy_order_id}')
             logging.debug(
-                f'trade_active:{self.state.trade_active}<==>profit_threshold > price_of_last_sale - close price{self.config.buy_profit_threshold} > {self.state.price_of_last_sale} - {self.indicators.current_price()}<==>close price - recorded_lowest_price < high_low_tolerance={self.indicators.current_price()} - {self.indicators.recorded_lowest_price[0]} < {self.config.high_low_tolerance}<==>ready_to_buy: {self.state.ready_to_buy},volume > median_volume ={self.indicators.current_volume()} > {self.config.median_volume} <==> moving_avg_crossover_indicator > 0 = {self.indicators.moving_avg_crossover_indicator}')
+                f'trade_active:{self.state.trade_active}<==>profit_threshold > price_of_last_sale - close price{self.config.buy_profit_threshold} > {self.state.price_of_last_sale} - {self.indicators.current_price()}<==>close price - recorded_lowest_price < high_low_tolerance={self.indicators.current_price()} - {self.indicators._recorded_lowest_price[0]} < {self.config.high_low_tolerance}<==>ready_to_buy: {self.state.ready_to_buy},volume > median_volume ={self.indicators.current_volume()} > {self.config.median_volume} <==> moving_avg_crossover_indicator > 0 = {self.indicators.moving_avg_crossover_indicator}')
 
         def sell():
             news("I placed a sell order")
@@ -407,7 +407,7 @@ class _SmaCrossStrategy:
                 self.indicators.current_price())  # this step executing
             logging.debug(f'263 -sell id: {self.state.algorithm_performed_sell_order_id}')
             logging.debug(
-                f'trade_active:{self.state.trade_active}<==>profit_threshold > close - price_of_last_purchase{self.config.sell_profit_threshold} > {self.indicators.current_price()} - {self.state.price_of_last_purchase}<==>recorded_highest_price - close < high_low_tolerance={self.indicators.recorded_highest_price[0]} - {self.indicators.current_price()} < {self.config.high_low_tolerance}<==>ready_to_sell: {self.state.ready_to_sell},volume > median_volume ={self.indicators.current_volume()} > {self.config.median_volume} <==> moving_avg_crossover_indicator < 0 = {self.indicators.moving_avg_crossover_indicator}')
+                f'trade_active:{self.state.trade_active}<==>profit_threshold > close - price_of_last_purchase{self.config.sell_profit_threshold} > {self.indicators.current_price()} - {self.state.price_of_last_purchase}<==>recorded_highest_price - close < high_low_tolerance={self.indicators._recorded_highest_price[0]} - {self.indicators.current_price()} < {self.config.high_low_tolerance}<==>ready_to_sell: {self.state.ready_to_sell},volume > median_volume ={self.indicators.current_volume()} > {self.config.median_volume} <==> moving_avg_crossover_indicator < 0 = {self.indicators.moving_avg_crossover_indicator}')
 
         self._start_trade(buy, sell)
 
@@ -444,14 +444,8 @@ class _SmaCrossStrategy:
             # self.log('BUY EXECUTED, %.2f' % order.executed.price)  # executing.price for a buy is next bar's open price
             self.log('BUY EXECUTED, %.2f' % self.state.price_of_last_purchase)
         else:
-            # Calculate cumulative profit/loss after selling
-            self.state.cumulative_profit += (self.state.price_of_last_sale - self.state.price_of_last_purchase) * abs(
-                self.state.order_quantity)  # - self.commission_on_last_purchase
-
             self.state.trading_count += 1
             self.log('SELL EXECUTED, %.2f' % self.state.price_of_last_sale)
-            # print(f"total profit on trades:{self.cumulative_profit}")
-
 
 # def main():
 #     # Arrange

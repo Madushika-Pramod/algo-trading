@@ -118,6 +118,15 @@ class AlpacaTrader:
         self.account = self.trading_client.get_account()
         self.buying_power = self.account.buying_power  # buying_power todo
 
+    def get_buying_power(self):
+
+        try:
+            bp = self.account.buying_power
+        except:
+            bp = None
+
+        return bp
+
     def buy(self, price):
         self.account = self.trading_client.get_account()
         self.algo_price = price
