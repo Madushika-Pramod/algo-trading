@@ -1,6 +1,5 @@
 # Importing logger_config to set up application-wide logging and exception handling
 # import logger_config
-import logger_config
 import csv
 import logging
 import multiprocessing
@@ -93,7 +92,6 @@ def run_single(live=False):
     #     f"Number of Trades: {result.state.trading_count}\nReturn on investment: {round(result.state.total_return_on_investment * 100, 3)}%")
 
 
-
 def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
                                              high_low_tolerance=None,
                                              buy_profit_threshold=None, sell_profit_threshold=None, pre_count=1000):
@@ -163,13 +161,13 @@ configurations_for_sma_cross_v2 = [
     dict(fast_ma_period=2, slow_ma_period=3, high_low_period=28, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
     dict(fast_ma_period=2, slow_ma_period=3, high_low_period=34, high_low_tolerance=5, buy_profit_threshold=2,
-             sell_profit_threshold=2),
+         sell_profit_threshold=2),
     dict(fast_ma_period=2, slow_ma_period=3, high_low_period=40, high_low_tolerance=5, buy_profit_threshold=2,
-             sell_profit_threshold=2),
+         sell_profit_threshold=2),
     dict(fast_ma_period=2, slow_ma_period=3, high_low_period=46, high_low_tolerance=5, buy_profit_threshold=2,
-             sell_profit_threshold=2),
+         sell_profit_threshold=2),
     dict(fast_ma_period=2, slow_ma_period=3, high_low_period=52, high_low_tolerance=5, buy_profit_threshold=2,
-             sell_profit_threshold=2)
+         sell_profit_threshold=2)
     #      pre_count=36587),
     # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
     #      pre_count=36585),

@@ -164,6 +164,7 @@ class TradingViewWebSocket:
     def start(self):
         def run_ws():
             # while self.restart_required or not self.ws:
+            # todo chnage this to websockets
             self.ws = websocket.WebSocketApp(
                 'wss://data.tradingview.com/socket.io/websocket',
                 header=self.headers,

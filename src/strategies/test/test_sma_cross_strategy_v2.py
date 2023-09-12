@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from strategies.src.sma.sma_cross_strategy import _SmaCrossStrategy, _State
 
@@ -30,10 +30,11 @@ class TestSmaCrossStrategy(unittest.TestCase):
 
         self.config = MagicMock()
         self.config.buy_profit_threshold = 4
+        self.config.sell_profit_threshold = 3
         self.config.min_price = 1000
         self.config.loss_value = 10
         self.config.high_low_tolerance = 2
-
+        self.config.median_volume = 100
 
         self.trader = MagicMock()
         self.trader.trading_client.close_all_positions = MagicMock()
@@ -77,8 +78,7 @@ class TestSmaCrossStrategy(unittest.TestCase):
     #     self.strategy._cancel_buy_order()
     #     self.trader.trading_client.cancel_order_by_id.assert_called_once_with(self.state.algorithm_performed_buy_order_id)
 
-
-#
+    #
     # def test_need_to_cancel_sell_order(self):
     #     self.strategy._need_to_cancel_sell_order()
     #     # Add assertions
@@ -91,6 +91,7 @@ class TestSmaCrossStrategy(unittest.TestCase):
         self.indicators.current_price = MagicMock(return_value=499)
         self.strategy._significant_stock_price_drop()
         # Add assertions
+
     #
     # def test_halt_trading_and_alert(self):
     #     with patch('builtins.print') as mock_print:
@@ -114,74 +115,130 @@ class TestSmaCrossStrategy(unittest.TestCase):
 
         self.assertTrue(self.state.ready_to_buy)
 
-        self.indicators.current_price = MagicMock(return_value=100)
+        self.indicators.current_volume = MagicMock(return_value=102)
+        self.indicators.moving_avg_crossover_indicator = 1
+        buy = MagicMock(return_value=True)
+        self.strategy._start_buy_process(buy)
+
+        self.assertTrue(buy)
+
+        self.indicators.current_price = MagicMock(return_value=98)
         self.indicators.current_lowest_price = MagicMock(return_value=94)
         self.strategy._is_ready_to_buy_based_on_volume_and_crossover = MagicMock(return_value=False)
         self.strategy._start_buy_process(MagicMock())
 
         self.assertFalse(self.state.ready_to_buy)
-
-
-
         # self.trader.execute_buy_order.assert_called_once()
 
+    def test_conditions_met_for_sell(self):
+        self.state.trade_active = True
+        self.assertTrue(self.strategy._conditions_met_for_sell())
+
+    def test_start_sell_process(self):
+        self.indicators.current_price = MagicMock(return_value=601)
+        self.strategy._start_sell_process(MagicMock())
+
+        self.assertFalse(self.strategy._is_profit())
+
+        self.indicators.current_price = MagicMock(return_value=95)
+        self.indicators.current_highest_price = MagicMock(return_value=97)
+        self.strategy._is_ready_to_sell_based_on_volume_and_crossover = MagicMock(return_value=False)
+        self.strategy._start_sell_process(MagicMock())
+
+        self.assertTrue(self.state.ready_to_sell)
+
+        self.indicators.current_volume = MagicMock(return_value=102)
+        self.indicators.moving_avg_crossover_indicator = -1
+        sell = MagicMock(return_value=True)
+        self.strategy._start_sell_process(sell)
+
+        self.assertTrue(self.strategy._is_ready_to_sell_based_on_volume_and_crossover)
+        self.assertTrue(sell)
+
+        self.indicators.current_price = MagicMock(return_value=603)
+        self.indicators.current_highest_price = MagicMock(return_value=610)
+        self.strategy._is_ready_to_sell_based_on_volume_and_crossover = MagicMock(return_value=False)
+        self.strategy._start_sell_process(MagicMock())
+
+        self.assertFalse(self.state.ready_to_sell)
+
+    def test_initial_buy(self):
+        self.indicators.current_price = MagicMock(return_value=95)
+        self.assertTrue(self.strategy.initial_buy_condition())
+
+    def test_reset_buy_state(self):
+        self.strategy._reset_buy_state()
+        self.assertTrue(self.state.trade_active)
+        self.assertFalse(self.state.ready_to_buy)
         # Add assertions
-    #
-    # def test_conditions_met_for_sell(self):
-    #     self.strategy._conditions_met_for_sell()
-    #     # Add assertions
-    #
-    # def test_start_sell_process(self):
-    #     self.strategy._start_sell_process()
-    #     # Add assertions
-    #
-    # def test_initial_buy(self):
-    #     self.strategy._initial_buy()
-    #     # Add assertions
-    #
-    # def test_reset_buy_state(self):
-    #     self.strategy._reset_buy_state()
-    #     # Add assertions
-    #
-    # def test_reset_sell_state(self):
-    #     self.strategy._reset_sell_state()
-    #     # Add assertions
-    #
-    # def test_cancel_order(self):
-    #     self.strategy._cancel_order()
-    #     # Add assertions
-    #
-    # def test_is_prior_sell_price_close_to_current(self):
-    #     self.strategy._is_prior_sell_price_close_to_current()
-    #     # Add assertions
-    #
-    # def test_is_price_near_lowest(self):
-    #     self.strategy._is_price_near_lowest()
-    #     # Add assertions
-    #
-    # def test_is_ready_to_buy_based_on_volume_and_crossover(self):
-    #     self.strategy._is_ready_to_buy_based_on_volume_and_crossover()
-    #     # Add assertions
-    #
-    # def test_is_profit(self):
-    #     self.strategy._is_profit()
-    #     # Add assertions
-    #
-    # def test_is_price_near_highest(self):
-    #     self.strategy._is_price_near_highest()
-    #     # Add assertions
-    #
-    # def test_is_ready_to_sell_based_on_volume_and_crossover(self):
-    #     self.strategy._is_ready_to_sell_based_on_volume_and_crossover()
-    #     # Add assertions
-    #
-    # def test_start_trade(self):
-    #     self.strategy._start_trade()
-    #     # Add assertions
-    #
+
+    def test_reset_sell_state(self):
+        self.strategy._reset_sell_state()
+        self.assertFalse(self.state.trade_active)
+        self.assertFalse(self.state.ready_to_sell)
+        # Add assertions
+
     # def test_check_alpaca_status(self):
-    #     self.strategy._check_alpaca_status()
-    #     # Add assertions
+
+    def test_check_and_execute_buy_orders_on_alpaca(self):
+        self.strategy._need_to_cancel_buy_order = self.strategy._need_to_cancel_sell_order = self.strategy._significant_stock_price_drop = MagicMock(
+            return_value=False)
+
+        self.strategy._reset_buy_state = MagicMock()
+        self.state.accepted_order = {'id': '123', 'stop_price': '100'}
+        self.strategy._check_alpaca_status()
+
+        self.assertTrue(self.strategy._buy_orders_ready_on_alpaca)
+        self.strategy._reset_buy_state.assert_called_once()
+        self.assertEqual(self.state.price_of_last_purchase, 100)
+
+    def test_check_and_execute_sell_orders_on_alpaca(self):
+        self._buy_orders_ready_on_alpaca = self.strategy._need_to_cancel_buy_order = self.strategy._need_to_cancel_sell_order = self.strategy._significant_stock_price_drop = MagicMock(
+            return_value=False)
+
+        self.strategy._reset_sell_state = MagicMock()
+        self.state.accepted_order = {'id': '456', 'stop_price': '100'}
+        self.strategy._check_alpaca_status()
+
+        self.assertTrue(self.strategy._sell_orders_ready_on_alpaca)
+        self.strategy._reset_sell_state.assert_called_once()
+        self.assertEqual(self.state.price_of_last_sale, 100)
+
+    def test_cancel_any_pending_buy_order_on_alpaca(self):
+        self._buy_orders_ready_on_alpaca = self._sell_orders_ready_on_alpaca = self.strategy._need_to_cancel_sell_order = self.strategy._significant_stock_price_drop = MagicMock(
+            return_value=False)
+        self.state.trade_active = False
+        self.state.pending_order = {'hwm': '400', 'id': '123'}
+        self.indicators.current_price = MagicMock(return_value=300)
+        self.strategy._check_alpaca_status()
+
+        self.trader.trading_client.cancel_order_by_id.assert_called_once()
+        self.assertIsNone(self.state.pending_order)
+
+    def test_cancel_any_pending_sell_order_on_alpaca(self):
+        self.strategy._buy_orders_ready_on_alpaca = self.strategy._sell_orders_ready_on_alpaca = self.strategy._need_to_cancel_buy_order = self.strategy._significant_stock_price_drop = MagicMock(
+            return_value=False)
+        self.state.trade_active = True
+        self.state.pending_order = {'hwm': '300', 'id': '123'}
+        self.indicators.current_price = MagicMock(return_value=400)
+        self.strategy._check_alpaca_status()
+
+        self.trader.trading_client.cancel_order_by_id.assert_called_once()
+        self.assertIsNone(self.state.pending_order)
+
+    def test_significant_drop_in_stock_prices(self):
+        self.strategy._buy_orders_ready_on_alpaca = self.strategy._sell_orders_ready_on_alpaca = self.strategy._need_to_cancel_buy_order = self.strategy._need_to_cancel_sell_order = MagicMock(
+            return_value=False)
+        self.indicators.current_price = MagicMock(return_value=500)
+        self.strategy.stop = MagicMock()
+        with self.assertRaises(Exception) as context:
+            self.strategy._check_alpaca_status()
+
+        self.assertIn("Trading Terminated and immediately sold", str(context.exception))
+        self.trader.trading_client.close_all_positions.assert_called_once()
+
+
+# todo write tests on alpaca trader
 
 
 ' ==================== ==== ========= === ====== === ======'

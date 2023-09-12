@@ -148,7 +148,7 @@ class _SmaCrossStrategy:
         self.state.accepted_order = None
         self.notify_order(False)
 
-    def _need_to_cancel_buy_order(self):
+    def _need_to_cancel_buy_order(self):  # placed a buy order but hasn't executed yet
         return not self.state.trade_active and self.state.pending_order is not None and float(
             self.state.pending_order['hwm']) - self.indicators.current_price() > self.config.buy_profit_threshold / 4
 
@@ -164,6 +164,7 @@ class _SmaCrossStrategy:
     def _cancel_sell_order(self):
         self._cancel_order(self.state.pending_order['id'])
         logging.info(f"213 -sell order placed at the price {self.state.pending_order['hwm']} has been canceled")
+        self.state.pending_order = None  # todo verify the logic
 
     def _significant_stock_price_drop(self):
         return self.state.price_of_last_purchase is not None and self.config.loss_value < self.state.price_of_last_purchase - \
@@ -276,8 +277,8 @@ class _SmaCrossStrategy:
     def _is_prior_sell_price_close_to_current(self):
         """If there was a prior sell price, only buy if the difference between the prior sell price and current price
         exceeds 'profit_threshold'"""
-        return self.state.price_of_last_sale is not None and self.config.buy_profit_threshold > self.state.price_of_last_sale - \
-            self.indicators.current_price()
+        return self.state.price_of_last_sale is not None\
+            and self.config.buy_profit_threshold > self.state.price_of_last_sale - self.indicators.current_price()
 
     def _is_price_near_lowest(self):
         """Enter into buy state if the close price is near the lowest price"""
@@ -293,8 +294,7 @@ class _SmaCrossStrategy:
 
     def _is_price_near_highest(self):
         """Enter into sell state if the close price is near the highest price"""
-        return self.indicators._recorded_highest_price[
-            0] - self.indicators.current_price() < self.config.high_low_tolerance
+        return self.indicators.current_highest_price()-self.indicators.current_price() <= self.config.high_low_tolerance
 
     def _is_ready_to_sell_based_on_volume_and_crossover(self):
         """If in sell state, and volume is sufficient, and there's a negative crossover, then sell"""
@@ -328,18 +328,18 @@ class _SmaCrossStrategy:
 
         # Cancel any pending buy order
         if self._need_to_cancel_buy_order():
-            self._cancel_buy_order()
             news(f"buy order placed at the price {self.state.pending_order['hwm']} has been canceled")
+            self._cancel_buy_order()
 
         # Cancel any pending sell order
         elif self._need_to_cancel_sell_order():
-            self._cancel_sell_order()
             news(f"the sell order placed at the price {(self.state.pending_order['hwm'])} has been canceled")
+            self._cancel_sell_order()
 
         # Halt trading if there's a significant drop in stock prices
         if self._significant_stock_price_drop():
-            self._halt_trading_and_alert()
             news("⚠️ The price has dropped significantly low. Trading has been stopped.")
+            self._halt_trading_and_alert()
 
     def back_test(self):
         # print(f'date-{self.indicators.current_price()}')
