@@ -87,7 +87,7 @@ class SmaCrossStrategy(bt.Strategy):
                 self.state.trade_active = False
                 # initially, make algorithm to ignore profit_threshold
                 self.state.price_of_last_sale = constants.last_sale_price  # todo optimize this-> back test should find out this value
-            thread = threading.Thread(target=get_trade_updates)  # start trade updates
+            thread = threading.Thread(target=get_trade_updates, args=(self.state,))  # start trade updates
             thread.start()
 
         else:
@@ -148,7 +148,7 @@ class _Indicators:
         return self._data.close[0]
 
     def current_price_datetime(self):
-        return self._data.datetime[0]
+        return bt.num2date(self._data.datetime[0])
 
     def current_volume(self):
         return self._data.volume[0]
@@ -483,7 +483,7 @@ class _SmaCrossStrategy:
 
     def log(self, txt, dt=None):
         """ Logging function for the strategy """
-        dt = dt or bt.num2date(self.indicators.current_price_datetime())
+        dt = dt or self.indicators.current_price_datetime()
         logging.info(f'{dt.isoformat()}, {txt}')
 
     def notify_order(self, is_buy_order):
