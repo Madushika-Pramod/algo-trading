@@ -53,7 +53,7 @@ class SmaCrossstrategyV2(bt.Strategy):
         slow_moving_avg = TALibSMA(self.data,period=self.p.slow_ma_period)
 
         self.moving_avg_crossover_indicator = bt.ind.CrossOver(fast_moving_avg, slow_moving_avg)
-        self.moving_avg_crossover_indicator.plotinfo.plot = False
+        # self.moving_avg_crossover_indicator.plotinfo.plot = False
         self.recorded_highest_price = bt.indicators.Highest(self.data.close, period=self.p.high_low_period)
         self.recorded_lowest_price = bt.indicators.Lowest(self.data.close, period=self.p.high_low_period)
 
@@ -96,6 +96,7 @@ class SmaCrossstrategyV2(bt.Strategy):
                 self.ready_to_buy = False
                 self.trade_active = True
                 self.price_of_last_purchase = self.data.close[0]
+
         # 6. If a buy order has been executed, consider selling
         elif self.trade_active:
 
@@ -245,8 +246,8 @@ class SmaCrossstrategyV2(bt.Strategy):
 
     def log(self, txt, dt=None):
         ''' Logging function for the strategy '''
-        dt = dt or self.datas[0].datetime.date(0)
-        logging.info(f'{dt.isoformat()}, {txt}')
+        dt = dt or bt.num2date(self.data.datetime[0])
+        # logging.info(f'{dt.isoformat()}, {txt}')
 
     def notify_order(self, order):
         """Handle the events of executed orders."""
@@ -263,7 +264,7 @@ class SmaCrossstrategyV2(bt.Strategy):
                     order.executed.size) - self.commission_on_last_purchase
 
                 self.trading_count += 1
-                self.log('SELL EXECUTED, %.2f' % order.executed.price)
+                self.log('SELL EXECUTED, %.2f' % self.price_of_last_sale)
                 # print(f"total profit on trades:{self.cumulative_profit}")
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log('Order Canceled/Margin/Rejected')

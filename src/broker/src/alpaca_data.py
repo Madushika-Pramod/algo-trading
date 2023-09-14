@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 import backtrader as bt
 from alpaca.data import StockHistoricalDataClient, StockBarsRequest, TimeFrame
-from websocket import WebSocketApp
+from websocket._app import WebSocketApp
 
 from app.src import constants
 from app.src.notify import news

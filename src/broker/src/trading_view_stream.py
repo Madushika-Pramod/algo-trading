@@ -122,6 +122,10 @@ class TradingViewWebSocket:
             ws.send('~m~64~m~{"m":"quote_add_symbols","p":["qs_2YiWuxHOASlh","NASDAQ:GOOGL"]}')
 
     def on_message(self, ws: websocket, message):
+        with open(constants.trading_view_row_data_file_path, 'a') as file:  # todo remove
+            file.write(message)
+            file.write('\n')
+
         if message is None or message == "":
             return
         # print(f'msg{message}')
@@ -130,6 +134,7 @@ class TradingViewWebSocket:
             ws.send(message)
 
         else:
+
             data = extract_data(message)
             if data is not None and len(data) > 0:
                 self.data_lists.append(data)
@@ -164,6 +169,7 @@ class TradingViewWebSocket:
     def start(self):
         def run_ws():
             # while self.restart_required or not self.ws:
+            # todo chnage this to websockets
             self.ws = websocket.WebSocketApp(
                 'wss://data.tradingview.com/socket.io/websocket',
                 header=self.headers,

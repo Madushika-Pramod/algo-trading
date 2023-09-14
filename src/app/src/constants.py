@@ -15,10 +15,10 @@ market_buy_order = False
 
 symbol = "TSLA"
 commission = 0.0  # 0.005
-min_price = 220.83
-median_volume = 15710.0
+min_price = 237.22 #220.83
+median_volume = 13399.5 #15710.0
 last_sale_price = None
-cash = 500
+cash = 840
 
 voice_alert_frequency = 3
 
@@ -38,7 +38,7 @@ stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{file_id}.csv')
 # tick_file_path = os.path.join(_parent_dir, 'datas', f'tick{file_id}.csv')
 csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
 # csv_file_path = os.path.join(_parent_dir, 'datas', 'data.csv')
-tick_file_path = os.path.join(_parent_dir, 'datas', 'tick.csv')
+trading_view_row_data_file_path = os.path.join(_parent_dir, 'datas', f'trading_view{file_id}.txt')
 trading_view_file_path = os.path.join(_parent_dir, 'datas', f'tw_{symbol}{period_in_days}{file_id}.csv')
 
 mama_file_path = os.path.join(_parent_dir, 'datas', f'MAMA{file_id}.csv')

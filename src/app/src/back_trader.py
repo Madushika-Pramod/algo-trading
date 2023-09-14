@@ -71,7 +71,7 @@ class AllInSizer(bt.Sizer):
         if isbuy:
             # Divide all available cash by the closing price to get the number of shares we can buy
             size = int(cash / (data.close[0] * (1 + constants.commission)))
-            logging.info(f"Number of shares brought {size}")
+            # logging.info(f"Number of shares brought {size}")
         else:
             # If we're selling, sell all shares
             size = self.broker.getposition(data).size
@@ -134,8 +134,8 @@ class BacktraderStrategy:
         if live:
             q = self._historical_and_live_queue()
             # q = queue.Queue()
-            data = AlpacaStreamData(q=q)
-            # data = StreamTickData(q=q)
+            # data = AlpacaStreamData(q=q)
+            data = StreamTickData(q=q)
             self.cerebro.adddata(data)
             # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
 

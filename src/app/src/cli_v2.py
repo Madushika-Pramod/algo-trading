@@ -1,4 +1,6 @@
 # Importing logger_config to set up application-wide logging and exception handling
+# import logger_config
+import logger_config
 import csv
 import logging
 import multiprocessing
@@ -56,12 +58,12 @@ def run_single(live=False):
             # profit_threshold=1.0
 
             # #aug 30
-            fast_ma_period=6,
-            slow_ma_period=32,
-            high_low_period=22,
-            high_low_tolerance=0.5,
-            buy_profit_threshold=1.0,
-            sell_profit_threshold=1.0
+            # fast_ma_period=6,
+            # slow_ma_period=32,
+            # high_low_period=22,
+            # high_low_tolerance=0.5,
+            # buy_profit_threshold=1.0,
+            # sell_profit_threshold=1.0
 
             # aug 30
             # fast_ma_period=8,
@@ -69,20 +71,38 @@ def run_single(live=False):
             # high_low_period=10,
             # high_low_tolerance=0.5,
             # profit_threshold=4.0
+
+            # sep 7
+
+            # fast_ma_period=3,
+            # slow_ma_period=10,
+            # high_low_period=12,
+            # high_low_tolerance=0.5,
+            # buy_profit_threshold=1.0,
+            # sell_profit_threshold=6
+
+            # sep 11
+            fast_ma_period=3,
+            slow_ma_period=11,
+            high_low_period=22,
+            high_low_tolerance=0.5,
+            buy_profit_threshold=1.5,
+            sell_profit_threshold=1.0
+
         ))
+
     # strategy = (TrendLineStrategy,
     #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))
 
     # strategy = (DemoStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
-    logging.info(
-        f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
+    logging.info( f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
 
 
 
 def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
                                              high_low_tolerance=None,
-                                             buy_profit_threshold=None, sell_profit_threshold=None, pre_count=1000):
+                                             buy_profit_threshold=None, sell_profit_threshold=None, pre_count=2400):
     p2 = None
     count = 0
     roi_count = 0
@@ -112,25 +132,28 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
                             sgv = yy / 2
                             for y in range(buy_profit_threshold, 9):
                                 bgv = y / 2
-                                # if count >= pre_count:
+                                if count >= pre_count:
 
-                                result = BacktraderStrategy(live=False
-                                                            ).add_strategy((SmaCrossstrategyV2,
-                                                                            dict(fast_ma_period=pf,
-                                                                                 slow_ma_period=ps,
-                                                                                 high_low_period=p,
-                                                                                 high_low_tolerance=e,
-                                                                                 buy_profit_threshold=bgv,
-                                                                                 sell_profit_threshold=sgv))).run()
-                                statistics.append(
-                                    [count, result.trading_count, result.total_return_on_investment, pf, ps, p, e,
-                                     bgv, sgv])
-                                if result.total_return_on_investment > best_roi:
-                                    best_roi = result.total_return_on_investment
-                                    roi_count = count
-                                    print(
-                                        f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\n Buy Gain value: {bgv}\n Sell Gain value: {sgv}")
-                                print(count)
+                                    result = BacktraderStrategy(live=False).add_strategy((SmaCrossstrategyV2,
+                                                                                dict(fast_ma_period=pf,
+                                                                                     slow_ma_period=ps,
+                                                                                     high_low_period=p,
+                                                                                     high_low_tolerance=e,
+                                                                                     buy_profit_threshold=bgv,
+                                                                                     sell_profit_threshold=sgv))).run()
+                                    statistics.append(
+                                        [count, result.trading_count, result.total_return_on_investment, pf, ps, p, e,
+                                         bgv, sgv])
+                                    if result.total_return_on_investment > best_roi:
+                                        best_roi = result.total_return_on_investment
+                                        roi_count = count
+                                        print(
+                                            f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\n Buy Gain value: {bgv}\n Sell Gain value: {sgv}")
+                                        logging.info(
+                                            f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\n Buy Gain value: {bgv}\n Sell Gain value: {sgv}")
+
+                                    # logging.info(count)
+                                    print(count)
                                 count += 1
 
     except KeyboardInterrupt:
@@ -146,16 +169,16 @@ configurations_for_sma_cross_v2 = [
          sell_profit_threshold=2),
     dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=28, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=34, high_low_tolerance=5, buy_profit_threshold=2,
-             sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=40, high_low_tolerance=5, buy_profit_threshold=2,
-             sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=46, high_low_tolerance=5, buy_profit_threshold=2,
-             sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=52, high_low_tolerance=5, buy_profit_threshold=2,
-             sell_profit_threshold=2)
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=28, high_low_tolerance=5, buy_profit_threshold=2,
+    #      sell_profit_threshold=2),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=34, high_low_tolerance=5, buy_profit_threshold=2,
+    #          sell_profit_threshold=2),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=40, high_low_tolerance=5, buy_profit_threshold=2,
+    #          sell_profit_threshold=2),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=46, high_low_tolerance=5, buy_profit_threshold=2,
+    #          sell_profit_threshold=2),
+    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=52, high_low_tolerance=5, buy_profit_threshold=2,
+    #          sell_profit_threshold=2)
     #      pre_count=36587),
     # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
     #      pre_count=36585),
@@ -196,5 +219,5 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    # run_single()
-    run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
+    run_single(live=True)
+    # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)

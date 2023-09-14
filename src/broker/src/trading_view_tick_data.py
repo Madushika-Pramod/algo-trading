@@ -100,3 +100,4 @@ class StreamTickData(bt.feed.DataBase):
                 self.lines.cc_percentage[0] = constants.trading_view_data.get('ch_percentage')
                 self.lines.extended_hours_price[0] = constants.trading_view_data.get('extended_hours_price')
                 self.lines.ehp_percentage[0] = constants.trading_view_data.get('ehp_percentage')
+                print(date_string)
