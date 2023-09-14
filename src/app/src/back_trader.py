@@ -19,49 +19,7 @@ from broker.src.trading_view_tick_data import StreamTickData
 
 # from .alpaca_data import AlpacaHistoricalData
 # from .trade_analyzer import TradeAnalyzer
-def generate_data():
-    import random
 
-    # Initialize synthetic data
-    data = [
-        ["symbol", "timestamp", "open", "high", "low", "close", "volume", "trade_count", "vwap"],
-        ["GOOGL", "2023-08-04 08:00:00+00:00", 129.4, 129.4, 129.4, 129.4, 432.0, 21.0, 129.371782]
-    ]
-
-    # Define the trend (increase or decrease)
-    trend = "increase"
-
-    # Generate data for 5000 data points
-    for _ in range(5000):
-        last_entry = data[-1]
-        timestamp = datetime.fromisoformat(last_entry[1].split("+")[0]) + timedelta(minutes=1)
-
-        if trend == "increase":
-            change = round(random.uniform(0, 1), 2)
-            trend = "decrease"
-        else:
-            change = round(-random.uniform(0, 2), 2)
-            trend = "increase"
-
-        new_open = round(last_entry[3] + change, 2)
-        high = round(new_open + random.uniform(0, 0.5), 2)
-        low = round(new_open - random.uniform(0, 0.5), 2)
-        close = round((high + low) / 2, 2) -1
-
-        volume = round(last_entry[6] * (1 + random.uniform(-0.05, 0.05)), 2)
-        trade_count = round(last_entry[7] + random.choice([-1, 1]), 2)
-        vwap = round((close * volume + last_entry[8] * last_entry[6]) / (volume + last_entry[6]), 2)
-
-        data.append(["GOOGL", str(pandas.Timestamp(timestamp).tz_localize('UTC')), new_open, high, low, close, volume, trade_count, vwap])
-
-    # Convert data to Pandas DataFrame
-    df = pandas.DataFrame(data[1:], columns=data[0])
-    # print(df.head())
-
-    df['timestamp'] = pandas.to_datetime(df['timestamp'])
-    df.set_index(df['timestamp'], inplace=True)
-
-    return df
 
 
 class AllInSizer(bt.Sizer):

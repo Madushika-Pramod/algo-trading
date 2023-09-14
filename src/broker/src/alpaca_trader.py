@@ -117,9 +117,8 @@ class AlpacaTrader:
         self.trading_client = trading_client or TradingClient(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
                                                               paper=True)
 
-
     def get_buying_power(self):
-        return self.trading_client.get_account().buying_power
+        return float(self.trading_client.get_account().buying_power) or None
 
     def buy(self, price):
         self.algo_price = price

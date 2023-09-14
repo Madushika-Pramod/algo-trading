@@ -1,8 +1,11 @@
 import logging
+import threading
 
 import backtrader as bt
 
+from app.src import constants
 from app.src.notify import news
+from broker.src.alpaca_trader import get_trade_updates, AlpacaTrader
 from strategies.src.indicators.talib_sma import TALibSMA
 
 
@@ -22,20 +25,21 @@ class SmaCrossStrategy(bt.Strategy):
     )
 
     def __init__(self):
-        # self.trader = AlpacaTrader()
+        self.trader = AlpacaTrader()
         # self.state = _State(self.trader.get_buying_power() or self.p.buying_power)
-        self.starting_buying_power = self.trader.get_buying_power() or self.p.buying_power
-        self.state = State(self.p.buying_power)
+        self.live_mode = False
+        self.starting_buying_power = self.p.buying_power
+        self.state = _State(self.p.buying_power)
         self.indicators = _Indicators(self.p, self.data)
         self.strategy = _SmaCrossStrategy(self.indicators, self.params, self.state)
 
         self.total_return_on_investment = 0
-        self.trading_count = self.state.trading_count
+        self.trading_count = 0
 
     def next(self):
         # self.data -> DataFrame class
         # df = self.data
-        if self.cerebro.params.live:
+        if self.live_mode:
             try:
                 self.strategy.live()
             except KeyboardInterrupt:
@@ -43,14 +47,58 @@ class SmaCrossStrategy(bt.Strategy):
                 logging.info("KeyboardInterrupt received on live trading")
                 self.trader.trading_client.cancel_orders()
 
+        elif self.data.close[0] == 0:
+
+            logging.info(f'Last sale : {self.state.price_of_last_sale}')
+            logging.info(
+                f"Number of Trades: {self.state.trading_count}\nReturn on investment: {round((self.state.cumulative_profit / self.starting_buying_power) * 100, 3)}%")
+
+            self.live_mode = True
+            self.state.trading_count = 0
+            self.state.total_return_on_investment = 0
+            self.starting_buying_power = self.trader.get_buying_power()
+
+            # self.trader = AlpacaTrader()
+            # self.starting_balance = float(self.trader.cash)
+
+            self.p.median_volume = 99
+
+            positions = self.trader.trading_client.get_all_positions()
+            logging.info(f'Number of Positions: {len(positions)}')
+            if len(positions):  # todo test
+                # this is a fake buy state if any buy orders left in Alpaca,
+                # make algorithm to sell in the future
+                self.state.ready_to_buy = False
+                self.state.trade_active = True
+
+                if len(positions) == 2:  # if market order and stop order exists
+                    self.state.price_of_last_purchase = float(positions[0].avg_entry_price) if positions[0].qty > \
+                                                                                               positions[
+                                                                                                   1].qty else \
+                    positions[
+                        1].avg_entry_price
+                else:  # if 1 order exists
+                    self.state.price_of_last_purchase = float(positions[0].avg_entry_price)
+                logging.info(f'Last buy : {self.state.price_of_last_purchase}')
+            else:
+                # this is a fake sell state if no any sell orders left in Alpaca
+                # make algorithm to buy in the future
+                self.state.ready_to_sell = False
+                self.state.trade_active = False
+                # initially, make algorithm to ignore profit_threshold
+                self.state.price_of_last_sale = constants.last_sale_price  # todo optimize this-> back test should find out this value
+            thread = threading.Thread(target=get_trade_updates)  # start trade updates
+            thread.start()
+
         else:
             self.strategy.back_test()
 
     def stop(self):
 
         # Calculate the ROI based on the net profit and starting balance
-        self.total_return_on_investment = (
-         self.starting_buying_power - self.trader.get_buying_power()) / self.starting_buying_power
+        self.total_return_on_investment = self.state.cumulative_profit / self.starting_buying_power
+        self.trading_count = self.state.trading_count
+
         # # print(f'Last sale : {self.price_of_last_sale}')
         # if self.live_mode:
         #     self.trader.trading_client.cancel_orders()
@@ -63,19 +111,19 @@ class SmaCrossStrategy(bt.Strategy):
         super().notify_trade(trade)
 
 
-class State:
+class _State:
 
     def __init__(self, buying_power):
+        self.cumulative_profit = 0
         self.starting_balance = buying_power  # to be commented out
-        self.order_quantity = 0
+        self.order_quantity = None
         self.algorithm_performed_sell_order_id = None
         self.algorithm_performed_buy_order_id = None
         self.trade_active = None  # None
-        self.trading_count = -1
-        self.total_return_on_investment = -1
-        self.commission_on_last_purchase = -1
-        self.price_of_last_sale = -1
-        self.price_of_last_purchase = -1
+        self.trading_count = 0
+        self.commission_on_last_purchase = 0
+        self.price_of_last_sale = 0
+        self.price_of_last_purchase = 0
         self.ready_to_buy = False
         self.ready_to_sell = False
         self.pending_order = None
@@ -113,7 +161,7 @@ class _Indicators:
 
 
 class _SmaCrossStrategy:
-    def __init__(self, indicators: _Indicators, config, state: State, trader=None):
+    def __init__(self, indicators: _Indicators, config, state: _State, trader=None):
         self.trader = trader
         self.config = config
         self.state = state
@@ -123,7 +171,8 @@ class _SmaCrossStrategy:
         return self.state.trade_active is None and self.indicators.current_price() <= self.config.min_price
 
     def _buy_orders_ready_on_alpaca(self):
-        return self.state.accepted_order is not None and self.state.accepted_order['id'] == str(self.state.algorithm_performed_buy_order_id)
+        return self.state.accepted_order is not None and self.state.accepted_order['id'] == str(
+            self.state.algorithm_performed_buy_order_id)
 
     def _execute_buy_orders(self):
         logging.info("177 -buy executed")
@@ -181,7 +230,9 @@ class _SmaCrossStrategy:
         logging.critical("immediately sold")
         self.stop()
         raise Exception(
-            f"Trading Terminated and immediately sold due to significant drop of price,\nbuy_profit_threshold * 4 < price_of_last_purchase - current price = {self.config.buy_profit_threshold} x 4 < {self.state.price_of_last_purchase} - {self.indicators.current_price()}  ")
+            f"Trading Terminated and immediately sold due to significant drop of price,\nbuy_profit_threshold * 4 < "
+            f"price_of_last_purchase - current price = {self.config.buy_profit_threshold} x 4 < "
+            f"{self.state.price_of_last_purchase} - {self.indicators.current_price()}  ")
 
     def _conditions_met_for_buy(self):
         return self.state.trade_active is False  # todo chnage this
@@ -259,7 +310,7 @@ class _SmaCrossStrategy:
         """Initiate strategy: If the current close price is below 'min_price', make the initial buy"""
 
         self.state.price_of_last_purchase = self.indicators.current_price()
-        self.state.order_quantity = int(self.state.starting_balance / self.indicators.current_price())
+        self.state.order_quantity = self.state.starting_balance / self.indicators.current_price()
         self.notify_order(True)
         self._reset_buy_state()
 
@@ -277,7 +328,7 @@ class _SmaCrossStrategy:
     def _is_prior_sell_price_close_to_current(self):
         """If there was a prior sell price, only buy if the difference between the prior sell price and current price
         exceeds 'profit_threshold'"""
-        return self.state.price_of_last_sale is not None\
+        return self.state.price_of_last_sale is not None \
             and self.config.buy_profit_threshold > self.state.price_of_last_sale - self.indicators.current_price()
 
     def _is_price_near_lowest(self):
@@ -294,7 +345,7 @@ class _SmaCrossStrategy:
 
     def _is_price_near_highest(self):
         """Enter into sell state if the close price is near the highest price"""
-        return self.indicators.current_highest_price()-self.indicators.current_price() <= self.config.high_low_tolerance
+        return self.indicators.current_highest_price() - self.indicators.current_price() <= self.config.high_low_tolerance
 
     def _is_ready_to_sell_based_on_volume_and_crossover(self):
         """If in sell state, and volume is sufficient, and there's a negative crossover, then sell"""
@@ -348,8 +399,8 @@ class _SmaCrossStrategy:
             self.state.price_of_last_purchase = self.indicators.current_price()
             # current_balance = (previous sell -> order_quantity) * price_of_last_sale
             # order_quantity = current_balance /price
-            self.state.order_quantity = int(
-                self.state.order_quantity * self.state.price_of_last_sale / self.indicators.current_price())
+            # here total buying power is considered as (previous order_quantity * price_of_last_sale)we invest all money
+            self.state.order_quantity = self.state.order_quantity * self.state.price_of_last_sale / self.indicators.current_price()
             self.notify_order(True)
 
         def sell():
@@ -362,36 +413,34 @@ class _SmaCrossStrategy:
         # todo should return last sell price
 
     def live(self):
-        print(f'date-{self.indicators.current_price()}')
-        self.config.median_volume = 99
-        positions = self.trader.trading_client.get_all_positions()
-        logging.info(f'Number of Positions: {len(positions)}')
-        if len(positions):  # todo test
-            # this is a fake buy state if any buy orders left in Alpaca,
-            # make algorithm to sell in the future
-            self.state.ready_to_buy = False
-            self.state.trade_active = True
-
-            if len(positions) == 2:  # if market order and stop order exists
-                self.state.price_of_last_purchase = float(positions[0].avg_entry_price) if positions[0].qty > \
-                                                                                           positions[
-                                                                                               1].qty else positions[
-                    1].avg_entry_price
-            else:  # if 1 order exists
-                self.state.price_of_last_purchase = float(positions[0].avg_entry_price)
-            logging.info(f'Last buy : {self.state.price_of_last_purchase}')
-        else:
-            # this is a fake sell state if no any sell orders left in Alpaca
-            # make algorithm to buy in the future
-            self.state.ready_to_sell = False
-            self.state.trade_active = False
-            # initially, make algorithm to ignore profit_threshold
-            self.state.price_of_last_sale = self.config.last_sale_price or self.state.price_of_last_sale  # todo optimize this-> back test should find out this value
-        # thread = threading.Thread(target=get_trade_updates)  # start trade updates
-        # thread.start()
+        print(f'{self.indicators.current_price_datetime()}-{self.indicators.current_price()}')
+        # self.config.median_volume = 99
+        # positions = self.trader.trading_client.get_all_positions()
+        # logging.info(f'Number of Positions: {len(positions)}')
+        # if len(positions):  # todo test
+        #     # this is a fake buy state if any buy orders left in Alpaca,
+        #     # make algorithm to sell in the future
+        #     self.state.ready_to_buy = False
+        #     self.state.trade_active = True
+        #
+        #     if len(positions) == 2:  # if market order and stop order exists
+        #         self.state.price_of_last_purchase = float(positions[0].avg_entry_price) if positions[0].qty > \
+        #                                                                                    positions[
+        #                                                                                        1].qty else positions[
+        #             1].avg_entry_price
+        #     else:  # if 1 order exists
+        #         self.state.price_of_last_purchase = float(positions[0].avg_entry_price)
+        #     logging.info(f'Last buy : {self.state.price_of_last_purchase}')
+        # else:
+        #     # this is a fake sell state if no any sell orders left in Alpaca
+        #     # make algorithm to buy in the future
+        #     self.state.ready_to_sell = False
+        #     self.state.trade_active = False
+        #     # initially, make algorithm to ignore profit_threshold
+        #     self.state.price_of_last_sale = self.config.last_sale_price or self.state.price_of_last_sale  # todo optimize this-> back test should find out this value
+        #
 
         # todo turn this to an event
-        self._check_alpaca_status()
 
         def buy():
             news("I placed a buy order")
@@ -405,10 +454,12 @@ class _SmaCrossStrategy:
             news("I placed a sell order")
             self.state.algorithm_performed_sell_order_id = self.trader.sell(
                 self.indicators.current_price())  # this step executing
+
             logging.debug(f'263 -sell id: {self.state.algorithm_performed_sell_order_id}')
             logging.debug(
                 f'trade_active:{self.state.trade_active}<==>profit_threshold > close - price_of_last_purchase{self.config.sell_profit_threshold} > {self.indicators.current_price()} - {self.state.price_of_last_purchase}<==>recorded_highest_price - close < high_low_tolerance={self.indicators._recorded_highest_price[0]} - {self.indicators.current_price()} < {self.config.high_low_tolerance}<==>ready_to_sell: {self.state.ready_to_sell},volume > median_volume ={self.indicators.current_volume()} > {self.config.median_volume} <==> moving_avg_crossover_indicator < 0 = {self.indicators.moving_avg_crossover_indicator}')
 
+        self._check_alpaca_status()
         self._start_trade(buy, sell)
 
     # def next(self):
@@ -445,7 +496,10 @@ class _SmaCrossStrategy:
             self.log('BUY EXECUTED, %.2f' % self.state.price_of_last_purchase)
         else:
             self.state.trading_count += 1
-            self.log('SELL EXECUTED, %.2f' % self.state.price_of_last_sale)
+            self.state.cumulative_profit += (self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
+
+            self.log('SELL EXECUTED, %.2f with quantity of %.10f' % (
+                self.state.price_of_last_sale, self.state.order_quantity))
 
 # def main():
 #     # Arrange

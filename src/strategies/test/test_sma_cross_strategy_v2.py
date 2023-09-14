@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from strategies.src.sma.sma_cross_strategy import _SmaCrossStrategy, State
+from strategies.src.sma.sma_cross_strategy import _SmaCrossStrategy, _State
 
 
 # Import your strategy class here
@@ -44,7 +44,7 @@ class TestSmaCrossStrategy(unittest.TestCase):
 
     def test_initial_buy_condition(self):
         self.indicators.current_price = MagicMock(return_value=500)
-        self.state = State(800)
+        self.state = _State(800)
         result = self.strategy.initial_buy_condition()
         self.assertTrue(result)
 

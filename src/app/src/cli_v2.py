@@ -1,12 +1,13 @@
 # Importing logger_config to set up application-wide logging and exception handling
 # import logger_config
+import logger_config
 import csv
 import logging
 import multiprocessing
 
 from app.src import constants
 from app.src.back_trader import BacktraderStrategy
-from strategies import SmaCrossStrategy, SmaCrossstrategyV2
+from strategies import SmaCrossstrategyV2
 from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 
@@ -208,5 +209,5 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    run_single()
+    run_single(live=True)
     # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)

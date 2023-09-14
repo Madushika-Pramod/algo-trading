@@ -39,6 +39,7 @@ stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{file_id}.csv')
 csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
 # csv_file_path = os.path.join(_parent_dir, 'datas', 'data.csv')
 tick_file_path = os.path.join(_parent_dir, 'datas', 'tick.csv')
+trading_view_row_data_file_path = os.path.join(_parent_dir, 'datas', f'trading_view{file_id}.txt')
 trading_view_file_path = os.path.join(_parent_dir, 'datas', f'tw_{symbol}{period_in_days}{file_id}.csv')
 
 mama_file_path = os.path.join(_parent_dir, 'datas', f'MAMA{file_id}.csv')
