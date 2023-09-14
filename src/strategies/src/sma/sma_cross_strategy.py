@@ -31,7 +31,7 @@ class SmaCrossStrategy(bt.Strategy):
         self.starting_buying_power = self.p.buying_power
         self.state = _State(self.p.buying_power)
         self.indicators = _Indicators(self.p, self.data)
-        self.strategy = _SmaCrossStrategy(self.indicators, self.params, self.state)
+        self.strategy = _SmaCrossStrategy(self.indicators, self.params, self.state, trader=self.trader)
 
         self.total_return_on_investment = 0
         self.trading_count = 0
