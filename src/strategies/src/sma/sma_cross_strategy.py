@@ -246,13 +246,13 @@ class _SmaCrossStrategy:
         if self._is_price_near_lowest():
             self.state.ready_to_buy = True
             if not self.state.is_notified:
-                news("I'm ready to place a buy order")
+                # news("I'm ready to place a buy order")
                 self.state.is_notified = True
             # logging.info('239 -ready_to_buy = True')
         else:
             self.state.ready_to_buy = False
             if self.state.is_notified:
-                news("I decided to not to place")
+                # news("I decided to not to place")
                 self.state.is_notified = False
             # logging.info('241 -ready_to_buy = False')
 
