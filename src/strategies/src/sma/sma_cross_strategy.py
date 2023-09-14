@@ -281,13 +281,13 @@ class _SmaCrossStrategy:
         if self._is_price_near_highest():
             self.state.ready_to_sell = True
             if not self.state.is_notified:
-                news("I'm ready to place a sell order")
+                # news("I'm ready to place a sell order")
                 self.state.is_notified = True
             # logging.info('255 -ready_to_sell = True')
         else:
             self.state.ready_to_sell = False
             if self.state.is_notified:
-                news("I decided to not to place")
+                # news("I decided to not to place")
                 self.state.is_notified = False
             # logging.info('258 -ready_to_sell = False')
 
@@ -446,7 +446,7 @@ class _SmaCrossStrategy:
             news("I placed a buy order")
             self.state.algorithm_performed_buy_order_id = self.trader.buy(self.indicators.current_price())
             # todo create dic -> {self.state.algorithm_performed_buy_order_id : order}
-            logging.debug(f'242 -buy id: {self.state.algorithm_performed_buy_order_id}')
+            logging.info(f'242 -buy id: {self.state.algorithm_performed_buy_order_id}')
             logging.debug(
                 f'trade_active:{self.state.trade_active}<==>profit_threshold > price_of_last_sale - close price{self.config.buy_profit_threshold} > {self.state.price_of_last_sale} - {self.indicators.current_price()}<==>close price - recorded_lowest_price < high_low_tolerance={self.indicators.current_price()} - {self.indicators._recorded_lowest_price[0]} < {self.config.high_low_tolerance}<==>ready_to_buy: {self.state.ready_to_buy},volume > median_volume ={self.indicators.current_volume()} > {self.config.median_volume} <==> moving_avg_crossover_indicator > 0 = {self.indicators.moving_avg_crossover_indicator}')
 

@@ -12,7 +12,7 @@ from alpaca.trading.requests import MarketOrderRequest, TrailingStopOrderRequest
 
 from app.src import constants
 from app.src.notify import news
-from app.src.voice_alert import voice_alert
+# from app.src.voice_alert import voice_alert
 
 
 def get_trade_updates(state):
@@ -60,25 +60,27 @@ async def alpaca_trade_updates_ws(state):
             # '''new: The order has been received by Alpaca, but not yet routed to the exchange.
             #    accepted: The order has been routed to the exchange, but not yet confirmed by the exchange.'''
             if trade['event'] == 'new' or trade['event'] == 'accepted':
-                state.pending_order = trade['order']  # todo
+                state.pending_order = trade['order']  # todo separate those 2
                 # voice_alert(f"say a {trade['order']['side']} order is placed", 1)
                 # voice_alert("say placed", 1)
+                logging.info(f'pending_order.id:{state.pending_order.id}')
                 logging.info(
-                    f"event type: *{trade['event']}*\na {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
                 news(
-                    f"event type: *{trade['event']}*\na *{trade['order']['side']}* order is *placed* at price *{trade['order']['hwm']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
             # '''partial_fill: The order has been partially executed by the exchange, meaning that some but not
             # all the requested quantity has been filled. fill: The order has been fully executed by the exchange,
             # meaning that all the requested quantity has been filled.'''
             elif trade['event'] == 'filled' or trade['event'] == 'partial_fill':
                 state.accepted_order = trade['order']
-                voice_alert(f"say a {trade['order']['side']} order is executed", 1)
-                voice_alert("say executed", 1)
+                # voice_alert(f"say a {trade['order']['side']} order is executed", 1)
+                # voice_alert("say executed", 1)
+                logging.info(f'executed_order.id:{state.accepted_order.id}')
                 logging.info(
-                    f"event type: *{trade['event']}*\na {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
                 news(
-                    f"event type: *{trade['event']}*\na *{trade['order']['side']}* order is *executed* at price *{trade['order']['stop_price']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
             # '''canceled: The order has been canceled by either the user or Alpaca, meaning that it will not be
             # executed. This could happen if the user requests to cancel the order, or if the order expires due to
@@ -88,13 +90,13 @@ async def alpaca_trade_updates_ws(state):
                 # voice_alert(f"say a {trade['order']['side']} order is canceled", 1)
                 # voice_alert("say canceled", 1)
                 logging.info(
-                    f"event type: *{trade['event']}*\na {trade['order']['side']} order is canceled at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is canceled at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
                 news(
-                    f"event type: *{trade['event']}*\na *{trade['order']['side']}* order is *canceled* at price *{trade['order']['stop_price']}* with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is canceled at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
             else:
                 logging.info(
-                    f"alpaca event > event type: *{trade['event']}*")
-                news(f"alpaca event > event type: *{trade['event']}*")
+                    f"alpaca event > event type: {trade['event']}")
+                news(f"alpaca event > event type: {trade['event']}")
             # q.put(message)
 
 
