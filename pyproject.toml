@@ -15,6 +15,8 @@ dependencies = [
     "Alpaca-py>=0.9.0",
     "websocket-client>=1.6.1",
     "TA-Lib>=0.4.28",
+    "pytest>=7.4.2",
+    "pytest-asyncio>=0.21.1",
 ]
 requires-python = ">=3.11"
 license = {text = "MIT"}

@@ -25,7 +25,7 @@ class SmaCrossStrategy(bt.Strategy):
         # self.trader = AlpacaTrader()
         # self.state = _State(self.trader.get_buying_power() or self.p.buying_power)
         self.starting_buying_power = self.trader.get_buying_power() or self.p.buying_power
-        self.state = _State(self.p.buying_power)
+        self.state = State(self.p.buying_power)
         self.indicators = _Indicators(self.p, self.data)
         self.strategy = _SmaCrossStrategy(self.indicators, self.params, self.state)
 
@@ -63,7 +63,7 @@ class SmaCrossStrategy(bt.Strategy):
         super().notify_trade(trade)
 
 
-class _State:
+class State:
 
     def __init__(self, buying_power):
         self.starting_balance = buying_power  # to be commented out
@@ -113,7 +113,7 @@ class _Indicators:
 
 
 class _SmaCrossStrategy:
-    def __init__(self, indicators: _Indicators, config, state: _State, trader=None):
+    def __init__(self, indicators: _Indicators, config, state: State, trader=None):
         self.trader = trader
         self.config = config
         self.state = state

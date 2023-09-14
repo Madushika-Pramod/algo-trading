@@ -15,20 +15,20 @@ from app.src.notify import news
 from app.src.voice_alert import voice_alert
 
 
-def get_trade_updates():
+def get_trade_updates(state):
     # Create a new loop for the current thread
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         logging.info('Receiving alpaca trading updates')
         # Now use this loop to run your async function
-        loop.run_until_complete(alpaca_trade_updates_ws())
+        loop.run_until_complete(alpaca_trade_updates_ws(state))
     finally:
         logging.info("trading updates stopped")
         loop.close()
 
 
-async def alpaca_trade_updates_ws():
+async def alpaca_trade_updates_ws(state):
     async with websockets.connect(constants.trade_stream_wss) as ws:
         # Authenticate
         auth_data = {
@@ -60,7 +60,7 @@ async def alpaca_trade_updates_ws():
             # '''new: The order has been received by Alpaca, but not yet routed to the exchange.
             #    accepted: The order has been routed to the exchange, but not yet confirmed by the exchange.'''
             if trade['event'] == 'new' or trade['event'] == 'accepted':
-                constants.pending_order = trade['order']  # todo
+                state.pending_order = trade['order']  # todo
                 # voice_alert(f"say a {trade['order']['side']} order is placed", 1)
                 # voice_alert("say placed", 1)
                 logging.info(
@@ -72,7 +72,7 @@ async def alpaca_trade_updates_ws():
             # all the requested quantity has been filled. fill: The order has been fully executed by the exchange,
             # meaning that all the requested quantity has been filled.'''
             elif trade['event'] == 'filled' or trade['event'] == 'partial_fill':
-                constants.accepted_order = trade['order']
+                state.accepted_order = trade['order']
                 voice_alert(f"say a {trade['order']['side']} order is executed", 1)
                 voice_alert("say executed", 1)
                 logging.info(
@@ -107,28 +107,21 @@ def get_last_trade_from_sdk():
     return client.get_stock_latest_trade(request)
 
 
-def _truncate_to_two_decimal(number):
-    return int(number * 100) / 100.0
+def truncate_to_two_decimal(number):
+    return int(round(number * 100, 2)) / 100.0
 
 
 class AlpacaTrader:
-    def __init__(self):
+    def __init__(self, trading_client=None):
         self.algo_price = None
-        self.trading_client = TradingClient(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"), paper=True)
-        self.account = self.trading_client.get_account()
-        self.buying_power = self.account.buying_power  # buying_power todo
+        self.trading_client = trading_client or TradingClient(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
+                                                              paper=True)
+
 
     def get_buying_power(self):
-
-        try:
-            bp = self.account.buying_power
-        except:
-            bp = None
-
-        return bp
+        return self.trading_client.get_account().buying_power
 
     def buy(self, price):
-        self.account = self.trading_client.get_account()
         self.algo_price = price
 
         trailing_stop_order_data = TrailingStopOrderRequest(
@@ -150,7 +143,6 @@ class AlpacaTrader:
         if trailing_stop_order_data.qty > 0:
             order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
 
-            # buying_power = float(self.account.buying_power)
             # todo add market order
             # if buying_power < current_price * trailing_stop_order_data.qty:
             #     try:
@@ -158,7 +150,7 @@ class AlpacaTrader:
             #         constants.market_buy_order = True
             #     except:
             #         # todo check
-            #         _ = self.market_buy(notional=_truncate_to_two_decimal(buying_power))
+            #         _ = self.market_buy(notional=truncate_to_two_decimal(buying_power))
             #         constants.market_buy_order = True
             print('153')
             return order
@@ -210,7 +202,6 @@ class AlpacaTrader:
         return self.trading_client.submit_order(order_data=market_order_data)
 
     def sell(self, price):
-        self.account = self.trading_client.get_account()
         self.algo_price = price
 
         trailing_stop_order_data = TrailingStopOrderRequest(
@@ -227,21 +218,22 @@ class AlpacaTrader:
             return ""
         # execute new trailing stop order
         if trailing_stop_order_data.qty > 0:
+            # todo this is a repeat abstract this and make a common method for this
             order = self.trading_client.submit_order(order_data=trailing_stop_order_data).id
-            buying_power = float(self.account.buying_power)
-            if buying_power < current_price * trailing_stop_order_data.qty and not constants.market_buy_order:
-                try:
-                    _ = self.market_sell(notional=buying_power)
-                except:
-                    # todo check
-                    _ = self.market_sell(notional=_truncate_to_two_decimal(buying_power))
+            # buying_power = float(self.account.buying_power)
+            # if buying_power < current_price * trailing_stop_order_data.qty and not constants.market_buy_order:
+            #     try:
+            #         _ = self.market_sell(notional=buying_power)
+            #     except:
+            #         # todo check
+            #         _ = self.market_sell(notional=truncate_to_two_decimal(buying_power))
             return order
         return ""
 
     def _buy_quantity(self, price):
 
         # Calculate maximum shares factoring in the commission
-        return int(float(self.account.buying_power) / (price + constants.commission))
+        return int(float(self.get_buying_power()) / (price + constants.commission))
         # todo check this, when calling saved variable account.cash, all ways get new cash value
 
 # t = AlpacaTrader()
