@@ -105,7 +105,7 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
     try:
         for p in range(high_low_period, 50):
             p2 = p
-            if p == high_low_period + 6:
+            if p == high_low_period + 2:
                 # print(
                 #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
                 print(p - 2)
@@ -113,12 +113,12 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
                 print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
                 write_csv(statistics)
 
-                raise Exception("=== Parameter Tunining su cessfully terminatedxx===")
+                raise Exception("=== Parameter Tuning successfully terminated===")
             for pf in range(fast_ma_period, 31):
                 for ps in range(slow_ma_period, 61):
                     if pf > ps:
                         continue
-                    for x in range(high_low_tolerance, 6):
+                    for x in range(high_low_tolerance, 6): # ignored
                         # Dev-Factor from 1, 1.5, 2
                         e = x / 10
                         for yy in range(sell_profit_threshold, 9):
@@ -128,7 +128,7 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
                                 # if count >= pre_count:
 
                                 result = BacktraderStrategy(live=False
-                                                            ).add_strategy((SmaCrossstrategyV2,
+                                                            ).add_strategy((SmaCrossStrategy,
                                                                             dict(fast_ma_period=pf,
                                                                                  slow_ma_period=ps,
                                                                                  high_low_period=p,
@@ -147,27 +147,27 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
                                 count += 1
 
     except KeyboardInterrupt:
-        print("KeyboardInterrupt received. Performing cleanup...")
-        print(f"high_low_period: {p2}-Total Count: {count}-Best ROI: {best_roi * 100}%")
+        print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
+        print(f"high_low_period: {p2}-current Count: {count}-Best ROI: {best_roi * 100}%")
         write_csv(statistics)
 
 
 configurations_for_sma_cross_v2 = [
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=10, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=10, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=16, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=12, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=8, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=28, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=22, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=34, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=14, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=40, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=16, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=46, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=18, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=2, slow_ma_period=3, high_low_period=52, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2)
     #      pre_count=36587),
     # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
