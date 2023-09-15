@@ -95,8 +95,8 @@ class SmaCrossStrategy(bt.Strategy):
 
     def stop(self):
 
-        # Calculate the ROI based on the net profit and starting balance
-        self.total_return_on_investment = self.state.cumulative_profit / self.starting_buying_power
+        self.strategy.stop()
+        self.total_return_on_investment = self.state.total_return_on_investment
         self.trading_count = self.state.trading_count
 
         # # print(f'Last sale : {self.price_of_last_sale}')
@@ -115,7 +115,7 @@ class _State:
 
     def __init__(self, buying_power):
         self.cumulative_profit = 0
-        self.starting_balance = buying_power  # to be commented out
+        self.starting_buying_power = buying_power  # to be commented out
         self.order_quantity = None
         self.algorithm_performed_sell_order_id = None
         self.algorithm_performed_buy_order_id = None
@@ -126,8 +126,10 @@ class _State:
         self.price_of_last_purchase = 0
         self.ready_to_buy = False
         self.ready_to_sell = False
-        self.pending_order = None
+        self.total_return_on_investment = 0
+
         self.accepted_order = None
+        self.filled_order = None
         self.market_buy_order = False
 
         self.is_notified = False
@@ -171,15 +173,15 @@ class _SmaCrossStrategy:
         return self.state.trade_active is None and self.indicators.current_price() <= self.config.min_price
 
     def _buy_orders_ready_on_alpaca(self):
-        return self.state.accepted_order is not None and self.state.accepted_order['id'] == str(
+        return self.state.filled_order is not None and self.state.filled_order['id'] == str(
             self.state.algorithm_performed_buy_order_id)
 
     def _execute_buy_orders(self):
         logging.info("177 -buy executed")
-        buy_price = float(self.state.accepted_order['stop_price'])
+        buy_price = float(self.state.filled_order['stop_price'])
         self._reset_buy_state()
         self.state.price_of_last_purchase = buy_price
-        self.state.accepted_order = None
+        self.state.filled_order = None
         # current_balance = (previous sell -> order_quantity) * price_of_last_sale
         # order_quantity = current_balance /price
         self.state.order_quantity = int(
@@ -187,33 +189,33 @@ class _SmaCrossStrategy:
         self.notify_order(True)
 
     def _sell_orders_ready_on_alpaca(self):
-        return self.state.accepted_order is not None and self.state.accepted_order['id'] == str(
+        return self.state.filled_order is not None and self.state.filled_order['id'] == str(
             self.state.algorithm_performed_sell_order_id)
 
     def _execute_sell_orders(self):
         logging.info("192 -sell executed")
-        self.state.price_of_last_sale = float(self.state.accepted_order['stop_price'])
+        self.state.price_of_last_sale = float(self.state.filled_order['stop_price'])
         self._reset_sell_state()
-        self.state.accepted_order = None
+        self.state.filled_order = None
         self.notify_order(False)
 
     def _need_to_cancel_buy_order(self):  # placed a buy order but hasn't executed yet
-        return not self.state.trade_active and self.state.pending_order is not None and float(
-            self.state.pending_order['hwm']) - self.indicators.current_price() > self.config.buy_profit_threshold / 4
+        return not self.state.trade_active and self.state.accepted_order is not None and float(
+            self.state.accepted_order['hwm']) - self.indicators.current_price() > self.config.buy_profit_threshold / 4
 
     def _cancel_buy_order(self):
-        self._cancel_order(self.state.pending_order['id'])
-        logging.info(f"205 -buy order placed at the price {self.state.pending_order['hwm']} has been canceled")
-        self.state.pending_order = None
+        self._cancel_order(self.state.accepted_order['id'])
+        logging.info(f"205 -buy order placed at the price {self.state.accepted_order['hwm']} has been canceled")
+        self.state.accepted_order = None
 
     def _need_to_cancel_sell_order(self):
-        return self.state.trade_active and self.state.pending_order is not None and self.indicators.current_price() - float(
-            self.state.pending_order['hwm']) > self.config.sell_profit_threshold / 4
+        return self.state.trade_active and self.state.accepted_order is not None and self.indicators.current_price() - float(
+            self.state.accepted_order['hwm']) > self.config.sell_profit_threshold / 4
 
     def _cancel_sell_order(self):
-        self._cancel_order(self.state.pending_order['id'])
-        logging.info(f"213 -sell order placed at the price {self.state.pending_order['hwm']} has been canceled")
-        self.state.pending_order = None  # todo verify the logic
+        self._cancel_order(self.state.accepted_order['id'])
+        logging.info(f"213 -sell order placed at the price {self.state.accepted_order['hwm']} has been canceled")
+        self.state.accepted_order = None  # todo verify the logic
 
     def _significant_stock_price_drop(self):
         return self.state.price_of_last_purchase is not None and self.config.loss_value < self.state.price_of_last_purchase - \
@@ -229,6 +231,7 @@ class _SmaCrossStrategy:
         # logging.info(f'119 -close_all_positions:{_}')
         logging.critical("immediately sold")
         self.stop()
+        # tested
         raise Exception(
             f"Trading Terminated and immediately sold due to significant drop of price,\nbuy_profit_threshold * 4 < "
             f"price_of_last_purchase - current price = {self.config.buy_profit_threshold} x 4 < "
@@ -310,7 +313,7 @@ class _SmaCrossStrategy:
         """Initiate strategy: If the current close price is below 'min_price', make the initial buy"""
 
         self.state.price_of_last_purchase = self.indicators.current_price()
-        self.state.order_quantity = self.state.starting_balance / self.indicators.current_price()
+        self.state.order_quantity = self.state.starting_buying_power / self.indicators.current_price()
         self.notify_order(True)
         self._reset_buy_state()
 
@@ -379,12 +382,12 @@ class _SmaCrossStrategy:
 
         # Cancel any pending buy order
         if self._need_to_cancel_buy_order():
-            news(f"buy order placed at the price {self.state.pending_order['hwm']} has been canceled")
+            news(f"buy order placed at the price {self.state.accepted_order['hwm']} has been canceled")
             self._cancel_buy_order()
 
         # Cancel any pending sell order
         elif self._need_to_cancel_sell_order():
-            news(f"the sell order placed at the price {(self.state.pending_order['hwm'])} has been canceled")
+            news(f"the sell order placed at the price {(self.state.accepted_order['hwm'])} has been canceled")
             self._cancel_sell_order()
 
         # Halt trading if there's a significant drop in stock prices
@@ -475,7 +478,7 @@ class _SmaCrossStrategy:
     def stop(self):
 
         # Calculate the ROI based on the net profit and starting balance
-        self.state.total_return_on_investment = self.get_roi()
+        self.state.total_return_on_investment = self.state.cumulative_profit / self.state.starting_buying_power
         # print(f'Last sale : {self.price_of_last_sale}')
         # if self.cerebro.params.live:
         #     self.trader.trading_client.cancel_orders()
