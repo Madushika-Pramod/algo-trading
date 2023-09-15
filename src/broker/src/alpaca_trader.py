@@ -12,6 +12,8 @@ from alpaca.trading.requests import MarketOrderRequest, TrailingStopOrderRequest
 
 from app.src import constants
 from app.src.notify import news
+
+
 # from app.src.voice_alert import voice_alert
 
 
@@ -54,33 +56,57 @@ async def alpaca_trade_updates_ws(state):
         # Receive messages
         while True:
             message = await ws.recv()
+
             print(f'trade update: {message}')
             trade = json.loads(message)['data']
 
             # '''new: The order has been received by Alpaca, but not yet routed to the exchange.
             #    accepted: The order has been routed to the exchange, but not yet confirmed by the exchange.'''
-            if trade['event'] == 'new' or trade['event'] == 'accepted':
-                state.pending_order = trade['order']  # todo separate those 2
+            if trade['event'] == 'new':
+
                 # voice_alert(f"say a {trade['order']['side']} order is placed", 1)
                 # voice_alert("say placed", 1)
-                logging.info(f'pending_order.id:{state.pending_order.id}')
+                print(f'new_order id:{trade["order"]["id"]}')  # tested
+                logging.info(f'new_order id:{trade["order"]["id"]}')
+                # logging.info(
+                #     f"event type: {trade['event']}\na {trade['order']['side']} order is placed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                # news(
+                #     f"event type: {trade['event']}\na {trade['order']['side']} order is placed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+            elif trade['event'] == 'accepted':
+
+                state.accepted_order = trade['order']
+                # voice_alert(f"say a {trade['order']['side']} order is placed", 1)
+                # voice_alert("say placed", 1)
+                print(f'accepted_order id:{state.accepted_order["id"]}')
+                logging.info(f'accepted id:{state.accepted_order["id"]}')
                 logging.info(
-                    f"event type: {trade['event']}\na {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is placed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
                 news(
-                    f"event type: {trade['event']}\na {trade['order']['side']} order is placed at price {trade['order']['hwm']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is placed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+
 
             # '''partial_fill: The order has been partially executed by the exchange, meaning that some but not
             # all the requested quantity has been filled. fill: The order has been fully executed by the exchange,
             # meaning that all the requested quantity has been filled.'''
-            elif trade['event'] == 'filled' or trade['event'] == 'partial_fill':
-                state.accepted_order = trade['order']
+            elif trade['event'] == 'fill':
+
+                state.filled_order = trade['order']
+                print(f'filled_order id:{state.filled_order["id"]}')
                 # voice_alert(f"say a {trade['order']['side']} order is executed", 1)
                 # voice_alert("say executed", 1)
-                logging.info(f'executed_order.id:{state.accepted_order.id}')
+                logging.info(f'executed_order id:{state.filled_order["id"]}')
                 logging.info(
-                    f"event type: {trade['event']}\na {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is executed at price {trade['order']['filled_avg_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
                 news(
-                    f"event type: {trade['event']}\na {trade['order']['side']} order is executed at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is executed at price {trade['order']['filled_avg_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+            elif trade['event'] == 'partial_fill':
+                # voice_alert(f"say a {trade['order']['side']} order is executed", 1)
+                # voice_alert("say executed", 1)
+                logging.info(f'partial_fill_order id:{trade["order"]["id"]}')
+                # logging.info(
+                #     f"event type: {trade['event']}\na {trade['order']['side']} order is executed at price {trade['order']['filled_avg_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                # news(
+                #     f"event type: {trade['event']}\na {trade['order']['side']} order is executed at price {trade['order']['filled_avg_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
 
             # '''canceled: The order has been canceled by either the user or Alpaca, meaning that it will not be
             # executed. This could happen if the user requests to cancel the order, or if the order expires due to
@@ -89,10 +115,11 @@ async def alpaca_trade_updates_ws(state):
 
                 # voice_alert(f"say a {trade['order']['side']} order is canceled", 1)
                 # voice_alert("say canceled", 1)
+                logging.info(f'canceled_order id:{trade["order"]["id"]}')
                 logging.info(
-                    f"event type: {trade['event']}\na {trade['order']['side']} order is canceled at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
-                news(
-                    f"event type: {trade['event']}\na {trade['order']['side']} order is canceled at price {trade['order']['stop_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                    f"event type: {trade['event']}\na {trade['order']['side']} order is canceled at price {trade['order']['filled_avg_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
+                # news(
+                #     f"event type: {trade['event']}\na {trade['order']['side']} order is canceled at price {trade['order']['filled_avg_price']} with {trade['order']['qty']} of quantity\nOrder id={trade['order']['id']}")
             else:
                 logging.info(
                     f"alpaca event > event type: {trade['event']}")
@@ -119,8 +146,14 @@ class AlpacaTrader:
         self.trading_client = trading_client or TradingClient(os.environ.get("API_KEY"), os.environ.get("SECRET_KEY"),
                                                               paper=True)
 
+    async def fetch_account(self):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.trading_client.get_account)
+
     def get_buying_power(self):
-        return float(self.trading_client.get_account().buying_power) or None
+        return float(asyncio.run(self.fetch_account()).buying_power)
+        # bp = float(self.trading_client.get_account().buying_power)
+        # return bp  # make this async
 
     def buy(self, price):
         self.algo_price = price
@@ -153,7 +186,7 @@ class AlpacaTrader:
             #         # todo check
             #         _ = self.market_buy(notional=truncate_to_two_decimal(buying_power))
             #         constants.market_buy_order = True
-            print('153')
+            # print('153') tested
             return order
         print('155')
         return ""
@@ -234,7 +267,7 @@ class AlpacaTrader:
     def _buy_quantity(self, price):
 
         # Calculate maximum shares factoring in the commission
-        return int(float(self.get_buying_power()) / (price + constants.commission))
+        return int(self.get_buying_power() / (price + constants.commission))
         # todo check this, when calling saved variable account.cash, all ways get new cash value
 
 # t = AlpacaTrader()

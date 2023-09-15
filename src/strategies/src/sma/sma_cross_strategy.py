@@ -49,7 +49,6 @@ class SmaCrossStrategy(bt.Strategy):
 
         elif self.data.close[0] == 0:
 
-            logging.info(f'Last sale : {self.state.price_of_last_sale}')
             logging.info(
                 f"Number of Trades: {self.state.trading_count}\nReturn on investment: {round((self.state.cumulative_profit / self.starting_buying_power) * 100, 3)}%")
 
@@ -64,6 +63,7 @@ class SmaCrossStrategy(bt.Strategy):
             self.p.median_volume = 99
 
             positions = self.trader.trading_client.get_all_positions()
+            print(f'positions: {positions}')
             logging.info(f'Number of Positions: {len(positions)}')
             if len(positions):  # todo test
                 # this is a fake buy state if any buy orders left in Alpaca,
@@ -86,7 +86,7 @@ class SmaCrossStrategy(bt.Strategy):
                 self.state.ready_to_sell = False
                 self.state.trade_active = False
                 # initially, make algorithm to ignore profit_threshold
-                self.state.price_of_last_sale = constants.last_sale_price  # todo optimize this-> back test should find out this value
+                self.state.price_of_last_sale = constants.last_sale_price or self.state.price_of_last_sale  # todo optimize this-> back test should find out this value
             thread = threading.Thread(target=get_trade_updates, args=(self.state,))  # start trade updates
             thread.start()
 
@@ -178,7 +178,7 @@ class _SmaCrossStrategy:
 
     def _execute_buy_orders(self):
         logging.info("177 -buy executed")
-        buy_price = float(self.state.filled_order['stop_price'])
+        buy_price = float(self.state.filled_order['filled_avg_price'])
         self._reset_buy_state()
         self.state.price_of_last_purchase = buy_price
         self.state.filled_order = None
