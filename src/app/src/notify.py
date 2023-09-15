@@ -1,3 +1,4 @@
+import asyncio
 import os
 import threading
 
@@ -20,10 +21,18 @@ import requests
 #     print('notified')
 
 
+# def news(text):
+#     thread = threading.Thread(target=_news_to_telegram, args=(text,))
+#     thread.start()
+#     # thread.join()
+
+async def send_news(text):
+    loop = asyncio.get_event_loop()
+    return loop.run_in_executor(None, _news_to_telegram, text)
+
+
 def news(text):
-    thread = threading.Thread(target=_news_to_telegram, args=(text,))
-    thread.start()
-    # thread.join()
+    asyncio.run(send_news(text))
 
 
 def _news_to_telegram(text):
@@ -33,4 +42,4 @@ def _news_to_telegram(text):
         "text": text
     }
     response = requests.post(base_url, data=payload)
-    print('notified',response)
+    print('notified', response)

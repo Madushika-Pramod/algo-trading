@@ -177,7 +177,7 @@ class _SmaCrossStrategy:
             self.state.algorithm_performed_buy_order_id)
 
     def _execute_buy_orders(self):
-        logging.info("177 -buy executed")
+        # logging.info("177 -buy executed") tested
         buy_price = float(self.state.filled_order['filled_avg_price'])
         self._reset_buy_state()
         self.state.price_of_last_purchase = buy_price
@@ -446,9 +446,10 @@ class _SmaCrossStrategy:
         # todo turn this to an event
 
         def buy():
-            news("I placed a buy order")
+
             self.state.algorithm_performed_buy_order_id = self.trader.buy(self.indicators.current_price())
             # todo create dic -> {self.state.algorithm_performed_buy_order_id : order}
+            news("I placed a buy order")
             logging.info(f'242 -buy id: {self.state.algorithm_performed_buy_order_id}')
             logging.debug(
                 f'trade_active:{self.state.trade_active}<==>profit_threshold > price_of_last_sale - close price{self.config.buy_profit_threshold} > {self.state.price_of_last_sale} - {self.indicators.current_price()}<==>close price - recorded_lowest_price < high_low_tolerance={self.indicators.current_price()} - {self.indicators._recorded_lowest_price[0]} < {self.config.high_low_tolerance}<==>ready_to_buy: {self.state.ready_to_buy},volume > median_volume ={self.indicators.current_volume()} > {self.config.median_volume} <==> moving_avg_crossover_indicator > 0 = {self.indicators.moving_avg_crossover_indicator}')
@@ -458,7 +459,7 @@ class _SmaCrossStrategy:
             self.state.algorithm_performed_sell_order_id = self.trader.sell(
                 self.indicators.current_price())  # this step executing
 
-            logging.debug(f'263 -sell id: {self.state.algorithm_performed_sell_order_id}')
+            logging.info(f'263 -sell id: {self.state.algorithm_performed_sell_order_id}')
             logging.debug(
                 f'trade_active:{self.state.trade_active}<==>profit_threshold > close - price_of_last_purchase{self.config.sell_profit_threshold} > {self.indicators.current_price()} - {self.state.price_of_last_purchase}<==>recorded_highest_price - close < high_low_tolerance={self.indicators._recorded_highest_price[0]} - {self.indicators.current_price()} < {self.config.high_low_tolerance}<==>ready_to_sell: {self.state.ready_to_sell},volume > median_volume ={self.indicators.current_volume()} > {self.config.median_volume} <==> moving_avg_crossover_indicator < 0 = {self.indicators.moving_avg_crossover_indicator}')
 
