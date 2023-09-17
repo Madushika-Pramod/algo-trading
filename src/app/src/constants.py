@@ -15,8 +15,8 @@ market_buy_order = False
 
 symbol = "TSLA"
 commission = 0.0  # 0.005
-min_price = 220.83 #237.22
-median_volume = 15710.0 #13399.5 #
+min_price = 245.65 #220.83 #237.22
+median_volume = 18224.5 #15710.0 #13399.5 #
 last_sale_price = None
 cash = 840
 
@@ -36,7 +36,7 @@ _parent_dir = os.path.dirname(os.path.dirname(_current_dir))
 file_id = datetime.now()
 stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{file_id}.csv')
 # tick_file_path = os.path.join(_parent_dir, 'datas', f'tick{file_id}.csv')
-csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
+csv_file_path = os.path.join(_parent_dir, 'datas', f'TSLA{period_in_days}.csv')
 # csv_file_path = os.path.join(_parent_dir, 'datas', 'data.csv')
 tick_file_path = os.path.join(_parent_dir, 'datas', 'tick.csv')
 trading_view_row_data_file_path = os.path.join(_parent_dir, 'datas', f'trading_view{file_id}.txt')

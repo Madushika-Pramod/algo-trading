@@ -153,22 +153,22 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
 
 
 configurations_for_sma_cross_v2 = [
-    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=10, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2),
-    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=12, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2),
     dict(fast_ma_period=3, slow_ma_period=8, high_low_period=8, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2),
-    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=22, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
     dict(fast_ma_period=3, slow_ma_period=8, high_low_period=14, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=16, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2),
-    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=18, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2),
     dict(fast_ma_period=3, slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2)
+         sell_profit_threshold=2),
+    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=22, high_low_tolerance=5, buy_profit_threshold=2,
+    #      sell_profit_threshold=2),
+    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=14, high_low_tolerance=5, buy_profit_threshold=2,
+    #      sell_profit_threshold=2),
+    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=16, high_low_tolerance=5, buy_profit_threshold=2,
+    #      sell_profit_threshold=2),
+    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=18, high_low_tolerance=5, buy_profit_threshold=2,
+    #      sell_profit_threshold=2),
+    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
+    #      sell_profit_threshold=2)
     #      pre_count=36587),
     # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
     #      pre_count=36585),
@@ -209,5 +209,5 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    run_single(live=True)
+    run_single()
     # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)

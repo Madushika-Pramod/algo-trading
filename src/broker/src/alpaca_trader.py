@@ -167,10 +167,11 @@ class AlpacaTrader:
 
         current_price = get_last_trade_from_sdk()[constants.symbol].price
 
+        # todo uncomment following
         if current_price < self.algo_price:  # or self.account.daytrade_count == 3:  # price decreasing or day trade count reach
             logging.info(f"algo price={self.algo_price} > current price={current_price} <=> price decreasing")
-            print('136')
-            return ""
+            # print('136') tested
+            return None
 
         # execute new trailing stop order
         trailing_stop_order_data.qty = self._buy_quantity(current_price)
@@ -189,7 +190,7 @@ class AlpacaTrader:
             # print('153') tested
             return order
         print('155')
-        return ""
+        return None
 
     # def market_order(self, price):
     #     #todo get pre-market bar data for improve this
@@ -249,7 +250,7 @@ class AlpacaTrader:
         current_price = get_last_trade_from_sdk()[constants.symbol].price
         if current_price > self.algo_price:  # price increasing
             logging.info(f"algo price={self.algo_price} < current price={current_price} <=> price increasing")
-            return ""
+            return None
         # execute new trailing stop order
         if trailing_stop_order_data.qty > 0:
             # todo this is a repeat abstract this and make a common method for this
@@ -262,7 +263,7 @@ class AlpacaTrader:
             #         # todo check
             #         _ = self.market_sell(notional=truncate_to_two_decimal(buying_power))
             return order
-        return ""
+        return None
 
     def _buy_quantity(self, price):
 

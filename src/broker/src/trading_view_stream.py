@@ -39,11 +39,10 @@ def extract_data(data):
 
             })
 
-    # print(results)
-    sorted_data = sorted(results, key=lambda x: x['time'])  # sort by time
-
-    return sorted_data
-
+             # print(results)
+            sorted_data = sorted(results, key=lambda x: x['time'])  # sort by time
+            return sorted_data
+        return None
 
 def write_to_csv(df4, filename=constants.trading_view_file_path):
     # Check if the file already exists
@@ -122,6 +121,7 @@ class TradingViewWebSocket:
             ws.send('~m~64~m~{"m":"quote_add_symbols","p":["qs_2YiWuxHOASlh","NASDAQ:GOOGL"]}')
 
     def on_message(self, ws: websocket, message):
+        print(message)
         with open(constants.trading_view_row_data_file_path, 'a') as file:  # todo remove
             file.write(message)
             file.write('\n')
