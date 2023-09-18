@@ -73,12 +73,30 @@ def run_single(live=False):
             # high_low_tolerance=0.5,
             # profit_threshold=4.0
 
-            fast_ma_period=3,
-            slow_ma_period=10,
+            # fast_ma_period=3,
+            # slow_ma_period=10,
+            # high_low_period=12,
+            # high_low_tolerance=0.5,
+            # buy_profit_threshold=1.0,
+            # sell_profit_threshold=6,
+            # buying_power=800,
+            # min_price=245.65,
+            # loss_value=15,
+            # last_sale_price=None,
+            # median_volume=18224.5
+
+            #sep 18
+            fast_ma_period=29,
+            slow_ma_period=42,
             high_low_period=12,
             high_low_tolerance=0.5,
-            buy_profit_threshold=1.0,
-            sell_profit_threshold=6,
+            buy_profit_threshold=2.0,
+            sell_profit_threshold=3.5,
+            buying_power=800,
+            min_price=245.65,
+            loss_value=15,
+            last_sale_price=None,
+            median_volume=18224.5
 
         ))
     # strategy = (TrendLineStrategy,
@@ -96,6 +114,13 @@ def run_single(live=False):
 def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
                                              high_low_tolerance=None,
                                              buy_profit_threshold=None, sell_profit_threshold=None, pre_count=1000):
+
+    buying_power = 800
+    min_price = 245.65
+    loss_value = 15
+    last_sale_price = None
+    median_volume = 18224.5
+
     p2 = None
     count = 0
     roi_count = 0
@@ -134,7 +159,12 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
                                                                                  high_low_period=p,
                                                                                  high_low_tolerance=e,
                                                                                  buy_profit_threshold=bgv,
-                                                                                 sell_profit_threshold=sgv))).run()
+                                                                                 sell_profit_threshold=sgv,
+                                                                                 buying_power=buying_power,
+                                                                                 min_price=min_price,
+                                                                                 loss_value=loss_value,
+                                                                                 last_sale_price=last_sale_price,
+                                                                                 median_volume=median_volume,))).run()
                                 statistics.append(
                                     [count, result.trading_count, result.total_return_on_investment, pf, ps, p, e,
                                      bgv, sgv])
@@ -142,8 +172,9 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
                                     best_roi = result.total_return_on_investment
                                     roi_count = count
                                     print(
-                                        f"count : {count}\nBest ROI: {best_roi * 100}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\n Buy Gain value: {bgv}\n Sell Gain value: {sgv}")
+                                        f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\n Buy Gain value: {bgv}\n Sell Gain value: {sgv}")
                                 print(count)
+                                # print(result.total_return_on_investment)
                                 count += 1
 
     except KeyboardInterrupt:
