@@ -52,7 +52,7 @@ class SmaCrossStrategy(bt.Strategy):
             elif self.data.close[0] == 0:
                 constants.symbol = "TSLA"  # todo delete this
                 logging.info(
-                    f"Number of Trades: {self.state.trading_count}\nReturn on investment: {round((self.state.cumulative_profit / self.starting_buying_power) * 100, 3)}%")
+                    f"Number of Trades: {self.state.trading_count}\nReturn on investment: {round((self.state.roi / self.starting_buying_power) * 100, 3)}%")
 
                 self.live_mode = True
                 self.state.trading_count = 0
@@ -97,7 +97,6 @@ class SmaCrossStrategy(bt.Strategy):
         else:
             self.strategy.back_test()
     def stop(self):
-
         self.strategy.stop()
         self.total_return_on_investment = self.state.total_return_on_investment
         self.trading_count = self.state.trading_count
@@ -117,7 +116,7 @@ class SmaCrossStrategy(bt.Strategy):
 class _State:
 
     def __init__(self, buying_power):
-        self.cumulative_profit = 0
+        self.roi = {}
         self.starting_buying_power = buying_power  # to be commented out
         self.order_quantity = None
         self.algorithm_performed_sell_order_id = None
@@ -490,7 +489,8 @@ class _SmaCrossStrategy:
     def stop(self):
 
         # Calculate the ROI based on the net profit and starting balance
-        self.state.total_return_on_investment = self.state.cumulative_profit / self.state.starting_buying_power
+        # self.state.total_return_on_investment = self.state.cumulative_profit / self.state.starting_buying_power
+        self.state.total_return_on_investment = max(self.state.roi.values()) if len(self.state.roi.values()) > 0 else 0
         # print(f'Last sale : {self.price_of_last_sale}')
         # if self.cerebro.params.live:
         #     self.trader.trading_client.cancel_orders()
@@ -511,8 +511,8 @@ class _SmaCrossStrategy:
             self.log('BUY EXECUTED, %.2f' % self.state.price_of_last_purchase)
         else:
             self.state.trading_count += 1
-            self.state.cumulative_profit += (
-                                                    self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
+            cumulative_profit = (self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
+            self.state.roi[self.indicators.current_price_datetime()] = round(cumulative_profit / self.state.starting_buying_power, 3)
 
             self.log('SELL EXECUTED, %.2f with quantity of %.10f' % (
                 self.state.price_of_last_sale, self.state.order_quantity))
