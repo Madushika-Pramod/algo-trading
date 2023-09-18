@@ -167,6 +167,7 @@ class _Indicators:
 
 class _SmaCrossStrategy:
     def __init__(self, indicators: _Indicators, config, state: _State, trader=None):
+        self.cumulative_profit = 0
         self.trader = trader
         self.config = config
         self.state = state
@@ -511,8 +512,8 @@ class _SmaCrossStrategy:
             self.log('BUY EXECUTED, %.2f' % self.state.price_of_last_purchase)
         else:
             self.state.trading_count += 1
-            cumulative_profit = (self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
-            self.state.roi[self.indicators.current_price_datetime()] = round(cumulative_profit / self.state.starting_buying_power, 3)
+            self.cumulative_profit += (self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
+            self.state.roi[self.indicators.current_price_datetime()] = round(self.cumulative_profit / self.state.starting_buying_power, 3)
 
             self.log('SELL EXECUTED, %.2f with quantity of %.10f' % (
                 self.state.price_of_last_sale, self.state.order_quantity))
