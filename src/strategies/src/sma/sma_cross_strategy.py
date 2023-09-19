@@ -492,6 +492,9 @@ class _SmaCrossStrategy:
         # Calculate the ROI based on the net profit and starting balance
         # self.state.total_return_on_investment = self.state.cumulative_profit / self.state.starting_buying_power
         self.state.total_return_on_investment = max(self.state.roi.values()) if len(self.state.roi.values()) > 0 else 0
+
+        # todo  write roi to csv
+        # todo get the roi which has highest slope
         # print(f'Last sale : {self.price_of_last_sale}')
         # if self.cerebro.params.live:
         #     self.trader.trading_client.cancel_orders()
