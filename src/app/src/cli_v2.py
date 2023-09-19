@@ -86,17 +86,19 @@ def run_single(live=False):
             # median_volume=18224.5
 
             #sep 18
-            fast_ma_period=29,
-            slow_ma_period=42,
-            high_low_period=12,
+
+            fast_ma_period=4,
+            slow_ma_period=8,
+            high_low_period=14,
             high_low_tolerance=0.5,
-            buy_profit_threshold=2.0,
-            sell_profit_threshold=3.5,
+            buy_profit_threshold=1.0,
+            sell_profit_threshold=3.0,
             buying_power=800,
-            min_price=245.65,
+            min_price=268.17,
             loss_value=15,
             last_sale_price=None,
-            median_volume=18224.5
+            median_volume=18253
+
 
         ))
     # strategy = (TrendLineStrategy,
@@ -240,5 +242,6 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    run_single()
+    run_single(live=True)
+    # run_single()
     # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)

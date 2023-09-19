@@ -23,7 +23,7 @@ cash = 840
 voice_alert_frequency = 3
 
 time_frame = "minute"  # hour
-period_in_days = 10
+period_in_days = 6
 
 # your strategy dynamically sizes positions based on available cash,
 # it might attempt to different position when you change cash amount so
@@ -40,6 +40,7 @@ csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.cs
 # csv_file_path = os.path.join(_parent_dir, 'datas', 'data.csv')
 tick_file_path = os.path.join(_parent_dir, 'datas', 'tick.csv')
 trading_view_row_data_file_path = os.path.join(_parent_dir, 'datas', f'trading_view{file_id}.txt')
+roi_data_file_path = os.path.join(_parent_dir, 'datas', f'roi{file_id}.csv')
 trading_view_file_path = os.path.join(_parent_dir, 'datas', f'tw_{symbol}{period_in_days}{file_id}.csv')
 
 mama_file_path = os.path.join(_parent_dir, 'datas', f'MAMA{file_id}.csv')
