@@ -52,7 +52,7 @@ class SmaCrossStrategy(bt.Strategy):
             elif self.data.close[0] == 0:
                 constants.symbol = "TSLA"  # todo delete this
                 logging.info(
-                    f"Number of Trades: {self.state.trading_count}\nReturn on investment: {round((self.state.roi / self.starting_buying_power) * 100, 3)}%")
+                    f"Number of Trades: {self.state.trading_count}\nReturn on investment: {round((self.state.cumulative_profit / self.starting_buying_power) * 100, 3)}%")
 
                 self.live_mode = True
                 self.state.trading_count = 0
@@ -97,6 +97,7 @@ class SmaCrossStrategy(bt.Strategy):
         else:
             self.strategy.back_test()
     def stop(self):
+
         self.strategy.stop()
         self.total_return_on_investment = self.state.total_return_on_investment
         self.trading_count = self.state.trading_count
@@ -116,7 +117,7 @@ class SmaCrossStrategy(bt.Strategy):
 class _State:
 
     def __init__(self, buying_power):
-        self.roi = {}
+        self.cumulative_profit = 0
         self.starting_buying_power = buying_power  # to be commented out
         self.order_quantity = None
         self.algorithm_performed_sell_order_id = None
@@ -167,7 +168,6 @@ class _Indicators:
 
 class _SmaCrossStrategy:
     def __init__(self, indicators: _Indicators, config, state: _State, trader=None):
-        self.cumulative_profit = 0
         self.trader = trader
         self.config = config
         self.state = state
@@ -490,11 +490,7 @@ class _SmaCrossStrategy:
     def stop(self):
 
         # Calculate the ROI based on the net profit and starting balance
-        # self.state.total_return_on_investment = self.state.cumulative_profit / self.state.starting_buying_power
-        self.state.total_return_on_investment = max(self.state.roi.values()) if len(self.state.roi.values()) > 0 else 0
-
-        # todo  write roi to csv
-        # todo get the roi which has highest slope
+        self.state.total_return_on_investment = self.state.cumulative_profit / self.state.starting_buying_power
         # print(f'Last sale : {self.price_of_last_sale}')
         # if self.cerebro.params.live:
         #     self.trader.trading_client.cancel_orders()
@@ -503,7 +499,7 @@ class _SmaCrossStrategy:
     def log(self, txt, dt=None):
         """ Logging function for the strategy """
         dt = dt or self.indicators.current_price_datetime()
-        logging.info(f'{dt}, {txt}')
+        # logging.info(f'{dt}, {txt}')
 
     def notify_order(self, is_buy_order):
         """Handle the events of executed orders."""
@@ -515,8 +511,8 @@ class _SmaCrossStrategy:
             self.log('BUY EXECUTED, %.2f' % self.state.price_of_last_purchase)
         else:
             self.state.trading_count += 1
-            self.cumulative_profit += (self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
-            self.state.roi[self.indicators.current_price_datetime()] = round(self.cumulative_profit / self.state.starting_buying_power, 3)
+            self.state.cumulative_profit += (
+                                                    self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
 
             self.log('SELL EXECUTED, %.2f with quantity of %.10f' % (
                 self.state.price_of_last_sale, self.state.order_quantity))
