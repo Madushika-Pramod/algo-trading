@@ -1,3 +1,4 @@
+import csv
 import logging
 import threading
 
@@ -38,6 +39,7 @@ class SmaCrossStrategy(bt.Strategy):
         self.trading_count = 0
 
     def next(self):
+
         # self.data -> DataFrame class
         # df = self.data
         if self.cerebro.params.live:
@@ -50,9 +52,7 @@ class SmaCrossStrategy(bt.Strategy):
                     self.trader.trading_client.cancel_orders()
 
             elif self.data.close[0] == 0:
-                constants.symbol = "TSLA"  # todo delete this
-                logging.info(
-                    f"Number of Trades: {self.state.trading_count}\nReturn on investment: {round((self.state.cumulative_profit / self.starting_buying_power) * 100, 3)}%")
+
 
                 self.live_mode = True
                 self.state.trading_count = 0
@@ -97,7 +97,6 @@ class SmaCrossStrategy(bt.Strategy):
         else:
             self.strategy.back_test()
     def stop(self):
-
         self.strategy.stop()
         self.total_return_on_investment = self.state.total_return_on_investment
         self.trading_count = self.state.trading_count
@@ -117,7 +116,7 @@ class SmaCrossStrategy(bt.Strategy):
 class _State:
 
     def __init__(self, buying_power):
-        self.cumulative_profit = 0
+        self.roi = {}
         self.starting_buying_power = buying_power  # to be commented out
         self.order_quantity = None
         self.algorithm_performed_sell_order_id = set()
@@ -153,8 +152,7 @@ class _Indicators:
         return self._data.close[0]
 
     def current_price_datetime(self):
-        return bt.num2date(self._data.datetime[0]).replace(tzinfo=pytz.utc).astimezone(
-            pytz.timezone('Asia/Kolkata')).strftime('%I:%M:%S %p')
+        return bt.num2date(self._data.datetime[0]).replace(tzinfo=pytz.utc).astimezone(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
 
     def current_volume(self):
         return self._data.volume[0]
@@ -168,6 +166,7 @@ class _Indicators:
 
 class _SmaCrossStrategy:
     def __init__(self, indicators: _Indicators, config, state: _State, trader=None):
+        self.cumulative_profit = 0
         self.trader = trader
         self.config = config
         self.state = state
@@ -485,7 +484,23 @@ class _SmaCrossStrategy:
     def stop(self):
 
         # Calculate the ROI based on the net profit and starting balance
-        self.state.total_return_on_investment = self.state.cumulative_profit / self.state.starting_buying_power
+        # self.state.total_return_on_investment = self.state.cumulative_profit / self.state.starting_buying_power
+
+        if len(self.state.roi.values()) > 0:
+            self.state.total_return_on_investment = max(self.state.roi.values())
+
+            # with open(roi_data_file_path, 'w', newline='') as csvfile:
+            #     writer = csv.writer(csvfile)
+            #
+            #     # Optional: Write headers to CSV
+            #     writer.writerow(['Date', 'Roi'])
+            #
+            #     for key, value in self.state.roi.items():
+            #         writer.writerow([key, value])
+        else:
+            self.state.total_return_on_investment = 0
+        # todo  write roi to csv
+        # todo get the roi which has highest slope
         # print(f'Last sale : {self.price_of_last_sale}')
         # if self.cerebro.params.live:
         #     self.trader.trading_client.cancel_orders()
@@ -494,7 +509,7 @@ class _SmaCrossStrategy:
     def log(self, txt, dt=None):
         """ Logging function for the strategy """
         dt = dt or self.indicators.current_price_datetime()
-        # logging.info(f'{dt}, {txt}')
+        logging.info(f'{dt}, {txt}')
 
     def notify_order(self, is_buy_order):
         """Handle the events of executed orders."""
@@ -506,8 +521,8 @@ class _SmaCrossStrategy:
             self.log('BUY EXECUTED, %.2f' % self.state.price_of_last_purchase)
         else:
             self.state.trading_count += 1
-            self.state.cumulative_profit += (
-                                                    self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
+            self.cumulative_profit += (self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
+            self.state.roi[self.indicators.current_price_datetime()] = round(self.cumulative_profit / self.state.starting_buying_power, 3)
 
             self.log('SELL EXECUTED, %.2f with quantity of %.10f' % (
                 self.state.price_of_last_sale, self.state.order_quantity))
