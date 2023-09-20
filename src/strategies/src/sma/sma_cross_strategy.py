@@ -120,8 +120,8 @@ class _State:
         self.cumulative_profit = 0
         self.starting_buying_power = buying_power  # to be commented out
         self.order_quantity = None
-        self.algorithm_performed_sell_order_id = None
-        self.algorithm_performed_buy_order_id = None
+        self.algorithm_performed_sell_order_id = set()
+        self.algorithm_performed_buy_order_id = set()
         self.trade_active = None  # None
         self.trading_count = 0
         self.commission_on_last_purchase = 0
@@ -177,8 +177,7 @@ class _SmaCrossStrategy:
         return self.state.trade_active is None and self.indicators.current_price() <= self.config.min_price
 
     def _buy_orders_ready_on_alpaca(self):
-        return self.state.filled_order is not None and self.state.filled_order['id'] == str(
-            self.state.algorithm_performed_buy_order_id)
+        return self.state.filled_order is not None and self.state.filled_order['id'] in self.state.algorithm_performed_buy_order_id
 
     def _execute_buy_orders(self):
         # logging.info("177 -buy executed") tested
@@ -193,8 +192,7 @@ class _SmaCrossStrategy:
         self.notify_order(True)
 
     def _sell_orders_ready_on_alpaca(self):
-        return self.state.filled_order is not None and self.state.filled_order['id'] == str(
-            self.state.algorithm_performed_sell_order_id)
+        return self.state.filled_order is not None and self.state.filled_order['id'] in self.state.algorithm_performed_sell_order_id
 
     def _execute_sell_orders(self):
         logging.info("192 -sell executed")
@@ -446,18 +444,15 @@ class _SmaCrossStrategy:
         #     self.state.trade_active = False
         #     # initially, make algorithm to ignore profit_threshold
         #     self.state.price_of_last_sale = self.config.last_sale_price or self.state.price_of_last_sale  # todo optimize this-> back test should find out this value
-        #
-
         # todo turn this to an event
-
         def buy():
-
-            self.state.algorithm_performed_buy_order_id = self.trader.buy(self.indicators.current_price())
+            algorithm_performed_buy_order_id = self.trader.buy(self.indicators.current_price())
             # todo create dic -> {self.state.algorithm_performed_buy_order_id : order}
             news("I placed a buy order")
             if self.state.algorithm_performed_buy_order_id is None:
-                news("order canceled due to price decreasing")
+                news("buy order not placed to alpaca")
             else:
+                self.state.algorithm_performed_buy_order_id.add(str(algorithm_performed_buy_order_id))
                 logging.info(
                     f'algorithm performed buy order id: {self.state.algorithm_performed_buy_order_id}')  # tested
                 logging.debug(
@@ -465,11 +460,11 @@ class _SmaCrossStrategy:
 
         def sell():
             news("I placed a sell order")
-            self.state.algorithm_performed_sell_order_id = self.trader.sell(
-                self.indicators.current_price())  # this step executing
-            if self.state.algorithm_performed_sell_order_id is None:
-                news("order canceled due to price increasing")
+            algorithm_performed_sell_order_id = self.trader.sell(self.indicators.current_price())
+            if algorithm_performed_sell_order_id is None:
+                news("sell order not placed to alpaca")
             else:
+                self.state.algorithm_performed_sell_order_id.add(str(algorithm_performed_sell_order_id))
                 logging.info(f'263 -algorithm performed sell order id: {self.state.algorithm_performed_sell_order_id}')
                 logging.debug(
                     f'trade_active:{self.state.trade_active}<==>profit_threshold > close - price_of_last_purchase{self.config.sell_profit_threshold} > {self.indicators.current_price()} - {self.state.price_of_last_purchase}<==>recorded_highest_price - close < high_low_tolerance={self.indicators._recorded_highest_price[0]} - {self.indicators.current_price()} < {self.config.high_low_tolerance}<==>ready_to_sell: {self.state.ready_to_sell},volume > median_volume ={self.indicators.current_volume()} > {self.config.median_volume} <==> moving_avg_crossover_indicator < 0 = {self.indicators.moving_avg_crossover_indicator}')
