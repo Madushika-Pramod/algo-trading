@@ -74,13 +74,15 @@ class SmaCrossStrategy(bt.Strategy):
                     self.state.trade_active = True
 
                     if len(positions) == 2:  # if market order and stop order exists
-                        self.state.price_of_last_purchase = float(positions[0].avg_entry_price) if positions[0].qty > \
-                                                                                                   positions[
-                                                                                                       1].qty else \
-                            positions[
-                                1].avg_entry_price
+                        if positions[0].qty > positions[1].qty:
+                            self.state.price_of_last_purchase = float(positions[0].avg_entry_price)
+                            self.state.order_quantity = float(positions[0].qty)
+                        else:
+                            self.state.price_of_last_purchase = positions[1].avg_entry_price
+                            self.state.order_quantity = float(positions[1].qty)
                     else:  # if 1 order exists
                         self.state.price_of_last_purchase = float(positions[0].avg_entry_price)
+                        self.state.order_quantity = float(positions[0].qty)
                     logging.info(f'Last buy : {self.state.price_of_last_purchase}')
                 else:
                     # this is a fake sell state if no any sell orders left in Alpaca

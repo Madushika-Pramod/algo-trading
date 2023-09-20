@@ -89,7 +89,8 @@ async def alpaca_trade_updates_ws(state):
             # all the requested quantity has been filled. fill: The order has been fully executed by the exchange,
             # meaning that all the requested quantity has been filled.'''
             elif trade['event'] == 'fill':
-
+                if trade['order']['side'] == 'buy':
+                    state.order_quantity = trade['order']['qty']
                 state.filled_order = trade['order']
                 print(f'filled_order id:{state.filled_order["id"]}')
                 # voice_alert(f"say a {trade['order']['side']} order is executed", 1)
