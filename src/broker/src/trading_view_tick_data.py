@@ -80,23 +80,23 @@ class StreamTickData(bt.feed.DataBase):
                 self.lines.close[0] = data_dict['close']
                 self.lines.volume[0] = data_dict['volume']
 
-            else:
-                date_string = data_dict.get('time') or time.time()
-
-                # Convert the string to a datetime object (time in UTC)
-                date = datetime.utcfromtimestamp(date_string)
-                self.lines.datetime[0] = bt.date2num(date)
-
-                # for store previous data
-                for key in data_dict.keys():
-                    val = data_dict.get(key)
-                    if val is not None:
-                        constants.trading_view_data[key] = val
-
-
-                self.lines.last_price[0] = self.lines.close[0] = self.lines.low[0] = self.lines.high[0] = self.lines.open[0] = constants.trading_view_data.get('last_price')
-                self.lines.volume[0] = constants.trading_view_data.get('volume')
-                self.lines.cumulative_change[0] = constants.trading_view_data.get('p_change')
-                self.lines.cc_percentage[0] = constants.trading_view_data.get('ch_percentage')
-                self.lines.extended_hours_price[0] = constants.trading_view_data.get('extended_hours_price')
-                self.lines.ehp_percentage[0] = constants.trading_view_data.get('ehp_percentage')
+            # else:
+            #     date_string = data_dict.get('time') or time.time()
+            #
+            #     # Convert the string to a datetime object (time in UTC)
+            #     date = datetime.utcfromtimestamp(date_string)
+            #     self.lines.datetime[0] = bt.date2num(date)
+            #
+            #     # for store previous data
+            #     for key in data_dict.keys():
+            #         val = data_dict.get(key)
+            #         if val is not None:
+            #             constants.trading_view_data[key] = val
+            #
+            #
+            #     self.lines.last_price[0] = self.lines.close[0] = self.lines.low[0] = self.lines.high[0] = self.lines.open[0] = constants.trading_view_data.get('last_price')
+            #     self.lines.volume[0] = constants.trading_view_data.get('volume')
+            #     self.lines.cumulative_change[0] = constants.trading_view_data.get('p_change')
+            #     self.lines.cc_percentage[0] = constants.trading_view_data.get('ch_percentage')
+            #     self.lines.extended_hours_price[0] = constants.trading_view_data.get('extended_hours_price')
+            #     self.lines.ehp_percentage[0] = constants.trading_view_data.get('ehp_percentage')

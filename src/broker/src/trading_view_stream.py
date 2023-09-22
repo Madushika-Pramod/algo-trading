@@ -121,7 +121,7 @@ class TradingViewWebSocket:
             ws.send('~m~64~m~{"m":"quote_add_symbols","p":["qs_2YiWuxHOASlh","NASDAQ:GOOGL"]}')
 
     def on_message(self, ws: websocket, message):
-        print(message)
+        # print(message)
         with open(constants.trading_view_row_data_file_path, 'a') as file:  # todo remove
             file.write(message)
             file.write('\n')

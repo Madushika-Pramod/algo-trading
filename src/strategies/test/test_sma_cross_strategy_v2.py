@@ -106,7 +106,7 @@ class TestSmaCrossStrategy(unittest.TestCase):
         self.indicators.current_price = MagicMock(return_value=100)
         self.strategy._start_buy_process(MagicMock())
 
-        self.assertTrue(self.strategy._is_prior_sell_price_close_to_current())
+        self.assertTrue(self.strategy._is_highest_price_close_to_current())
 
         self.indicators.current_price = MagicMock(return_value=95)
         self.indicators.current_lowest_price = MagicMock(return_value=94)

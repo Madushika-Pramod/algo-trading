@@ -1,4 +1,3 @@
-import csv
 import logging
 import threading
 
@@ -28,10 +27,11 @@ class SmaCrossStrategy(bt.Strategy):
 
     def __init__(self):
         self.trader = AlpacaTrader()
-        # self.state = _State(self.trader.get_buying_power() or self.p.buying_power)
         self.live_mode = False
+
         self.starting_buying_power = self.p.buying_power
         self.state = _State(self.p.buying_power)
+
         self.indicators = _Indicators(self.p, self.data)
         self.strategy = _SmaCrossStrategy(self.indicators, self.params, self.state, trader=self.trader)
 
@@ -52,7 +52,6 @@ class SmaCrossStrategy(bt.Strategy):
                     self.trader.trading_client.cancel_orders()
 
             elif self.data.close[0] == 0:
-
 
                 self.live_mode = True
                 self.state.trading_count = 0
@@ -89,8 +88,8 @@ class SmaCrossStrategy(bt.Strategy):
                     # make algorithm to buy in the future
                     self.state.ready_to_sell = False
                     self.state.trade_active = False
-                    # initially, make algorithm to ignore profit_threshold
-                    self.state.price_of_last_sale = constants.last_sale_price or self.state.price_of_last_sale  # todo optimize this-> back test should find out this value
+
+                    self.state.highest_price = self.state.price_of_last_sale = constants.last_sale_price or self.state.price_of_last_sale  # todo optimize this-> back test should find out this value
                 thread = threading.Thread(target=get_trade_updates, args=(self.state,))  # start trade updates
                 thread.start()
 
@@ -98,6 +97,7 @@ class SmaCrossStrategy(bt.Strategy):
                 self.strategy.back_test()
         else:
             self.strategy.back_test()
+
     def stop(self):
         self.strategy.stop()
         self.total_return_on_investment = self.state.total_return_on_investment
@@ -118,6 +118,8 @@ class SmaCrossStrategy(bt.Strategy):
 class _State:
 
     def __init__(self, buying_power):
+        self.highest_price = 0
+
         self.roi = {}
         self.starting_buying_power = buying_power  # to be commented out
         self.order_quantity = None
@@ -154,7 +156,8 @@ class _Indicators:
         return self._data.close[0]
 
     def current_price_datetime(self):
-        return bt.num2date(self._data.datetime[0]).replace(tzinfo=pytz.utc).astimezone(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
+        return bt.num2date(self._data.datetime[0]).replace(tzinfo=pytz.utc).astimezone(
+            pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
 
     def current_volume(self):
         return self._data.volume[0]
@@ -178,7 +181,8 @@ class _SmaCrossStrategy:
         return self.state.trade_active is None and self.indicators.current_price() <= self.config.min_price
 
     def _buy_orders_ready_on_alpaca(self):
-        return self.state.filled_order is not None and self.state.filled_order['id'] in self.state.algorithm_performed_buy_order_id
+        return self.state.filled_order is not None and self.state.filled_order[
+            'id'] in self.state.algorithm_performed_buy_order_id
 
     def _execute_buy_orders(self):
         # logging.info("177 -buy executed") tested
@@ -193,7 +197,8 @@ class _SmaCrossStrategy:
         self.notify_order(True)
 
     def _sell_orders_ready_on_alpaca(self):
-        return self.state.filled_order is not None and self.state.filled_order['id'] in self.state.algorithm_performed_sell_order_id
+        return self.state.filled_order is not None and self.state.filled_order[
+            'id'] in self.state.algorithm_performed_sell_order_id
 
     def _execute_sell_orders(self):
         logging.info("192 -sell executed")
@@ -245,7 +250,7 @@ class _SmaCrossStrategy:
 
     def _start_buy_process(self, buy):
         """If there's no existing buy order, consider buying"""
-        if self._is_prior_sell_price_close_to_current():
+        if self._is_highest_price_close_to_current():
             # logging.info('130 -inactive trade returned')
             return
 
@@ -331,11 +336,10 @@ class _SmaCrossStrategy:
     def _cancel_order(self, order_id):
         self.trader.trading_client.cancel_order_by_id(order_id)
 
-    def _is_prior_sell_price_close_to_current(self):
+    def _is_highest_price_close_to_current(self):
         """If there was a prior sell price, only buy if the difference between the prior sell price and current price
         exceeds 'profit_threshold'"""
-        return self.state.price_of_last_sale is not None \
-            and self.config.buy_profit_threshold > self.state.price_of_last_sale - self.indicators.current_price()
+        return self.config.buy_profit_threshold > self.state.highest_price - self.indicators.current_price()
 
     def _is_price_near_lowest(self):
         """Enter into buy state if the close price is near the lowest price"""
@@ -400,9 +404,11 @@ class _SmaCrossStrategy:
 
     def back_test(self):
         # print(f'date-{self.indicators.current_price()}')
+
         def buy():
             self._reset_buy_state()
-            self.state.price_of_last_purchase = self.indicators.current_price()
+            # assume that lowest_price = last_purchase
+            self.state.lowest_price = self.state.price_of_last_purchase = self.indicators.current_price()
             # current_balance = (previous sell -> order_quantity) * price_of_last_sale
             # order_quantity = current_balance /price
             # here total buying power is considered as (previous order_quantity * price_of_last_sale)we invest all money
@@ -410,7 +416,7 @@ class _SmaCrossStrategy:
             self.notify_order(True)
 
         def sell():
-            self.state.price_of_last_sale = self.indicators.current_price()
+            self.state.highest_price = self.state.price_of_last_sale = self.indicators.current_price()
             self._reset_sell_state()
             self.notify_order(False)
 
@@ -420,6 +426,9 @@ class _SmaCrossStrategy:
 
     def live(self):
         print(f'{self.indicators.current_price_datetime()}-{self.indicators.current_price()}')
+        if self.indicators.current_price() > self.state.highest_price:
+            self.state.highest_price = self.indicators.current_price()
+
 
         # self.config.median_volume = 99
         # positions = self.trader.trading_client.get_all_positions()
@@ -523,8 +532,10 @@ class _SmaCrossStrategy:
             self.log('BUY EXECUTED, %.2f' % self.state.price_of_last_purchase)
         else:
             self.state.trading_count += 1
-            self.cumulative_profit += (self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
-            self.state.roi[self.indicators.current_price_datetime()] = round(self.cumulative_profit / self.state.starting_buying_power, 3)
+            self.cumulative_profit += (
+                                              self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
+            self.state.roi[self.indicators.current_price_datetime()] = round(
+                self.cumulative_profit / self.state.starting_buying_power, 3)
 
             self.log('SELL EXECUTED, %.2f with quantity of %.10f' % (
                 self.state.price_of_last_sale, self.state.order_quantity))
