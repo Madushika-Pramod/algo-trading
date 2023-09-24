@@ -144,12 +144,12 @@ class _State:
 class _Indicators:
 
     def __init__(self, params, data):
-        fast_moving_avg = TALibSMA(data, period=params.fast_ma_period)
-        slow_moving_avg = TALibSMA(data, period=params.slow_ma_period)
+        fast_moving_avg = TALibSMA(period=params.fast_ma_period)
+        slow_moving_avg = TALibSMA(period=params.slow_ma_period)
 
         self.moving_avg_crossover_indicator = bt.ind.CrossOver(fast_moving_avg, slow_moving_avg)
-        self._recorded_highest_price = bt.indicators.Highest(data.close, period=params.high_low_period)
-        self._recorded_lowest_price = bt.indicators.Lowest(data.close, period=params.high_low_period)
+        self._recorded_highest_price = bt.indicators.Highest(period=params.high_low_period)
+        self._recorded_lowest_price = bt.indicators.Lowest(period=params.high_low_period)
         self._data = data
 
     def current_price(self):
