@@ -8,62 +8,6 @@ from strategies.src.indicators.talib_sma import TALibSMA
 
 # todo if price is increasing we should stay
 # todo if price is decreasing we should leave
-class TrailingStopSellIndicator(bt.Indicator):
-    lines = ('hwm', 'stop_level')
-    params = (
-        # ('trail_value', 0),  # The dollar value for trailing
-        ('trail_percent', 0),  # The percent value for trailing
-
-    )
-
-    def __init__(self):
-        self.addminperiod(1)  # Require at least one period
-        self.lines.hwm = self.data.close  # Initialize hwm with close price
-        self.kama = self.data.close[0]
-
-    def adjust_kama(self, kama):
-        self.kama = kama
-
-
-    def next(self):
-        print(self.kama)
-        # Calculate high watermark for `sell`
-        self.lines.hwm[0] = max(self.lines.hwm[-1], self.kama)
-
-        # Calculate stop level for sell
-        # if self.trail_type == 'value':
-        #     self.lines.stop_level[0] = self.lines.hwm[0] - self.p.trail_value
-        # elif self.trail_type == 'percent':
-        self.lines.stop_level[0] = self.lines.hwm[0] * (1 - self.p.trail_percent / 100.0)
-
-class TrailingStopBuyIndicator(bt.Indicator):
-    lines = ('lwm', 'stop_level', 'kama')
-    params = (
-        # ('trail_value', 0),  # The dollar value for trailing
-        ('trail_percent', 0),  # The percent value for trailing
-
-    )
-
-    def __init__(self):
-        self.addminperiod(1)  # Require at least one period
-        # self.trail_type = 'value' if self.p.trail_value > 0 else 'percent'
-        self.lines.lwm = self.data.close  # Initialize lwm with close price
-        self._kama = self.data.close[0]
-
-
-
-    def adjust_kama(self, kama):
-        self._kama = kama
-    def next(self):
-
-        # low watermark for `buy`
-        self.lines.lwm[0] = min(self.lines.lwm[-1], self._kama)
-
-        # Calculate stop level for buy
-        #     if self.trail_type == 'value':
-        #         self.lines.stop_level[0] = self.lines.lwm[0] + self.p.trail_value
-        #     elif self.trail_type == 'percent':
-        self.lines.stop_level[0] = self.lines.lwm[0] * (1 + self.p.trail_percent / 100.0)
 
 
 class TrailingStopStrategy(bt.Strategy):
@@ -74,8 +18,9 @@ class TrailingStopStrategy(bt.Strategy):
     )
 
     def __init__(self):
-        # self.lines.stop_level = 0
-        # self.lines.lwm = 0
+        self.lwm = self.data.close[0]
+        self.stop_level = None
+        self.hwm = self.data.close[0]
 
         self.win_count = 0
         self.loss_count = 0
@@ -89,15 +34,16 @@ class TrailingStopStrategy(bt.Strategy):
         self.trade_active = False
 
         self.kama = TALibSMA(period=self.p.period)
-        self.sell_trail_stop_ind = TrailingStopSellIndicator(
-            # trail_value=self.p.trail_value,
-            trail_percent=self.p.trail_percent,
 
-        )
-        self.buy_trail_stop_ind = TrailingStopBuyIndicator(
-            # trail_value=self.p.trail_value,
-            trail_percent=self.p.trail_percent,
-        )
+
+    def trailing_stop_sell(self):
+        self.hwm = max(self.hwm, self.kama[0])
+        self.stop_level = self.hwm * (1 - self.p.trail_percent / 100.0)
+
+    def trailing_stop_buy(self):
+        # low watermark for `buy`
+        self.lwm = min(self.lwm, self.kama[0])
+        self.stop_level = self.lwm * (1 + self.p.trail_percent / 100.0)
 
     def _start_trade(self, buy, sell):
         # Initiate a buy if conditions are met
@@ -105,22 +51,19 @@ class TrailingStopStrategy(bt.Strategy):
             self._start_sell_process(sell)
         else:
             self._start_buy_process(buy)
+
     def current_price_datetime(self):
         return bt.num2date(self.data.datetime[0]).replace(tzinfo=pytz.utc).astimezone(
             pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
 
     def _start_sell_process(self, sell):
-        self.sell_trail_stop_ind.adjust_kama(self.kama[0])
-        self.sell_trail_stop_ind.next()
-
-        if self.kama[0] <= self.sell_trail_stop_ind.stop_level[0]:
+        self.trailing_stop_sell()
+        if self.kama[0] <= self.stop_level:
             sell()
 
     def _start_buy_process(self, buy):
-        self.buy_trail_stop_ind.adjust_kama(self.kama[0])
-        self.buy_trail_stop_ind.next()
-
-        if self.kama[0] >= self.buy_trail_stop_ind.stop_level[0]:
+        self.trailing_stop_buy()
+        if self.kama[0] >= self.stop_level:
             buy()
 
     # def prenext(self):
@@ -151,7 +94,6 @@ class TrailingStopStrategy(bt.Strategy):
         print(f'win count: {self.win_count}\nloss count: {self.loss_count} ')
         if len(self.roi.values()) > 0:
             self.total_return_on_investment = max(self.roi.values())
-
 
     def log(self, txt, dt=None):
         """ Logging function for the strategy """
