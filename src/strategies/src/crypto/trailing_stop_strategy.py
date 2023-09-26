@@ -11,10 +11,11 @@ from strategies.src.indicators.talib_sma import TALibSMA
 
 
 class TrailingStopStrategy(bt.Strategy):
-    params = (
-        # ('trail_value', 2.00),
-        ('trail_percent', 1.0),
-        ('period', 5)
+    params = dict(
+        trail_percent_sell=3.0,
+        trail_percent_buy=3.0,
+        period=3,
+        buying_power=800
     )
 
     def __init__(self):
@@ -24,7 +25,8 @@ class TrailingStopStrategy(bt.Strategy):
 
         self.win_count = 0
         self.loss_count = 0
-        self.starting_buying_power = 800
+
+        self.starting_buying_power = self.p.buying_power
         self.cumulative_profit = 0
         self.trading_count = 0
         self.roi = {}
@@ -36,14 +38,15 @@ class TrailingStopStrategy(bt.Strategy):
         self.kama = TALibSMA(period=self.p.period)
 
 
+
     def trailing_stop_sell(self):
         self.hwm = max(self.hwm, self.kama[0])
-        self.stop_level = self.hwm * (1 - self.p.trail_percent / 100.0)
+        self.stop_level = self.hwm * (1 - self.p.trail_percent_sell / 100.0)
 
     def trailing_stop_buy(self):
         # low watermark for `buy`
         self.lwm = min(self.lwm, self.kama[0])
-        self.stop_level = self.lwm * (1 + self.p.trail_percent / 100.0)
+        self.stop_level = self.lwm * (1 + self.p.trail_percent_buy / 100.0)
 
     def _start_trade(self, buy, sell):
         # Initiate a buy if conditions are met
@@ -58,7 +61,7 @@ class TrailingStopStrategy(bt.Strategy):
 
     def _start_sell_process(self, sell):
         self.trailing_stop_sell()
-        if self.kama[0] <= self.stop_level:
+        if  self.kama[0] <= self.stop_level:
             sell()
 
     def _start_buy_process(self, buy):
@@ -111,7 +114,7 @@ class TrailingStopStrategy(bt.Strategy):
         else:
             if self.price_of_last_sale - self.price_of_last_purchase < 0:
                 self.loss_count += 1
-            else:
+            elif self.price_of_last_sale - self.price_of_last_purchase > 0:
                 self.win_count += 1
 
             self.trading_count += 1

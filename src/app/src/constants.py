@@ -37,6 +37,8 @@ file_id = datetime.now()
 stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{file_id}.csv')
 # tick_file_path = os.path.join(_parent_dir, 'datas', f'tick{file_id}.csv')
 csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
+crypto_file_path = os.path.join(_parent_dir, 'datas', f'crypto{period_in_days}.csv')
+
 # csv_file_path = os.path.join(_parent_dir, 'datas', 'data.csv')
 tick_file_path = os.path.join(_parent_dir, 'datas', 'tick.csv')
 trading_view_row_data_file_path = os.path.join(_parent_dir, 'datas', f'trading_view{file_id}.txt')
