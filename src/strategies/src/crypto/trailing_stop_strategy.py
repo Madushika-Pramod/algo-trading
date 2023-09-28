@@ -3,7 +3,7 @@ import logging
 import backtrader as bt
 import pytz
 
-from broker.src.alpaca_crypto_trader import AlpacaCryptoTrader
+from broker.src.alpaca_crypto_trader import AlpacaCryptoTrader, CryptoDemoTrader
 from strategies.src.indicators.talib_sma import TALibSMA
 
 
@@ -37,7 +37,8 @@ class TrailingStopStrategy(bt.Strategy):
         self.live = None
 
         self.kama = TALibSMA(period=self.p.period)
-        self.trader = AlpacaCryptoTrader()
+
+        self.trader = AlpacaCryptoTrader() if self.cerebro.params.live else CryptoDemoTrader(self.p.buying_power)
 
     # def start(self):
     #     self.lwm = self.hwm = self.data.close[0]
@@ -77,7 +78,6 @@ class TrailingStopStrategy(bt.Strategy):
         self.trailing_stop_sell()
         # if self.data.close[0] <= self.kama[0] <= self.stop_level:
         if self.data.close[0] == self.data.low[0] < self.data.high[0] == self.data.open[0] and self.data.close[0] <= self.kama[0] <= self.stop_level:
-
             if self.trader.sell():
                 self.sell_crypto()
 

@@ -13,7 +13,7 @@ from strategies.src.crypto.trailing_stop_strategy import TrailingStopStrategy
 def run_single(live=False):
     strategy = (
         TrailingStopStrategy,
-        dict(trail_percent_sell=0.5, trail_percent_buy=0.6, period=47, buying_power=800)  # No Trades: 6, ROI: 10.1%
+        dict(trail_percent_sell=0.0, trail_percent_buy=0.045, period=22, buying_power=800)  # No Trades: 6, ROI: 10.1%
         # dict(trail_percent_sell=1.2, trail_percent_buy=1.3, period=3, buying_power=800)  #No Trades: 5, ROI: 10.1%
     )
 
@@ -117,5 +117,5 @@ def run_parallel(config_process, configurations):
 
 if __name__ == "__main__":
 
-    # run_single(live=True)
-    run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
+    run_single()
+    # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
