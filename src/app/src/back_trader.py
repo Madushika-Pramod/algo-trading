@@ -94,11 +94,11 @@ class BacktraderStrategy:
         # self.cerebro.cheat_on_close = True  # can execute Market orders on the close of the current bar
         self.cerebro.broker.setcommission(commission=constants.commission)
         if live:
-            q = self._historical_and_live_queue()
+            # q = self._historical_and_live_queue()
             # data = AlpacaStreamData(q=q)
             # data = StreamTickData(q=q)
 
-            data = AlpacaCryptoStreamData(q=q)
+            data = AlpacaCryptoStreamData()
             self.cerebro.adddata(data)
             # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
 

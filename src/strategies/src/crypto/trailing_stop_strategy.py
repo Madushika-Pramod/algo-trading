@@ -96,17 +96,17 @@ class TrailingStopStrategy(bt.Strategy):
             self.order_quantity = self.trader.crypto_buying_power / self.data.close[0]
             self.lwm = self.hwm = self.price_of_last_sale = self.data.close[0]
 
-        if self.cerebro.params.live:
-            if self.data.close[0] == 0:
-                self.live = True
-                self.order_quantity = None
-
-            elif self.live:
-                print(f"close: {self.data.close[0]}")
-
-                self._start_trade()
-        else:
-            self._start_trade()
+        # if self.cerebro.params.live:
+        #     if self.data.close[0] == 0:
+        #         self.live = True
+        #         self.order_quantity = None
+        #
+        #     elif self.live:
+        #         print(f"close: {self.data.close[0]}")
+        #
+        #         self._start_trade()
+        # else:
+        self._start_trade()
     def stop(self):
         # print(f'win count: {self.win_count}\nloss count: {self.loss_count} ')
         if len(self.roi.values()) > 0:
