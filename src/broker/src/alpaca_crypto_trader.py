@@ -29,7 +29,7 @@ class AlpacaCryptoTrader:
         market_order_data = MarketOrderRequest(
             symbol="LINK/USD",
             side=OrderSide.BUY,
-            time_in_force=TimeInForce.DAY,
+            time_in_force=TimeInForce.GTC,
             notional=self.crypto_buying_power,
         )
         self.trading_client.submit_order(order_data=market_order_data)
