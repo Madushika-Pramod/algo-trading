@@ -11,6 +11,7 @@ from app.src.tick_data import CustomTickData
 from broker import AlpacaStreamData
 # from app.src.alpaca_data import AlpacaHistoricalData
 from app.src.trade_analyzer import TradeAnalyzer
+from broker.src.crypto_data import AlpacaCryptoStreamData
 from broker.src.trading_view_tick_data import StreamTickData
 
 
@@ -85,15 +86,19 @@ class BacktraderStrategy:
         self.cash = cash
         # self.strategy_class = strategy_class
         self.cerebro = bt.Cerebro()
+
         # simulating
+        # self.df = DataHandler().load_data()  #generate_data()
         self.df = DataHandler(file_path=constants.crypto_file_path).load_data()  #generate_data()
+
         # self.cerebro.cheat_on_close = True  # can execute Market orders on the close of the current bar
         self.cerebro.broker.setcommission(commission=constants.commission)
         if live:
             q = self._historical_and_live_queue()
-            # q = queue.Queue()
             # data = AlpacaStreamData(q=q)
-            data = StreamTickData(q=q)
+            # data = StreamTickData(q=q)
+
+            data = AlpacaCryptoStreamData(q=q)
             self.cerebro.adddata(data)
             # self.cerebro.addanalyzer(TradeAnalyzer, _name="trade_analyzer")
 

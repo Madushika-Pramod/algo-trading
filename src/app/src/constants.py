@@ -51,4 +51,6 @@ data_download = 0
 market_data_url = 'https://data.alpaca.markets/v2/stocks/'
 trade_stream_wss = 'wss://paper-api.alpaca.markets/stream'
 data_stream_wss = 'wss://stream.data.alpaca.markets/v2/iex'
+crypto_data_stream_wss = 'wss://stream.data.alpaca.markets/v1beta3/crypto/us'
+
 # best_strategy = MovingAverageADXStrategy

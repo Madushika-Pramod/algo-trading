@@ -8,15 +8,14 @@ import multiprocessing
 from app.src import constants
 from app.src.back_trader import BacktraderStrategy
 from strategies.src.crypto.trailing_stop_strategy import TrailingStopStrategy
-from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 
 def run_single(live=False):
     strategy = (
         TrailingStopStrategy,
-        dict(trail_percent_sell=0.1,trail_percent_buy=0.3, period=4, buying_power=800))
-    # strategy = (TrendLineStrategy,
-    #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))
+        dict(trail_percent_sell=0.5, trail_percent_buy=0.6, period=47, buying_power=800)  # No Trades: 6, ROI: 10.1%
+        # dict(trail_percent_sell=1.2, trail_percent_buy=1.3, period=3, buying_power=800)  #No Trades: 5, ROI: 10.1%
+    )
 
     # strategy = (TrailingStopStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
@@ -24,14 +23,16 @@ def run_single(live=False):
         f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
 
 
-def get_sma_cross_strategy_v2_optimum_params(best_roi=0, trail_percent_sell=None,trail_percent_buy=None, period=None, pre_count=0):
+def get_sma_cross_strategy_v2_optimum_params(best_roi=0, trail_percent_sell=None, trail_percent_buy=None, period=None,
+                                             pre_count=0):
     buying_power = 800
     count = 0
-    p2=0
-    t2=0
-    t3=0
+    p2 = 0
+    t2 = 0
     roi_count = 0
-    statistics = [["iteration", "Trading Count", "Roi", "Period", "Trail Percent Sell", "Trail Percent Buy", "Win count", "Loss Count"]]
+    statistics = [
+        ["iteration", "Trading Count", "Roi", "Period", "Trail Percent Sell", "Trail Percent Buy", "Win count",
+         "Loss Count"]]
     try:
         for p in range(period, 60):
             if p == period + 20:
@@ -43,14 +44,15 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, trail_percent_sell=None
                 write_csv(statistics)
 
                 raise Exception("=== Parameter Tuning successfully terminated===")
-            for tt in range(trail_percent_sell, 10):
-                ts = tt/10
-                for bb in range(trail_percent_buy, 10):
-                    tb = bb / 10
+            for tt in range(trail_percent_sell, 200):
+                ts = tt / 1000
+                for bb in range(trail_percent_buy, 200):
+                    tb = bb / 1000
 
                     if count >= pre_count:
                         result = BacktraderStrategy(live=False).add_strategy((
-                            TrailingStopStrategy, dict(trail_percent_sell=ts, trail_percent_buy=tb, period=p, buying_power=buying_power))).run()
+                            TrailingStopStrategy, dict(trail_percent_sell=ts, trail_percent_buy=tb, period=p,
+                                                       buying_power=buying_power))).run()
                         statistics.append(
                             [count, result.trading_count, result.total_return_on_investment, p, ts, tb,
                              result.win_count, result.loss_count])
@@ -70,6 +72,7 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, trail_percent_sell=None
         print(f"period: {p2}-Trail Percent: {t2}-current Count: {roi_count}-Best ROI: {best_roi * 100}%")
         write_csv(statistics)
 
+
 def write_csv(statistics):
     # header = ["ROI", "Dev Factor", "Rsi period", "Rsi low", "Rsi high", "Bollinger Period", "Gain value"]
 
@@ -82,9 +85,9 @@ def write_csv(statistics):
 
 
 configurations_for_sma_cross_v2 = [
-    dict(trail_percent_sell=1, trail_percent_buy=1, period=2),
-    dict(trail_percent_sell=1, trail_percent_buy=1, period=22),
-    dict(trail_percent_sell=1, trail_percent_buy=1, period=42)
+    dict(trail_percent_sell=0, trail_percent_buy=0, period=2),
+    dict(trail_percent_sell=0, trail_percent_buy=0, period=22),
+    dict(trail_percent_sell=0, trail_percent_buy=0, period=42)
     # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
     #      sell_profit_threshold=2),
     # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=35, high_low_tolerance=5, buy_profit_threshold=2,
@@ -113,5 +116,6 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-    run_single()
-    # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
+
+    # run_single(live=True)
+    run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
