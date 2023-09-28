@@ -1,3 +1,5 @@
+import logging
+
 import backtrader as bt
 import pytz
 
@@ -76,16 +78,16 @@ class TrailingStopStrategy(bt.Strategy):
         # if self.data.close[0] <= self.kama[0] <= self.stop_level:
         if self.data.close[0] == self.data.low[0] < self.data.high[0] == self.data.open[0] and self.data.close[0] <= self.kama[0] <= self.stop_level:
 
-            # if self.trader.sell():
-            self.sell_crypto()
+            if self.trader.sell():
+                self.sell_crypto()
 
     def _start_buy_process(self):
         self.trailing_stop_buy()
         # if self.data.close[0] >= self.kama[0] >= self.stop_level:
 
         if self.data.close[0] == self.data.high[0] > self.data.open[0] == self.data.low[0] and self.data.close[0] >= self.kama[0] >= self.stop_level:
-            # if self.trader.buy():
-            self.buy_crypto()
+            if self.trader.buy():
+                self.buy_crypto()
 
 
 
@@ -97,6 +99,7 @@ class TrailingStopStrategy(bt.Strategy):
         if self.cerebro.params.live:
             if self.data.close[0] == 0:
                 self.live = True
+                self.order_quantity = None
 
             elif self.live:
                 print(f"close: {self.data.close[0]}")
@@ -130,8 +133,9 @@ class TrailingStopStrategy(bt.Strategy):
 
             self.trading_count += 1
             self.cumulative_profit += (self.price_of_last_sale - self.price_of_last_purchase) * self.order_quantity
-            self.roi[self.current_price_datetime()] = round(
-                self.cumulative_profit / self.starting_buying_power, 3)
+            roi = round(self.cumulative_profit / self.starting_buying_power, 3)
+            self.roi[self.current_price_datetime()] = roi
+            logging.info(f"{roi * 100}%")
 
             self.log('SELL EXECUTED, %.2f with quantity of %.10f' % (
                 self.price_of_last_sale, self.order_quantity))
