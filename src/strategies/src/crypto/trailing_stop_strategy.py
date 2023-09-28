@@ -77,7 +77,7 @@ class TrailingStopStrategy(bt.Strategy):
     def _start_sell_process(self):
         self.trailing_stop_sell()
         # if self.data.close[0] <= self.kama[0] <= self.stop_level:
-        if self.data.close[0] == self.data.low[0] < self.data.high[0] == self.data.open[0] and self.data.close[0] <= self.kama[0] <= self.stop_level:
+        if self.data.close[0] < self.data.open[0] and self.data.close[0] <= self.kama[0] <= self.stop_level:
             if self.trader.sell():
                 self.sell_crypto()
 
@@ -85,7 +85,7 @@ class TrailingStopStrategy(bt.Strategy):
         self.trailing_stop_buy()
         # if self.data.close[0] >= self.kama[0] >= self.stop_level:
 
-        if self.data.close[0] == self.data.high[0] > self.data.open[0] == self.data.low[0] and self.data.close[0] >= self.kama[0] >= self.stop_level:
+        if self.data.close[0] > self.data.open[0]  and self.data.close[0] >= self.kama[0] >= self.stop_level:
             if self.trader.buy():
                 self.buy_crypto()
 
@@ -133,9 +133,10 @@ class TrailingStopStrategy(bt.Strategy):
 
             self.trading_count += 1
             self.cumulative_profit += (self.price_of_last_sale - self.price_of_last_purchase) * self.order_quantity
+
             roi = round(self.cumulative_profit / self.starting_buying_power, 3)
             self.roi[self.current_price_datetime()] = roi
-            logging.info(f"{roi * 100}%")
+            # logging.info(f"{roi * 100}%")
 
             self.log('SELL EXECUTED, %.2f with quantity of %.10f' % (
                 self.price_of_last_sale, self.order_quantity))
