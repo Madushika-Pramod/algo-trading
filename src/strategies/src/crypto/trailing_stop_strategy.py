@@ -1,4 +1,5 @@
 import logging
+import time
 
 import backtrader as bt
 import pytz
@@ -36,7 +37,7 @@ class TrailingStopStrategy(bt.Strategy):
         self.trade_active = False
         self.live = None
 
-        self.kama = TALibSMA(period=self.p.period)
+        self.kama = bt.ind.KAMA(period=self.p.period) #TALibSMA(period=self.p.period) SMMA
 
         self.trader = AlpacaCryptoTrader() if self.cerebro.params.live else CryptoDemoTrader(self.p.buying_power)
 
@@ -49,20 +50,24 @@ class TrailingStopStrategy(bt.Strategy):
         self.price_of_last_purchase = self.hwm = self.data.close[0]
         self.order_quantity = self.order_quantity * self.price_of_last_sale / self.data.close[0]
         self.notify_order(True)
+        print(f'buy-{self.data.close[0]}')
+        logging.info(f'buy-{self.data.close[0]}')
 
     def sell_crypto(self):
         self.trade_active = False
         self.price_of_last_sale = self.lwm = self.data.close[0]
         self.notify_order(False)
+        print(f'sell-{self.data.close[0]}')
+        logging.info(f'sell-{self.data.close[0]}')
 
     def trailing_stop_sell(self):
         self.hwm = max(self.hwm, self.kama[0])
-        self.stop_level = self.hwm * (1 - self.p.trail_percent_sell / 100.0)
+        self.stop_level = self.hwm  # * (1 - self.p.trail_percent_sell / 100.0)
 
     def trailing_stop_buy(self):
         # low watermark for `buy`
         self.lwm = min(self.lwm, self.kama[0])
-        self.stop_level = self.lwm * (1 + self.p.trail_percent_buy / 100.0)
+        self.stop_level = self.lwm  # * (1 + self.p.trail_percent_buy / 100.0)
 
     def _start_trade(self):
         if self.trade_active:
@@ -77,7 +82,7 @@ class TrailingStopStrategy(bt.Strategy):
     def _start_sell_process(self):
         self.trailing_stop_sell()
         # if self.data.close[0] <= self.kama[0] <= self.stop_level:
-        if self.data.close[0] < self.data.open[0] and self.data.close[0] <= self.kama[0] <= self.stop_level:
+        if self.data.close[0] == self.data.low[0] and self.data.close[0] <= self.kama[0] <= self.stop_level:
             if self.trader.sell():
                 self.sell_crypto()
 
@@ -85,10 +90,9 @@ class TrailingStopStrategy(bt.Strategy):
         self.trailing_stop_buy()
         # if self.data.close[0] >= self.kama[0] >= self.stop_level:
 
-        if self.data.close[0] > self.data.open[0]  and self.data.close[0] >= self.kama[0] >= self.stop_level:
+        if self.data.close[0] == self.data.high[0] and  self.kama[0] >= self.stop_level:
             if self.trader.buy():
                 self.buy_crypto()
-
 
 
     def next(self):
@@ -96,7 +100,7 @@ class TrailingStopStrategy(bt.Strategy):
             self.order_quantity = self.trader.crypto_buying_power / self.data.close[0]
             self.lwm = self.hwm = self.price_of_last_sale = self.data.close[0]
 
-        # if self.cerebro.params.live:
+
         #     if self.data.close[0] == 0:
         #         self.live = True
         #         self.order_quantity = None
@@ -107,6 +111,9 @@ class TrailingStopStrategy(bt.Strategy):
         #         self._start_trade()
         # else:
         self._start_trade()
+        if self.cerebro.params.live:
+            time.sleep(54)
+
     def stop(self):
         # print(f'win count: {self.win_count}\nloss count: {self.loss_count} ')
         if len(self.roi.values()) > 0:

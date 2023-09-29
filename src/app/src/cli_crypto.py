@@ -13,7 +13,7 @@ from strategies.src.crypto.trailing_stop_strategy import TrailingStopStrategy
 def run_single(live=False):
     strategy = (
         TrailingStopStrategy,
-        dict(trail_percent_sell=0.0, trail_percent_buy=0.045, period=22, buying_power=800)  # No Trades: 6, ROI: 10.1%
+        dict(period=2, buying_power=800)  # No Trades: 6, ROI: 10.1%
         # dict(trail_percent_sell=1.2, trail_percent_buy=1.3, period=3, buying_power=800)  #No Trades: 5, ROI: 10.1%
     )
 
@@ -23,7 +23,7 @@ def run_single(live=False):
         f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.average_return_on_investment * 100, 3)}%")
 
 
-def get_sma_cross_strategy_v2_optimum_params(best_roi=0, trail_percent_sell=None, trail_percent_buy=None, period=None,
+def get_sma_cross_strategy_v2_optimum_params(best_roi=0, period=None,
                                              pre_count=0):
     buying_power = 800
     count = 0
@@ -34,8 +34,8 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, trail_percent_sell=None
         ["iteration", "Trading Count", "Roi", "Period", "Trail Percent Sell", "Trail Percent Buy", "Win count",
          "Loss Count"]]
     try:
-        for p in range(period, 60):
-            if p == period + 20:
+        for p in range(period, 500):
+            if p == period + 100:
                 # print(
                 #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
                 print(p - 2)
@@ -44,33 +44,28 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, trail_percent_sell=None
                 write_csv(statistics)
 
                 raise Exception("=== Parameter Tuning successfully terminated===")
-            for tt in range(trail_percent_sell, 200):
-                ts = tt / 1000
-                for bb in range(trail_percent_buy, 200):
-                    tb = bb / 1000
 
-                    if count >= pre_count:
-                        result = BacktraderStrategy(live=False).add_strategy((
-                            TrailingStopStrategy, dict(trail_percent_sell=ts, trail_percent_buy=tb, period=p,
-                                                       buying_power=buying_power))).run()
-                        statistics.append(
-                            [count, result.trading_count, result.average_return_on_investment, p, ts, tb,
-                             result.win_count, result.loss_count])
-                        if result.average_return_on_investment > best_roi:
-                            best_roi = result.average_return_on_investment
-                            roi_count = count
-                            p2 = p
-                            t2 = ts
-                            print(
-                                f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nPeriod :{p}\n Trail Percent sell: {ts}\n Trail Percent buy: {tb}")
-                        print(count)
-                    # print(result.total_return_on_investment)
-                    count += 1
+            if count >= pre_count:
+                result = BacktraderStrategy(live=False).add_strategy((
+                    TrailingStopStrategy, dict(period=p,buying_power=buying_power))).run()
+                # statistics.append(
+                #     [count, result.trading_count, result.average_return_on_investment, p,
+                #      result.win_count, result.loss_count])
+                if result.average_return_on_investment > best_roi:
+                    best_roi = result.average_return_on_investment
+                    roi_count = count
+                    p2 = p
+
+                    print(
+                        f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nPeriod :{p}")
+                print(count)
+                # print(result.total_return_on_investment)
+            count += 1
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
-        print(f"period: {p2}-Trail Percent: {t2}-current Count: {roi_count}-Best ROI: {best_roi * 100}%")
-        write_csv(statistics)
+        print(f"p={p2}-current Count: {roi_count}-Best ROI: {best_roi * 100}%")
+    # write_csv(statistics)
 
 
 def write_csv(statistics):
@@ -85,9 +80,9 @@ def write_csv(statistics):
 
 
 configurations_for_sma_cross_v2 = [
-    dict(trail_percent_sell=0, trail_percent_buy=0, period=2),
-    dict(trail_percent_sell=0, trail_percent_buy=0, period=22),
-    dict(trail_percent_sell=0, trail_percent_buy=0, period=42)
+    dict(period=2),
+    dict(period=102),
+    dict(period=202)
     # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
     #      sell_profit_threshold=2),
     # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=35, high_low_tolerance=5, buy_profit_threshold=2,
@@ -116,6 +111,5 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
-
-    # run_single(live=True)
-    run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
+    run_single(live=True)
+    # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)

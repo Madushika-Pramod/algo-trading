@@ -4,7 +4,7 @@ import time
 
 from alpaca.trading import OrderSide, TimeInForce
 from alpaca.trading import TradingClient
-from alpaca.trading.requests import MarketOrderRequest
+from alpaca.trading.requests import LimitOrderRequest
 
 
 class AlpacaCryptoTrader:
@@ -22,23 +22,40 @@ class AlpacaCryptoTrader:
         self.crypto_buying_power = float(asyncio.run(
             self.fetch_account()).result().non_marginable_buying_power)  # since we did not await we should use results
 
-    def buy(self):
+    def buy(self, price):
 
         if not self.crypto_buying_power > 0:
             raise Exception("not enough buying power for crypto")
-        market_order_data = MarketOrderRequest(
-            symbol="LINK/USD",
-            side=OrderSide.BUY,
-            time_in_force=TimeInForce.GTC,
-            notional=self.crypto_buying_power,
-        )
-        self.trading_client.submit_order(order_data=market_order_data)
+        # market_order_data = MarketOrderRequest(
+        #     symbol="LINK/USD",
+        #     side=OrderSide.BUY,
+        #     time_in_force=TimeInForce.GTC,
+        #     notional=self.crypto_buying_power,
+        # )
+        limit_order_data = LimitOrderRequest(
+                symbol="LINK/USD",
+                side=OrderSide.BUY,
+                time_in_force=TimeInForce.GTC,
+                qty=(self.crypto_buying_power/price),
+                limit_price=price,
+            )
+        self.trading_client.submit_order(order_data=limit_order_data)
+        time.sleep(5)
+        self.update_buying_power()
         return True
 
-    def sell(self):
+    def sell(self, price):
 
         try:
-            self.trading_client.close_all_positions(cancel_orders=True)
+            limit_order_data = LimitOrderRequest(
+                symbol="LINK/USD",
+                side=OrderSide.SELL,
+                time_in_force=TimeInForce.GTC,
+                qty=(self.crypto_buying_power / price),
+                limit_price=price,
+            )
+            self.trading_client.submit_order(order_data=limit_order_data)
+            time.sleep(5)
             self.update_buying_power()
             return True
         except:

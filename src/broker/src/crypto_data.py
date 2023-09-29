@@ -64,7 +64,7 @@ class Alpaca_Crypto_WebSocket:
         self.data_queue = data_queue
 
     def on_message(self, ws, message):
-        # print(message)
+        print('------')
         for d in json.loads(message):
             # print(f'data update:{d}')
             if d.get('T') == 'b':
