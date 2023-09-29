@@ -120,7 +120,7 @@ def run_single(live=False):
     # strategy = (DemoStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
     logging.info(
-        f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
+        f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.average_return_on_investment * 100, 3)}%")
 
     # logging.info(
     #     f"Number of Trades: {result.state.trading_count}\nReturn on investment: {round(result.state.total_return_on_investment * 100, 3)}%")
@@ -207,10 +207,10 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
                                                                                      last_sale_price=last_sale_price,
                                                                                      median_volume=median_volume, ))).run()
                                     statistics.append(
-                                        [count, result.trading_count, result.total_return_on_investment, pf, ps, p, e,
+                                        [count, result.trading_count, result.average_return_on_investment, pf, ps, p, e,
                                          bgv, sgv])
-                                    if result.total_return_on_investment > best_roi:
-                                        best_roi = result.total_return_on_investment
+                                    if result.average_return_on_investment > best_roi:
+                                        best_roi = result.average_return_on_investment
                                         roi_count = count
                                         print(
                                             f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nPeriod fast:{pf}\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\n Buy Gain value: {bgv}\n Sell Gain value: {sgv}")

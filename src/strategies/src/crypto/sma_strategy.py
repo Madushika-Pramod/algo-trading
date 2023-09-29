@@ -1,5 +1,4 @@
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
+import time
 
 import backtrader as bt
 import pytz
@@ -17,12 +16,11 @@ class SmaStrategy(bt.Strategy):
 
         slow_period=3,
         fast_period=4,
+        profit_threshold=1,
         buying_power=800
     )
 
     def __init__(self):
-
-        self.executor = ThreadPoolExecutor()
 
         self.win_count = 0
         self.loss_count = 0
@@ -65,32 +63,25 @@ class SmaStrategy(bt.Strategy):
             pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
 
     def _start_sell_process(self):
-        if (self.data.close[0] < self.data.open[0] and self.slow_kama > self.fast_kama) or self.data.close[
+        if (self.data.close[0] == self.data.low[0] and self.slow_kama > self.fast_kama ) or self.data.close[
             0] <= 1.0005 * self.price_of_last_purchase:
             if self.trader.sell():
                 self.sell_crypto()
 
     def _start_buy_process(self):
-        if self.data.close[0] > self.data.open[0] and self.slow_kama < self.fast_kama:
+        if self.data.close[0] == self.data.high[0] and self.slow_kama < self.fast_kama:
             if self.trader.buy():
                 self.buy_crypto()
 
-    async def async_sleep_and_schedule(self, loop, func):
-        await asyncio.sleep(5)  # Non-blocking sleep
-
-        # Scheduling the synchronous function to the executor
-        loop.run_in_executor(self.executor, func)
-
     def next(self):
-        # if self.order_quantity is None:
-        #     self.order_quantity = self.trader.crypto_buying_power / self.data.close[0]
-        #     self.price_of_last_sale = self.data.close[0]
-        # self._start_trade()
-        print('NEXT')
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.async_sleep_and_schedule(loop, self.next))
+        if self.order_quantity is None:
+            self.order_quantity = self.trader.crypto_buying_power / self.data.close[0]
+            self.price_of_last_sale = self.data.close[0]
+        self._start_trade()
+
+        if self.cerebro.params.live:
+            time.sleep(59)
 
     def stop(self):
         # print(f'win count: {self.win_count}\nloss count: {self.loss_count} ')

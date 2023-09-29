@@ -30,7 +30,7 @@ class TrailingStopStrategy(bt.Strategy):
         self.cumulative_profit = 0
         self.trading_count = 0
         self.roi = {}
-        self.total_return_on_investment = 0
+        self.average_return_on_investment = 0
         self.order_quantity = None
         self.price_of_last_sale = None
         self.trade_active = False
@@ -110,7 +110,7 @@ class TrailingStopStrategy(bt.Strategy):
     def stop(self):
         # print(f'win count: {self.win_count}\nloss count: {self.loss_count} ')
         if len(self.roi.values()) > 0:
-            self.total_return_on_investment = max(self.roi.values())
+            self.average_return_on_investment = sum(self.roi.values()) / len(self.roi.values())
 
     def log(self, txt, dt=None):
         """ Logging function for the strategy """

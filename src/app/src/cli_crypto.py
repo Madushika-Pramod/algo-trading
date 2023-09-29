@@ -20,7 +20,7 @@ def run_single(live=False):
     # strategy = (TrailingStopStrategy, {})
     result = BacktraderStrategy(live).add_strategy(strategy).run()
     logging.info(
-        f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.total_return_on_investment * 100, 3)}%")
+        f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.average_return_on_investment * 100, 3)}%")
 
 
 def get_sma_cross_strategy_v2_optimum_params(best_roi=0, trail_percent_sell=None, trail_percent_buy=None, period=None,
@@ -54,10 +54,10 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, trail_percent_sell=None
                             TrailingStopStrategy, dict(trail_percent_sell=ts, trail_percent_buy=tb, period=p,
                                                        buying_power=buying_power))).run()
                         statistics.append(
-                            [count, result.trading_count, result.total_return_on_investment, p, ts, tb,
+                            [count, result.trading_count, result.average_return_on_investment, p, ts, tb,
                              result.win_count, result.loss_count])
-                        if result.total_return_on_investment > best_roi:
-                            best_roi = result.total_return_on_investment
+                        if result.average_return_on_investment > best_roi:
+                            best_roi = result.average_return_on_investment
                             roi_count = count
                             p2 = p
                             t2 = ts
@@ -117,5 +117,5 @@ def run_parallel(config_process, configurations):
 
 if __name__ == "__main__":
 
-    run_single()
-    # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
+    # run_single(live=True)
+    run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
