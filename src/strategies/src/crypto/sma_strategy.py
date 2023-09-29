@@ -16,7 +16,6 @@ class SmaStrategy(bt.Strategy):
 
         slow_period=3,
         fast_period=4,
-        profit_threshold=1,
         buying_power=800
     )
 

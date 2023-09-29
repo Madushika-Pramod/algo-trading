@@ -33,14 +33,14 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, slow_period=None, fast_
     #     ["iteration", "Trading Count", "Roi", "Period", "Trail Percent Sell", "Trail Percent Buy", "Win count",
     #      "Loss Count"]]
     try:
-        for f in range(fast_period, 50):
-            if f == fast_period + 20:
+        for f in range(fast_period, 500):
+            if f == fast_period + 100:
                 print(f"Total Count: {count}")
                 print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
                 # write_csv(statistics)
 
                 raise Exception("=== Parameter Tuning successfully terminated===")
-            for s in range(slow_period, 50):
+            for s in range(slow_period, 500):
                 if s > f:
 
                     if count >= pre_count:
@@ -81,8 +81,8 @@ def write_csv(statistics):
 
 configurations_for_sma_cross_v2 = [
     dict(slow_period=2, fast_period=2),
-    dict(slow_period=2, fast_period=20),
-    dict(slow_period=2, fast_period=40)
+    dict(slow_period=2, fast_period=202),
+    dict(slow_period=2, fast_period=402)
     # ... other configurations
 ]
 
