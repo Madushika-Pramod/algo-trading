@@ -2,9 +2,15 @@ import asyncio
 import os
 import time
 
-from alpaca.trading import OrderSide, TimeInForce
+from alpaca.trading import OrderSide, TimeInForce, OrderStatus
 from alpaca.trading import TradingClient
 from alpaca.trading.requests import LimitOrderRequest
+
+
+async def func(function):
+    loop = asyncio.get_event_loop()
+    # return await loop.run_in_executor(None, self.trading_client.get_account)
+    return loop.run_in_executor(None, function)
 
 
 class AlpacaCryptoTrader:
@@ -13,14 +19,9 @@ class AlpacaCryptoTrader:
         self.crypto_buying_power = 0
         self.update_buying_power()
 
-    async def fetch_account(self):
-        loop = asyncio.get_event_loop()
-        # return await loop.run_in_executor(None, self.trading_client.get_account)
-        return loop.run_in_executor(None, self.trading_client.get_account)
-
     def update_buying_power(self):
         self.crypto_buying_power = float(asyncio.run(
-            self.fetch_account()).result().non_marginable_buying_power)  # since we did not await we should use results
+            func(self.trading_client.get_account)).result().non_marginable_buying_power)  # since we did not await we should use results
 
     def buy(self, price):
 
@@ -39,10 +40,9 @@ class AlpacaCryptoTrader:
                 qty=(self.crypto_buying_power/price),
                 limit_price=price,
             )
-        self.trading_client.submit_order(order_data=limit_order_data)
-        time.sleep(5)
+        order_id = asyncio.run(func(self.trading_client.submit_order(order_data=limit_order_data))).result().id
         self.update_buying_power()
-        return True
+        return order_id
 
     def sell(self, price):
 
@@ -54,12 +54,11 @@ class AlpacaCryptoTrader:
                 qty=(self.crypto_buying_power / price),
                 limit_price=price,
             )
-            self.trading_client.submit_order(order_data=limit_order_data)
-            time.sleep(5)
+            order_id = asyncio.run(func(self.trading_client.submit_order(order_data=limit_order_data))).result().id
             self.update_buying_power()
-            return True
+            return order_id
         except:
-            return False
+            return None
 
 
 class CryptoDemoTrader:
@@ -74,3 +73,11 @@ class CryptoDemoTrader:
 
     def sell(self):
         return True
+
+
+# x = AlpacaCryptoTrader()
+# y = x.buy(8.165)
+# g = x.trading_client.get_order_by_id(y.id)
+# # y.status == OrderStatus.PENDING_NEW
+# # time.sleep(5)
+# v =4
