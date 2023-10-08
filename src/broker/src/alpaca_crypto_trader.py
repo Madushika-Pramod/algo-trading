@@ -1,8 +1,11 @@
 import asyncio
+import logging
 import os
 import time
+from unittest import mock
+from unittest.mock import MagicMock
 
-from alpaca.trading import OrderSide, TimeInForce, OrderStatus
+from alpaca.trading import OrderSide, TimeInForce, OrderStatus, Order
 from alpaca.trading import TradingClient
 from alpaca.trading.requests import LimitOrderRequest
 
@@ -21,7 +24,8 @@ class AlpacaCryptoTrader:
 
     def update_buying_power(self):
         self.crypto_buying_power = float(asyncio.run(
-            func(self.trading_client.get_account)).result().non_marginable_buying_power)  # since we did not await we should use results
+            func(
+                self.trading_client.get_account)).result().non_marginable_buying_power)  # since we did not await we should use results
 
     def buy(self, price):
 
@@ -34,14 +38,16 @@ class AlpacaCryptoTrader:
         #     notional=self.crypto_buying_power,
         # )
         limit_order_data = LimitOrderRequest(
-                symbol="LINK/USD",
-                side=OrderSide.BUY,
-                time_in_force=TimeInForce.GTC,
-                qty=(self.crypto_buying_power/price),
-                limit_price=price,
-            )
+            symbol="LINK/USD",
+            side=OrderSide.BUY,
+            time_in_force=TimeInForce.GTC,
+            qty=(self.crypto_buying_power / price),
+            limit_price=price,
+        )
         order_id = asyncio.run(func(self.trading_client.submit_order(order_data=limit_order_data))).result().id
         self.update_buying_power()
+        print(f'buy-{price}')
+        logging.info(f'buy-{price}')
         return order_id
 
     def sell(self, price):
@@ -56,6 +62,8 @@ class AlpacaCryptoTrader:
             )
             order_id = asyncio.run(func(self.trading_client.submit_order(order_data=limit_order_data))).result().id
             self.update_buying_power()
+            print(f'sell-{price}')
+            logging.info(f'sell-{price}')
             return order_id
         except:
             return None
@@ -64,16 +72,22 @@ class AlpacaCryptoTrader:
 class CryptoDemoTrader:
     def __init__(self, crypto_buying_power):
         self.crypto_buying_power = crypto_buying_power
+        self.trading_client = MagicMock()
+        self.order = MagicMock()
+        self.trading_client.get_order_by_id = MagicMock(return_value=self.order)
 
-
-    def buy(self):
+    def buy(self, price):
         if not self.crypto_buying_power > 0:
             raise Exception("not enough buying power for crypto")
-        return True
+        self.order.id = 'buyorder'
+        self.order.status = OrderStatus.FILLED
 
-    def sell(self):
-        return True
+        return 'buyorder'
 
+    def sell(self, price):
+        self.order.id = 'sellorder'
+        self.order.status = OrderStatus.FILLED
+        return 'sellorder'
 
 # x = AlpacaCryptoTrader()
 # y = x.buy(8.165)

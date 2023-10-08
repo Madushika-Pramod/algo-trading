@@ -35,7 +35,7 @@ class SmaCrossStrategy(bt.Strategy):
         self.indicators = _Indicators(self.p, self.data)
         self.strategy = _SmaCrossStrategy(self.indicators, self.params, self.state, trader=self.trader)
 
-        self.total_return_on_investment = 0
+        self.average_return_on_investment = 0
         self.trading_count = 0
 
     def next(self):
@@ -100,7 +100,7 @@ class SmaCrossStrategy(bt.Strategy):
 
     def stop(self):
         self.strategy.stop()
-        self.total_return_on_investment = self.state.total_return_on_investment
+        self.average_return_on_investment = self.state.average_return_on_investment
         self.trading_count = self.state.trading_count
 
         # # print(f'Last sale : {self.price_of_last_sale}')
@@ -132,7 +132,7 @@ class _State:
         self.price_of_last_purchase = 0
         self.ready_to_buy = False
         self.ready_to_sell = False
-        self.total_return_on_investment = 0
+        self.average_return_on_investment = 0
 
         self.accepted_order = None
         self.filled_order = None
@@ -498,7 +498,7 @@ class _SmaCrossStrategy:
         # self.state.total_return_on_investment = self.state.cumulative_profit / self.state.starting_buying_power
 
         if len(self.state.roi.values()) > 0:
-            self.state.total_return_on_investment = max(self.state.roi.values())
+            self.state.average_return_on_investment = sum(self.state.roi.values()) / len(self.state.roi.values())
 
             # with open(roi_data_file_path, 'w', newline='') as csvfile:
             #     writer = csv.writer(csvfile)

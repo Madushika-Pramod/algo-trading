@@ -24,8 +24,8 @@ class TrailingStopStrategy(bt.Strategy):
     def __init__(self):
 
         self.buy_limit_price = None
-        self.buy_order_id = None
-        self.sell_order_id = None
+        self.buy_order = None
+        self.sell_order = None
         self.sell_limit_price = None
         self.lwm = self.hwm = None
         self.stop_level = None
@@ -57,29 +57,27 @@ class TrailingStopStrategy(bt.Strategy):
         self.price_of_last_purchase = self.hwm = self.data.close[0]
         self.order_quantity = self.order_quantity * self.price_of_last_sale / self.data.close[0]
         self.notify_order(True)
-        print(f'buy-{self.data.close[0]}')
-        logging.info(f'buy-{self.data.close[0]}')
+
 
     def sell_crypto(self):
         self.trade_active = False
         self.price_of_last_sale = self.lwm = self.data.close[0]
         self.notify_order(False)
-        print(f'sell-{self.data.close[0]}')
-        logging.info(f'sell-{self.data.close[0]}')
+
 
     def trailing_stop_sell(self):
-        self.hwm = max(self.hwm, self.kama[0])
+        self.hwm = max(self.hwm, self.data.close[0])
         self.stop_level = self.hwm  # * (1 - self.p.trail_percent_sell / 100.0)
 
     def trailing_stop_buy(self):
         # low watermark for `buy`
-        self.lwm = min(self.lwm, self.kama[0])
+        self.lwm = min(self.lwm, self.data.close[0])
         self.stop_level = self.lwm  # * (1 + self.p.trail_percent_buy / 100.0)
 
     def _start_trade(self):
-        if self.trade_active and self.sell_order_id is None:
+        if self.trade_active and self.sell_order is None:
             self._start_sell_process()
-        elif self.buy_order_id is None:
+        elif self.buy_order is None:
             self._start_buy_process()
 
     def current_price_datetime(self):
@@ -88,14 +86,14 @@ class TrailingStopStrategy(bt.Strategy):
 
     def _start_sell_process(self):
         self.trailing_stop_sell()
-        if self.data.close[0] == self.data.low[0] and self.data.close[0] <= self.kama[0] <= self.stop_level:
-            self.sell_order_id = self.trader.sell(self.data.close[0])
+        if self.data.close[0] < self.data.open[0] and self.data.close[0] <= self.kama[0] <= self.stop_level:
+            self.sell_order = self.trader.sell(self.data.close[0])
             self.sell_limit_price = self.data.close[0]
 
     def _start_buy_process(self):
         self.trailing_stop_buy()
         if self.data.close[0] == self.data.high[0] and self.kama[0] >= self.stop_level:
-            self.buy_order_id = self.trader.buy(self.data.close[0])
+            self.buy_order = self.trader.buy(self.data.close[0])
             self.buy_limit_price = self.data.close[0]
 
     def next(self):
@@ -103,15 +101,15 @@ class TrailingStopStrategy(bt.Strategy):
             self.order_quantity = self.trader.crypto_buying_power / self.data.close[0]
             self.lwm = self.hwm = self.price_of_last_sale = self.data.close[0]
 
-        if self.buy_order_id is not None and self.trader.trading_client.get_order_by_id(
-                self.buy_order_id).status == OrderStatus.FILLED:
+        if self.buy_order is not None and self.trader.trading_client.get_order_by_id(
+                self.buy_order).status == OrderStatus.FILLED:
             self.buy_crypto()
-            self.buy_order_id = None
+            self.buy_order = None
             self.buy_limit_price = None
-        elif self.sell_order_id is not None and self.trader.trading_client.get_order_by_id(
-                self.sell_order_id).status == OrderStatus.FILLED:
+        elif self.sell_order is not None and self.trader.trading_client.get_order_by_id(
+                self.sell_order).status == OrderStatus.FILLED:
             self.sell_crypto()
-            self.sell_order_id = None
+            self.sell_order = None
             self.sell_limit_price = None
 
             #     if self.data.close[0] == 0:
@@ -124,8 +122,8 @@ class TrailingStopStrategy(bt.Strategy):
         #         self._start_trade()
         # else:
         self._start_trade()
-        print(self.data.close[0])
         if self.cerebro.params.live:
+            print(self.data.close[0])
             time.sleep(54)
 
     def stop(self):

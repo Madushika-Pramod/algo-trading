@@ -89,7 +89,7 @@ class Alpaca_Crypto_WebSocket:
 
         listen_message = {
             "action": "subscribe",
-            "trades": ["LINK/USD"],
+            # "trades": ["LINK/USD"],
             "bars": ["LINK/USD"]
         }
         ws.send(json.dumps(listen_message))
