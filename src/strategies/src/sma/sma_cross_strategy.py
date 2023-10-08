@@ -7,6 +7,7 @@ import pytz
 from app.src import constants
 from app.src.notify import news
 from broker.src.alpaca_trader import get_trade_updates, AlpacaTrader
+from strategies.src.indicators.prev_close_indicator import PrevCloseIndicator
 from strategies.src.indicators.talib_sma import TALibSMA
 
 
@@ -173,10 +174,13 @@ class _State:
 class _Indicators:
 
     def __init__(self, params, data):
-        fast_moving_avg = TALibSMA(period=params.fast_ma_period)
-        slow_moving_avg = TALibSMA(period=params.slow_ma_period)
+        # fast_moving_avg = TALibSMA(period=params.fast_ma_period)
+        self.slow_moving_avg = TALibSMA(period=params.slow_ma_period)
+        #
+        # self.moving_avg_crossover_indicator = bt.ind.CrossOver(fast_moving_avg, slow_moving_avg)
 
-        self.moving_avg_crossover_indicator = bt.ind.CrossOver(fast_moving_avg, slow_moving_avg)
+        prev_close_ind = PrevCloseIndicator(data)
+        self.bband = bt.ind.BollingerBands(prev_close_ind, period=params.slow_ma_period, devfactor=0.5)
         self._recorded_highest_price = bt.indicators.Highest(period=params.high_low_period)
         self._recorded_lowest_price = bt.indicators.Lowest(period=params.high_low_period)
         self._data = data
@@ -376,7 +380,7 @@ class _SmaCrossStrategy:
 
     def _is_ready_to_buy_based_on_volume_and_crossover(self):
         """If in buy state, and volume is sufficient, and there's a positive crossover, then buy"""
-        return self.state.ready_to_buy and self.indicators.current_volume() > self.config.median_volume and self.indicators.moving_avg_crossover_indicator > 0
+        return self.state.ready_to_buy and self.indicators.current_volume() > self.config.median_volume and self.indicators.current_price() > self.indicators.bband.lines.top[0] and self.indicators.current_price() < self.indicators.slow_moving_avg[0]
 
     def _is_profit(self):
         """If the gain from the bought price exceeds 'profit_threshold', continue without selling"""
@@ -388,7 +392,7 @@ class _SmaCrossStrategy:
 
     def _is_ready_to_sell_based_on_volume_and_crossover(self):
         """If in sell state, and volume is sufficient, and there's a negative crossover, then sell"""
-        return self.state.ready_to_sell and self.indicators.current_volume() > self.config.median_volume and self.indicators.moving_avg_crossover_indicator < 0
+        return self.state.ready_to_sell and self.indicators.current_volume() > self.config.median_volume and self.indicators.current_price() < self.indicators.bband.lines.bot[0] and self.indicators.current_price() > self.indicators.slow_moving_avg[0]
 
     def _start_trade(self, buy, sell):
         # Initiate a buy if conditions are met
