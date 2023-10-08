@@ -2,11 +2,12 @@ import asyncio
 import json
 import logging
 import os
+from unittest.mock import MagicMock
 
 import websockets
 from alpaca.data.historical.stock import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestTradeRequest
-from alpaca.trading import OrderSide, TimeInForce
+from alpaca.trading import OrderSide, TimeInForce, OrderStatus
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, TrailingStopOrderRequest
 
