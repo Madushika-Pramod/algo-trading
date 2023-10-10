@@ -13,7 +13,7 @@ from strategies.src.indicators.talib_sma import TALibSMA
 
 class SmaCrossStrategy(bt.Strategy):
     params = dict(
-        fast_ma_period=3,  # Period for the fast moving average
+
         slow_ma_period=15,  # Period for the slow moving average
         high_low_period=20,  # Period for tracking highest and lowest prices
         high_low_tolerance=0.15,  # Tolerance for approximating high or low prices
@@ -380,7 +380,7 @@ class _SmaCrossStrategy:
 
     def _is_ready_to_buy_based_on_volume_and_crossover(self):
         """If in buy state, and volume is sufficient, and there's a positive crossover, then buy"""
-        return self.state.ready_to_buy and self.indicators.current_volume() > self.config.median_volume and self.indicators.current_price() > self.indicators.bband.lines.top[0] and self.indicators.current_price() < self.indicators.slow_moving_avg[0]
+        return self.state.ready_to_buy and self.indicators.current_volume() > self.config.median_volume and self.indicators.current_price() > self.indicators.bband.lines.top[0] and self.indicators.current_price() < self.indicators.slow_moving_avg[0]  # when seasonal and sma = price
 
     def _is_profit(self):
         """If the gain from the bought price exceeds 'profit_threshold', continue without selling"""
