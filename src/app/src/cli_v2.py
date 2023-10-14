@@ -1,6 +1,6 @@
 # Importing logger_config to set up application-wide logging and exception handling
 # import logger_config
-# import logger_config
+
 
 import csv
 import logging
@@ -14,9 +14,9 @@ from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 
 def run_single(live=False):
-    buy_profit_threshold = 1.5
+    buy_profit_threshold = 1.0
     # fast_ma_period = 8
-    slow_ma_period = 14
+    slow_ma_period = 15
 
     median_volume, min_price = get_parameters(buy_profit_threshold=buy_profit_threshold, slow_ma_period=slow_ma_period)
 
@@ -108,9 +108,9 @@ def run_single(live=False):
             median_volume=median_volume,
             min_price=min_price,
 
-            high_low_period=25,
+            high_low_period=36,
             high_low_tolerance=0.5,
-            sell_profit_threshold=1.5,
+            sell_profit_threshold=3.0,
             buying_power=800,
             loss_value=15,
             last_sale_price=None,
@@ -159,7 +159,7 @@ def get_parameters(buy_profit_threshold=None, slow_ma_period=None):
 
 def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
                                              high_low_tolerance=None,
-                                             buy_profit_threshold=None, sell_profit_threshold=None, pre_count=1000):
+                                             buy_profit_threshold=None, sell_profit_threshold=None, pre_count=2966):
     buying_power = 800
     loss_value = 15
     last_sale_price = None
@@ -283,5 +283,6 @@ def run_parallel(config_process, configurations):
 
 
 if __name__ == "__main__":
+    # import logger_config
     # run_single()
     run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)

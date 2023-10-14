@@ -179,8 +179,9 @@ class _Indicators:
         #
         # self.moving_avg_crossover_indicator = bt.ind.CrossOver(fast_moving_avg, slow_moving_avg)
 
-        prev_close_ind = PrevCloseIndicator(data)
-        self.bband = bt.ind.BollingerBands(prev_close_ind, period=params.slow_ma_period, devfactor=0.5)
+        # prev_close_ind = PrevCloseIndicator(data)
+        # self.bband = bt.ind.BollingerBands(prev_close_ind, period=params.slow_ma_period, devfactor=0.5)
+        self.bband = bt.ind.BollingerBands(period=params.slow_ma_period, devfactor=0.5)
         self._recorded_highest_price = bt.indicators.Highest(period=params.high_low_period)
         self._recorded_lowest_price = bt.indicators.Lowest(period=params.high_low_period)
         self._data = data
