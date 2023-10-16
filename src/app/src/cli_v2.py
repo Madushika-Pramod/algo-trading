@@ -15,10 +15,14 @@ from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 def run_single(buy_profit_threshold=1.0, slow_ma_period=15, high_low_period=21, high_low_tolerance=0.5,
                sell_profit_threshold=3.0, live=False):
-    # fast_ma_period = 8
 
+    # todo don't forget to delete following in Colab
+    slow_ma_period = 48
+    high_low_period = 8
+    high_low_tolerance = 0.5
+    buy_profit_threshold = 3.5
+    sell_profit_threshold = 3.5
     median_volume, min_price = get_parameters(buy_profit_threshold=buy_profit_threshold, slow_ma_period=slow_ma_period)
-
     strategy = (
         SmaCrossStrategy,
         dict(
@@ -119,6 +123,7 @@ def run_single(buy_profit_threshold=1.0, slow_ma_period=15, high_low_period=21, 
     #             dict(period=10, poly_degree=2, predicted_line_length=2, line_degree=1, devfactor=1.0))
 
     # strategy = (DemoStrategy, {})
+
     result = BacktraderStrategy(live).add_strategy(strategy).run()
     logging.info(
         f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.average_return_on_investment * 100, 3)}%")
@@ -152,8 +157,9 @@ def get_parameters(buy_profit_threshold=None, slow_ma_period=None):
 
     stop = get_stop_point(close)
     min_value = df['close'].iloc[:stop].min()
-
-    return df['volume'].median(), min_value
+    median = df['volume'].median()
+    logging.info(f'median ={median}--min_value={min_value}')
+    return median, min_value
 
 
 def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, high_low_period=None,
@@ -207,7 +213,7 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, high_low_perio
                                     best_roi = result.average_return_on_investment
                                     roi_count = count
                                     print(
-                                        f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\n Buy Gain value: {bgv}\n Sell Gain value: {sgv}")
+                                        f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={ps}\nhigh_low_period={p}\nhigh_low_tolerance={e}\nbuy_profit_threshold={bgv}\nsell_profit_threshold={sgv}")
                                 print(f'{count}-{roi_count}')
                                 # print(result.total_return_on_investment)
                             elif count == stop_count:
@@ -294,8 +300,8 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
 config = dict(slow_ma_period=8, high_low_period=8, high_low_tolerance=5, buy_profit_threshold=2,
               sell_profit_threshold=2)
 
-# if __name__ == "__main__":
-#
-#     run_single()
+if __name__ == "__main__":
+    import logger_config
+    run_single()
 # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
 # run_parallel(pre_count=1000, increment=4)
