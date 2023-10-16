@@ -13,10 +13,10 @@ from app.src.back_trader import BacktraderStrategy
 from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 
-def run_single(live=False):
-    buy_profit_threshold = 1.0
+def run_single(buy_profit_threshold=1.0, slow_ma_period=15, high_low_period=21, high_low_tolerance=0.5,
+               sell_profit_threshold=3.0, live=False):
+    import logger_config
     # fast_ma_period = 8
-    slow_ma_period = 15
 
     median_volume, min_price = get_parameters(buy_profit_threshold=buy_profit_threshold, slow_ma_period=slow_ma_period)
 
@@ -108,9 +108,9 @@ def run_single(live=False):
             median_volume=median_volume,
             min_price=min_price,
 
-            high_low_period=36,
-            high_low_tolerance=0.5,
-            sell_profit_threshold=3.0,
+            high_low_period=high_low_period,
+            high_low_tolerance=high_low_tolerance,
+            sell_profit_threshold=sell_profit_threshold,
             buying_power=800,
             loss_value=15,
             last_sale_price=None,
@@ -157,9 +157,10 @@ def get_parameters(buy_profit_threshold=None, slow_ma_period=None):
     return df['volume'].median(), min_value
 
 
-def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, slow_ma_period=None, high_low_period=None,
+def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, high_low_period=None,
                                              high_low_tolerance=None,
-                                             buy_profit_threshold=None, sell_profit_threshold=None, pre_count=2966):
+                                             buy_profit_threshold=None, sell_profit_threshold=None, pre_count=None):
+    best_roi = 0
     buying_power = 800
     loss_value = 15
     last_sale_price = None
@@ -216,7 +217,7 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
                                     roi_count = count
                                     print(
                                         f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\n Buy Gain value: {bgv}\n Sell Gain value: {sgv}")
-                                print(count)
+                                print(f'{count}-{roi_count}')
                                 # print(result.total_return_on_investment)
                             count += 1
 
@@ -227,11 +228,11 @@ def get_sma_cross_strategy_v2_optimum_params(best_roi=0, fast_ma_period=None, sl
 
 
 configurations_for_sma_cross_v2 = [
-    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=8, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(slow_ma_period=8, high_low_period=8, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
-    dict(fast_ma_period=3, slow_ma_period=8, high_low_period=35, high_low_tolerance=5, buy_profit_threshold=2,
+    dict(slow_ma_period=8, high_low_period=35, high_low_tolerance=5, buy_profit_threshold=2,
          sell_profit_threshold=2),
     # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=22, high_low_tolerance=5, buy_profit_threshold=2,
     #      sell_profit_threshold=2),
@@ -267,9 +268,14 @@ def sma_cross_v2_config_process(config):
     return get_sma_cross_strategy_v2_optimum_params(**config)
 
 
-def run_parallel(config_process, configurations):
+def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, pre_count=0):
+    processes = []
     # Create processes
-    processes = [multiprocessing.Process(target=config_process, args=(config,)) for config in configurations]
+    if configurations is None:
+        for config in configurations_for_sma_cross_v2:
+            config['pre_count'] = pre_count
+            processes.append(multiprocessing.Process(target=config_process, args=(config,)))
+    # processes = [multiprocessing.Process(target=config_process, args=(config,)) for config in configurations]
 
     # Start processes
     for p in processes:
@@ -281,8 +287,8 @@ def run_parallel(config_process, configurations):
 
     logging.info('All functions have finished executing')
 
-
-if __name__ == "__main__":
-    # import logger_config
-    # run_single()
-    run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
+# if __name__ == "__main__":
+#
+#     run_single()
+# run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
+# run_parallel()

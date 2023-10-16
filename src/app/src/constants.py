@@ -23,7 +23,7 @@ cash = 840
 voice_alert_frequency = 3
 
 time_frame = "minute"  # hour
-period_in_days = 6
+period_in_days = 10
 
 # your strategy dynamically sizes positions based on available cash,
 # it might attempt to different position when you change cash amount so

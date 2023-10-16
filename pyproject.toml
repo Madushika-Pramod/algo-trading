@@ -24,4 +24,6 @@ src_layout = true
 
 [tool.pdm.scripts]
 test = "python -m unittest discover"
-algo = "pdm run src/app/src/cli_v2.py"
+#algo = "pdm run src/app/src/cli_v2.py"
+algo = "pdm run python src/app/src/run.py --run algo"
+tune = "pdm run python src/app/src/run.py --run tune"
