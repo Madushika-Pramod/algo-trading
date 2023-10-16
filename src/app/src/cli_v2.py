@@ -15,7 +15,6 @@ from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 def run_single(buy_profit_threshold=1.0, slow_ma_period=15, high_low_period=21, high_low_tolerance=0.5,
                sell_profit_threshold=3.0, live=False):
-    import logger_config
     # fast_ma_period = 8
 
     median_volume, min_price = get_parameters(buy_profit_threshold=buy_profit_threshold, slow_ma_period=slow_ma_period)
@@ -159,31 +158,23 @@ def get_parameters(buy_profit_threshold=None, slow_ma_period=None):
 
 def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, high_low_period=None,
                                              high_low_tolerance=None,
-                                             buy_profit_threshold=None, sell_profit_threshold=None, pre_count=None):
+                                             buy_profit_threshold=None, sell_profit_threshold=None, start_count=None,
+                                             stop_count=None):
     best_roi = 0
     buying_power = 800
     loss_value = 15
     last_sale_price = None
     median_volume, min_price = get_parameters(buy_profit_threshold=buy_profit_threshold, slow_ma_period=slow_ma_period)
 
-    p2 = None
     count = 0
     roi_count = 0
     statistics = [
         ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error",
          "Buy Gain Value", "Sell Gain value"]]
     try:
-        for p in range(high_low_period, 50):
-            p2 = p
-            if p == high_low_period + 2:
-                # print(
-                #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
-                print(p - 2)
-                print(f"Total Count: {count}")
-                print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
-                write_csv(statistics)
 
-                raise Exception("=== Parameter Tuning successfully terminated===")
+        for p in range(high_low_period, 50):
+
             # for pf in range(fast_ma_period, 31):
             for ps in range(slow_ma_period, 61):
                 # if pf > ps:
@@ -195,7 +186,7 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, high_low_perio
                         sgv = yy / 2
                         for y in range(buy_profit_threshold, 9):
                             bgv = y / 2
-                            if count >= pre_count:
+                            if stop_count > count >= start_count:
                                 result = BacktraderStrategy(live=False
                                                             ).add_strategy((SmaCrossStrategy,
                                                                             dict(
@@ -219,38 +210,48 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, high_low_perio
                                         f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\n Period Slow: {ps}\n high_low_period: {p}\n high_low_error: {e}\n Buy Gain value: {bgv}\n Sell Gain value: {sgv}")
                                 print(f'{count}-{roi_count}')
                                 # print(result.total_return_on_investment)
+                            elif count == stop_count:
+                                # print(
+                                #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
+
+                                print(f"Last Count: {count}")
+                                print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
+                                write_csv(statistics)
+
+                                raise Exception("=== Parameter Tuning successfully terminated===")
                             count += 1
+        print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
-        print(f"high_low_period: {p2}-current Count: {count}-Best ROI: {best_roi * 100}%")
+        print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
         write_csv(statistics)
 
 
-configurations_for_sma_cross_v2 = [
-    dict(slow_ma_period=8, high_low_period=8, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2),
-    dict(slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2),
-    dict(slow_ma_period=8, high_low_period=35, high_low_tolerance=5, buy_profit_threshold=2,
-         sell_profit_threshold=2),
-    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=22, high_low_tolerance=5, buy_profit_threshold=2,
-    #      sell_profit_threshold=2),
-    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=14, high_low_tolerance=5, buy_profit_threshold=2,
-    #      sell_profit_threshold=2),
-    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=16, high_low_tolerance=5, buy_profit_threshold=2,
-    #      sell_profit_threshold=2),
-    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=18, high_low_tolerance=5, buy_profit_threshold=2,
-    #      sell_profit_threshold=2),
-    # dict(fast_ma_period=3, slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
-    #      sell_profit_threshold=2)
-    #      pre_count=36587),
-    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
-    #      pre_count=36585),
-    # dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=2, profit_threshold=2,
-    #      pre_count=36164)
+# configurations_for_sma_cross_v2 = [
+#     dict(slow_ma_period=8, high_low_period=8, high_low_tolerance=5, buy_profit_threshold=2,
+#          sell_profit_threshold=2),
+#     dict(slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
+#          sell_profit_threshold=2),
+#     dict(slow_ma_period=8, high_low_period=35, high_low_tolerance=5, buy_profit_threshold=2,
+#          sell_profit_threshold=2),
+# dict(fast_ma_period=3, slow_ma_period=8, high_low_period=22, high_low_tolerance=5, buy_profit_threshold=2,
+#      sell_profit_threshold=2),
+# dict(fast_ma_period=3, slow_ma_period=8, high_low_period=14, high_low_tolerance=5, buy_profit_threshold=2,
+#      sell_profit_threshold=2),
+# dict(fast_ma_period=3, slow_ma_period=8, high_low_period=16, high_low_tolerance=5, buy_profit_threshold=2,
+#      sell_profit_threshold=2),
+# dict(fast_ma_period=3, slow_ma_period=8, high_low_period=18, high_low_tolerance=5, buy_profit_threshold=2,
+#      sell_profit_threshold=2),
+# dict(fast_ma_period=3, slow_ma_period=8, high_low_period=20, high_low_tolerance=5, buy_profit_threshold=2,
+#      sell_profit_threshold=2)
+#      pre_count=36587),
+# dict(fast_ma_period=2, slow_ma_period=3, high_low_period=8, high_low_tolerance=2, profit_threshold=2,
+#      pre_count=36585),
+# dict(fast_ma_period=2, slow_ma_period=3, high_low_period=22, high_low_tolerance=2, profit_threshold=2,
+#      pre_count=36164)
 
-]
+# ]
 
 
 def write_csv(statistics):
@@ -268,13 +269,15 @@ def sma_cross_v2_config_process(config):
     return get_sma_cross_strategy_v2_optimum_params(**config)
 
 
-def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, pre_count=0):
+def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000):
+    global config
     processes = []
-    # Create processes
     if configurations is None:
-        for config in configurations_for_sma_cross_v2:
-            config['pre_count'] = pre_count
+        for _ in range(2):
+            config['start_count'] = start_count
+            config['stop_count'] = start_count = start_count + increment
             processes.append(multiprocessing.Process(target=config_process, args=(config,)))
+            config = config.copy()
     # processes = [multiprocessing.Process(target=config_process, args=(config,)) for config in configurations]
 
     # Start processes
@@ -287,8 +290,12 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
 
     logging.info('All functions have finished executing')
 
+
+config = dict(slow_ma_period=8, high_low_period=8, high_low_tolerance=5, buy_profit_threshold=2,
+              sell_profit_threshold=2)
+
 # if __name__ == "__main__":
 #
 #     run_single()
 # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
-# run_parallel()
+# run_parallel(pre_count=1000, increment=4)
