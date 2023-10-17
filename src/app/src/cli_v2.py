@@ -226,7 +226,7 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, high_low_perio
 
                                 raise Exception("=== Parameter Tuning successfully terminated===")
                             count += 1
-        print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
+        print(f"Total Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
