@@ -13,16 +13,17 @@ from app.src.back_trader import BacktraderStrategy
 from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 
-def run_single(buy_profit_threshold=1.0, slow_ma_period=15, high_low_period=21, high_low_tolerance=0.5,
-               sell_profit_threshold=3.0, live=False):
+def run_single(live=False):
 
     # todo don't forget to delete following in Colab
-    slow_ma_period = 48
-    high_low_period = 8
-    high_low_tolerance = 0.5
-    buy_profit_threshold = 3.5
-    sell_profit_threshold = 3.5
-    median_volume, min_price = get_parameters(buy_profit_threshold=buy_profit_threshold, slow_ma_period=slow_ma_period)
+    slow_ma_period = 64
+    fast_ma_period = 56
+    devfactor = 0.5
+    # high_low_period = 8
+    # high_low_tolerance = 0.5
+    # buy_profit_threshold = 3.5
+    # sell_profit_threshold = 3.5
+    median_volume, min_price = get_parameters(slow_ma_period=slow_ma_period)
     strategy = (
         SmaCrossStrategy,
         dict(
@@ -107,13 +108,16 @@ def run_single(buy_profit_threshold=1.0, slow_ma_period=15, high_low_period=21, 
             # sep 21
             # fast_ma_period=fast_ma_period,
             slow_ma_period=slow_ma_period,
-            buy_profit_threshold=buy_profit_threshold,
+            fast_ma_period=fast_ma_period,
+            devfactor=devfactor,
+
             median_volume=median_volume,
             min_price=min_price,
 
-            high_low_period=high_low_period,
-            high_low_tolerance=high_low_tolerance,
-            sell_profit_threshold=sell_profit_threshold,
+            # buy_profit_threshold=buy_profit_threshold,
+            # high_low_period=high_low_period,
+            # high_low_tolerance=high_low_tolerance,
+            # sell_profit_threshold=sell_profit_threshold,
             buying_power=800,
             loss_value=15,
             last_sale_price=None,
@@ -132,7 +136,7 @@ def run_single(buy_profit_threshold=1.0, slow_ma_period=15, high_low_period=21, 
     #     f"Number of Trades: {result.state.trading_count}\nReturn on investment: {round(result.state.total_return_on_investment * 100, 3)}%")
 
 
-def get_parameters(buy_profit_threshold=None, slow_ma_period=None):
+def get_parameters(slow_ma_period=None):
     def get_stop_point(column):
         # here we get sma values
         _min_value = column.iloc[0]
@@ -144,7 +148,7 @@ def get_parameters(buy_profit_threshold=None, slow_ma_period=None):
             if column.iloc[i] < _min_value:
                 _min_value = column.iloc[i]
                 # _min_value_value_index = i
-            elif _min_value + buy_profit_threshold < column.iloc[i]:
+            elif _min_value + column.iloc[0] * 0.05 < column.iloc[i]:
                 return i
         return len(column)
 
@@ -162,76 +166,65 @@ def get_parameters(buy_profit_threshold=None, slow_ma_period=None):
     return median, min_value
 
 
-def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, high_low_period=None,
-                                             high_low_tolerance=None,
-                                             buy_profit_threshold=None, sell_profit_threshold=None, start_count=None,
-                                             stop_count=None):
+def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period=None,devfactor=None,start_count=None,stop_count=None):
     best_roi = 0
     buying_power = 800
     loss_value = 15
     last_sale_price = None
-    median_volume, min_price = get_parameters(buy_profit_threshold=buy_profit_threshold, slow_ma_period=slow_ma_period)
+    median_volume, min_price = get_parameters(slow_ma_period=slow_ma_period)
 
     count = 0
     roi_count = 0
-    statistics = [
-        ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "high & low Period", "high & low Error",
-         "Buy Gain Value", "Sell Gain value"]]
+    # statistics = [["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]]
     try:
+        for pf in range(fast_ma_period, 31):
+                for ps in range(slow_ma_period, 100):
+                    if pf > ps:
+                        continue
+                    for yy in range(devfactor, 6):
+                        df = yy / 2
 
-        for p in range(high_low_period, 50):
+                        if stop_count > count >= start_count:
+                            result = BacktraderStrategy(live=False
+                                                        ).add_strategy((SmaCrossStrategy,
+                                                                        dict(
+                                                                            slow_ma_period=ps,
+                                                                            fast_ma_period=pf,
+                                                                            devfactor=df,
 
-            # for pf in range(fast_ma_period, 31):
-            for ps in range(slow_ma_period, 61):
-                # if pf > ps:
-                #     continue
-                for x in range(high_low_tolerance, 6):  # ignored
-                    # Dev-Factor from 1, 1.5, 2
-                    e = x / 10
-                    for yy in range(sell_profit_threshold, 9):
-                        sgv = yy / 2
-                        for y in range(buy_profit_threshold, 9):
-                            bgv = y / 2
-                            if stop_count > count >= start_count:
-                                result = BacktraderStrategy(live=False
-                                                            ).add_strategy((SmaCrossStrategy,
-                                                                            dict(
-                                                                                slow_ma_period=ps,
-                                                                                high_low_period=p,
-                                                                                high_low_tolerance=e,
-                                                                                buy_profit_threshold=bgv,
-                                                                                sell_profit_threshold=sgv,
-                                                                                buying_power=buying_power,
-                                                                                min_price=min_price,
-                                                                                loss_value=loss_value,
-                                                                                last_sale_price=last_sale_price,
-                                                                                median_volume=median_volume, ))).run()
-                                # statistics.append(
-                                #     [count, result.trading_count, result.average_return_on_investment, ps, p, e,
-                                #      bgv, sgv])
-                                if result.average_return_on_investment > best_roi:
-                                    best_roi = result.average_return_on_investment
-                                    roi_count = count
-                                    print(
-                                        f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={ps}\nhigh_low_period={p}\nhigh_low_tolerance={e}\nbuy_profit_threshold={bgv}\nsell_profit_threshold={sgv}")
-                                print(f'{count}-{roi_count}')
-                                # print(result.total_return_on_investment)
-                            elif count == stop_count:
-                                # print(
-                                #     f"Last Period: {p-1}===Degree: {d}\n Elapsed time: {(time.time() - start_time) / 60} minutes")
+                                                                            # high_low_period=p,
+                                                                            # high_low_tolerance=e,
+                                                                            # buy_profit_threshold=bgv,
+                                                                            # sell_profit_threshold=sgv,
+                                                                            buying_power=buying_power,
+                                                                            min_price=min_price,
+                                                                            loss_value=loss_value,
+                                                                            last_sale_price=last_sale_price,
+                                                                            median_volume=median_volume, ))).run()
+                            # statistics.append(
+                            #     [count, result.trading_count, result.average_return_on_investment, ps, p, e,
+                            #      bgv, sgv])
+                            if result.average_return_on_investment > best_roi:
+                                best_roi = result.average_return_on_investment
+                                roi_count = count
+                                print(
+                                    f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={ps}\nfast_ma_period={pf}\ndevfactor={df}")
+                            print(f'{count}-{roi_count}--{best_roi}')
+                            # print(result.total_return_on_investment)
+                        elif count == stop_count:
 
-                                print(f"Last Count: {count}")
-                                print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
-                                write_csv(statistics)
+                            print(f"Last Count: {count}")
+                            print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
+                            # write_csv(statistics)
 
-                                raise Exception("=== Parameter Tuning successfully terminated===")
-                            count += 1
+                            raise Exception("=== Parameter Tuning successfully terminated===")
+                        count += 1
         print(f"Total Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
-        write_csv(statistics)
+        # write_csv(statistics)
 
 
 # configurations_for_sma_cross_v2 = [
@@ -276,9 +269,10 @@ def sma_cross_v2_config_process(config):
 
 
 def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000):
-    global config
+
     processes = []
     if configurations is None:
+        global config
         for _ in range(2):
             config['start_count'] = start_count
             config['stop_count'] = start_count = start_count + increment
@@ -297,11 +291,11 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
     logging.info('All functions have finished executing')
 
 
-config = dict(slow_ma_period=8, high_low_period=8, high_low_tolerance=5, buy_profit_threshold=2,
-              sell_profit_threshold=2)
+config = dict(slow_ma_period=8, fast_ma_period=2, devfactor=2)
 
 if __name__ == "__main__":
     import logger_config
     run_single()
+    # run_parallel(start_count=5000, increment=100)
 # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
-# run_parallel(pre_count=1000, increment=4)
+
