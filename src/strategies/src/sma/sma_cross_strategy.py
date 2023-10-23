@@ -1,5 +1,6 @@
 import logging
 import threading
+import numpy as np
 
 import backtrader as bt
 import pytz
@@ -197,6 +198,7 @@ class _Indicators:
         return bt.num2date(self.data.datetime[0]).replace(tzinfo=pytz.utc).astimezone(
             pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
 
+
     def current_volume(self):
         return self.data.volume[0]
 
@@ -340,16 +342,7 @@ class _SmaCrossStrategy:
         return self.indicators.current_volume() > self.config.median_volume and self.indicators.moving_avg_crossover_indicator < 0  # self.indicators.current_price() < self.indicators.fast_moving_avg < self.indicators.slow_moving_avg # and self.indicators.fast_moving_avg < self.indicators.bband.lines.top[0]
 
     def _start_trade(self, buy, sell):
-        # Initiate a buy if conditions are met
-        if self._conditions_met_for_buy():
-            self._start_buy_process(buy)
-
-        # Initiate a sell if conditions are met
-        elif self._conditions_met_for_sell():
-            self._start_sell_process(sell)
-
-        # it doesn't execute this step if live trading
-        elif self.initial_buy_condition():
+        if self.initial_buy_condition():
             # print('235')
             # self.state.algorithm_performed_buy_order_id = self.trader.buy(self.indicators.current_price())
             # logging.debug(f'236 -buy id: {self.state.algorithm_performed_buy_order_id}')
@@ -357,6 +350,15 @@ class _SmaCrossStrategy:
             self._initial_buy()
             self.indicators.buy_sell_ind.lines.buy[-1] = self.indicators.buy_sell_ind.lines.buy[0] = \
                 self.indicators.data.close[0]
+        # Initiate a buy if conditions are met
+        # if self._conditions_met_for_buy():
+        self._start_buy_process(buy)
+
+        # Initiate a sell if conditions are met
+        # elif self._conditions_met_for_sell():
+        self._start_sell_process(sell)
+
+        # it doesn't execute this step if live trading
 
     def _check_alpaca_status(self):
         # Check and execute buy orders on alpaca
@@ -383,13 +385,8 @@ class _SmaCrossStrategy:
             self._halt_trading_and_alert()
 
     def buy(self):
-        self._reset_buy_state()
-        # assume that lowest_price = last_purchase
-        self.state.lowest_price = self.state.price_of_last_purchase = self.indicators.current_price()
-        # current_balance = (previous sell -> order_quantity) * price_of_last_sale
-        # order_quantity = current_balance /price
-        # here total buying power is considered as (previous order_quantity * price_of_last_sale)we invest all money
-        self.state.order_quantity = self.state.order_quantity * self.state.price_of_last_sale / self.indicators.current_price()
+
+        self.state.price_of_last_purchase = self.indicators.current_price()
         self.notify_order(True)
         self.update_buy_error_list()
 
@@ -397,7 +394,7 @@ class _SmaCrossStrategy:
         if self.state.buy_date != self.indicators.data.datetime[0]:
             self.state.buy_date = self.indicators.data.datetime[0]
             converted_date = bt.num2date(self.indicators.data.datetime[0]). \
-                replace(tzinfo=pytz.utc).astimezone(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d')
+                replace(tzinfo=pytz.utc).astimezone(pytz.timezone('UTC')).strftime('%Y-%m-%d')
             self.state.current_min = self.config.max_min_dic[converted_date][1]
             if self.state.buy_daily_error_list:
                 self.state.buy_error_list.append(min(self.state.buy_daily_error_list))
@@ -418,8 +415,7 @@ class _SmaCrossStrategy:
         self.state.sell_daily_error_list.append(self.state.current_max - self.indicators.current_price())
 
     def sell(self):
-        self.state.highest_price = self.state.price_of_last_sale = self.indicators.current_price()
-        self._reset_sell_state()
+        self.state.price_of_last_sale = self.indicators.current_price()
         self.notify_order(False)
         self.update_sell_error_list()
 
@@ -439,7 +435,25 @@ class _SmaCrossStrategy:
         self._start_trade(self.buy, self.sell)
 
     def stop(self):
-        self.state.max_errors = (max(self.state.buy_error_list), max(self.state.sell_error_list))
+        def filter_outliers(data):
+            data = np.array(data)
+            median = np.median(data)
+            mad = np.median(np.abs(data - median))
+            return [x for x in data if np.abs(x - median) / mad < 2]
+
+        _buy = _sell = 1000
+
+        if len(self.state.buy_error_list) > 2:
+            _buy = max(filter_outliers(self.state.buy_error_list))
+        elif self.state.buy_error_list:
+            _buy = min(self.state.buy_error_list)
+
+        if len(self.state.sell_error_list) > 2:
+            _sell = max(filter_outliers(self.state.sell_error_list))
+        elif self.state.sell_error_list:
+            _sell = min(self.state.sell_error_list)
+
+        self.state.max_errors = (_buy, _sell)
 
     def log(self, txt, dt=None):
         """ Logging function for the strategy """
@@ -453,12 +467,5 @@ class _SmaCrossStrategy:
             self.log('BUY EXECUTED, %.2f' % self.state.price_of_last_purchase)
         else:
             self.state.trading_count += 1
-            self.cumulative_profit \
-                += (self.state.price_of_last_sale - self.state.price_of_last_purchase) * self.state.order_quantity
 
-            self.state.roi[self.indicators.current_price_datetime()] \
-                = round(self.cumulative_profit / self.state.starting_buying_power, 3)
-
-            self.log(
-                'SELL EXECUTED, %.2f with quantity of %.10f' % (
-                    self.state.price_of_last_sale, self.state.order_quantity))
+            self.log('SELL EXECUTED, %.2f' % self.state.price_of_last_sale)

@@ -15,8 +15,7 @@ if __name__ == "__main__":
 
     if args.run == 'algo':
         import logger_config
-        run_single(buy_profit_threshold=args.values[0], slow_ma_period=int(args.values[1]), high_low_period=int(args.values[2]), high_low_tolerance=args.values[3],
-               sell_profit_threshold=args.values[4])
+        run_single(slow_ma_period=int(args.values[0]), fast_ma_period=int(args.values[1]))
     elif args.run == 'tune':
         run_parallel(start_count=args.count[0], increment=args.count[1])
     elif args.run == 'data':
