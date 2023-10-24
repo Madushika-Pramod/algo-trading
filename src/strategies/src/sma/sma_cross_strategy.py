@@ -399,23 +399,20 @@ class _SmaCrossStrategy:
             if self.state.buy_daily_error_list:
                 self.state.buy_error_list.append(min(self.state.buy_daily_error_list))
                 self.state.buy_daily_error_list.clear()
-        e = self.indicators.current_price() - self.state.current_min
-        if e > 0:
-            self.state.buy_daily_error_list.append(e)
+
+        self.state.buy_daily_error_list.append(self.indicators.current_price() - self.state.current_min)
 
     def update_sell_error_list(self):
         if self.state.sell_date != self.indicators.data.datetime[0]:
             self.state.sell_date = self.indicators.data.datetime[0]
             converted_date = bt.num2date(self.indicators.data.datetime[0]). \
-                replace(tzinfo=pytz.utc).astimezone(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d')
+                replace(tzinfo=pytz.utc).astimezone(pytz.timezone('UTC')).strftime('%Y-%m-%d')
             self.state.current_max = self.config.max_min_dic[converted_date][0]
             if self.state.sell_daily_error_list:
                 self.state.sell_error_list.append(min(self.state.sell_daily_error_list))
                 self.state.sell_daily_error_list.clear()
 
-        e = self.state.current_max - self.indicators.current_price()
-        if e > 0:
-            self.state.sell_daily_error_list.append(self.state.current_max - self.indicators.current_price())
+        self.state.sell_daily_error_list.append(self.state.current_max - self.indicators.current_price())
 
     def sell(self):
         self.state.price_of_last_sale = self.indicators.current_price()

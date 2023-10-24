@@ -101,7 +101,12 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
 
     count = 0
     best_count = 0
-    statistics = [["iteration", "Trading Count", "Buy Error", "Sell Error", "Mean Error", "Fast Period", "Slow Period"]]
+    statistics = {}
+
+    header = ["iteration", "Trading Count", "Buy Error", "Sell Error", "Mean Error", "Fast Period", "Slow Period"]
+    with open(constants.stat_file_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(header)  # writing the header
     try:
         for pf in range(fast_ma_period, 300):
             for ps in range(slow_ma_period, 500):
@@ -123,8 +128,7 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
                                                                     last_sale_price=last_sale_price,
                                                                     median_volume=median_volume, ))).run()
                     me = (result.max_errors[0] + result.max_errors[1]) / 2
-                    statistics.append(
-                        [count, result.trading_count, result.max_errors[0], result.max_errors[1], me, pf, ps])
+                    statistics[me] = [count, result.trading_count, result.max_errors[0], result.max_errors[1], me, pf, ps]
 
                     if me < mean_error:
                         mean_error = me
@@ -151,19 +155,20 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
-        # write_csv(statistics)
+        write_csv(statistics)
+
+    except:
+        print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
+        print(f"current Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
+        write_csv(statistics)
 
 
 def write_csv(statistics):
-    # header = ["ROI", "Dev Factor", "Rsi period", "Rsi low", "Rsi high", "Bollinger Period", "Gain value"]
-    statistics.sort()
-    data = statistics[: len(statistics)//2]
+    sorted_keys = sorted(statistics.keys())[:len(statistics)//2]
     with open(constants.stat_file_path, 'a', newline='') as file:
         writer = csv.writer(file)
-        # writer.writerow(header)  # writing the header
-
-        for entry in data:
-            writer.writerow(entry)  # writing each entry as a row
+        for key in sorted_keys:
+            writer.writerow(statistics[key])  # writing each entry as a row
 
     statistics.clear()
 
@@ -201,11 +206,7 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
 config = dict(slow_ma_period=3, fast_ma_period=2)
 
 if __name__ == "__main__":
-    df = pd.read_csv(constants.csv_file_path)
-    get_max_min_price(df)
-
-
     # import logger_config
     # run_single()
-    # run_parallel(start_count=0, increment=1300)
+    run_parallel(start_count=0, increment=1300)
 # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
