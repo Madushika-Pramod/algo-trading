@@ -139,7 +139,7 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
                             f"count : {count}\nBest errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)}\nslow_ma_period={ps}\nfast_ma_period={pf}")
                     print(f'{count}-{best_count}:::{buy_error},{sell_error}')
                     # print(result.total_return_on_investment)
-                    if count % 2 == 0:
+                    if count % 2000 == 0:
                         write_csv(statistics)
                 elif count == stop_count:
 
