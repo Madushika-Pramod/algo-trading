@@ -201,7 +201,11 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
 config = dict(slow_ma_period=3, fast_ma_period=2)
 
 if __name__ == "__main__":
-    import logger_config
-    run_single()
+    df = pd.read_csv(constants.csv_file_path)
+    get_max_min_price(df)
+
+
+    # import logger_config
+    # run_single()
     # run_parallel(start_count=0, increment=1300)
 # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)

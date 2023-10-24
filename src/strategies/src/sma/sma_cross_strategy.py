@@ -399,8 +399,9 @@ class _SmaCrossStrategy:
             if self.state.buy_daily_error_list:
                 self.state.buy_error_list.append(min(self.state.buy_daily_error_list))
                 self.state.buy_daily_error_list.clear()
-
-        self.state.buy_daily_error_list.append(self.indicators.current_price() - self.state.current_min)
+        e = self.indicators.current_price() - self.state.current_min
+        if e > 0:
+            self.state.buy_daily_error_list.append(e)
 
     def update_sell_error_list(self):
         if self.state.sell_date != self.indicators.data.datetime[0]:
@@ -412,7 +413,9 @@ class _SmaCrossStrategy:
                 self.state.sell_error_list.append(min(self.state.sell_daily_error_list))
                 self.state.sell_daily_error_list.clear()
 
-        self.state.sell_daily_error_list.append(self.state.current_max - self.indicators.current_price())
+        e = self.state.current_max - self.indicators.current_price()
+        if e > 0:
+            self.state.sell_daily_error_list.append(self.state.current_max - self.indicators.current_price())
 
     def sell(self):
         self.state.price_of_last_sale = self.indicators.current_price()
