@@ -101,13 +101,15 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
 
     count = 0
     best_count = 0
-    # statistics = [["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]]
+    statistics = [["iteration", "Trading Count", "Buy Error", "Sell Error", "Mean Error", "Fast Period", "Slow Period"]]
     try:
-        for pf in range(fast_ma_period, 31):
-            for ps in range(slow_ma_period, 100):
+        for pf in range(fast_ma_period, 300):
+            for ps in range(slow_ma_period, 500):
                 if pf > ps:
                     continue
+
                 if stop_count > count >= start_count:
+
                     result = BacktraderStrategy(live=False
                                                 ).add_strategy((SmaCrossStrategy,
                                                                 dict(
@@ -120,11 +122,12 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
                                                                     loss_value=loss_value,
                                                                     last_sale_price=last_sale_price,
                                                                     median_volume=median_volume, ))).run()
-                    # statistics.append(
-                    #     [count, result.trading_count, result.average_return_on_investment, ps, p, e,
-                    #      bgv, sgv])
-                    if (result.max_errors[0] + result.max_errors[1]) / 2 < mean_error:
-                        mean_error = (result.max_errors[0] + result.max_errors[1]) / 2
+                    me = (result.max_errors[0] + result.max_errors[1]) / 2
+                    statistics.append(
+                        [count, result.trading_count, result.max_errors[0], result.max_errors[1], me, pf, ps])
+
+                    if me < mean_error:
+                        mean_error = me
                         buy_error = result.max_errors[0]
                         sell_error = result.max_errors[1]
                         best_count = count
@@ -132,11 +135,14 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
                             f"count : {count}\nBest errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)}\nslow_ma_period={ps}\nfast_ma_period={pf}")
                     print(f'{count}-{best_count}:::{buy_error},{sell_error}')
                     # print(result.total_return_on_investment)
+                    if count % 2000 == 0:
+                        write_csv(statistics)
                 elif count == stop_count:
 
                     print(f"Last Count: {count}")
                     print(f"Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
-                    # write_csv(statistics)
+
+                    write_csv(statistics)
 
                     raise Exception("=== Parameter Tuning successfully terminated===")
                 count += 1
@@ -150,14 +156,16 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
 
 def write_csv(statistics):
     # header = ["ROI", "Dev Factor", "Rsi period", "Rsi low", "Rsi high", "Bollinger Period", "Gain value"]
-
-    with open(constants.stat_file_path, 'w', newline='') as file:
+    statistics.sort()
+    data = statistics[: len(statistics)//2]
+    with open(constants.stat_file_path, 'a', newline='') as file:
         writer = csv.writer(file)
         # writer.writerow(header)  # writing the header
 
-        for entry in statistics:
+        for entry in data:
             writer.writerow(entry)  # writing each entry as a row
 
+    statistics.clear()
 
 def sma_cross_v2_config_process(config):
     return get_sma_cross_strategy_v2_optimum_params(**config)
