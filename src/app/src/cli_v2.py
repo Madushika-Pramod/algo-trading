@@ -2,6 +2,7 @@
 # import logger_config
 
 
+
 import csv
 import logging
 import multiprocessing
@@ -72,6 +73,40 @@ def get_median_min(slow_ma_period=None, df=None):
     return median, min_value
 
 
+# def get_max_min_price(df):
+#     summary_dict = {}
+#     min_price = None
+#     max_price = None
+#     prev_date = None
+#
+#     def update_dic(row):
+#         nonlocal min_price, max_price, prev_date
+#         # Extract just the date part of the datetime string
+#         date_str = row[1].split(" ")[0]
+#         price = float(row[5])
+#
+#         if prev_date is None:
+#             prev_date = date_str
+#             min_price = price
+#             max_price = price
+#
+#         if date_str == prev_date:
+#             if price > max_price:
+#                 max_price = price
+#             elif price < min_price:
+#                 min_price = price
+#         else:
+#             summary_dict[prev_date] = [max_price, min_price]
+#             prev_date = date_str
+#             min_price = price
+#             max_price = price
+#
+#     df.apply(update_dic, axis=1)
+#     # Adding the last date
+#     if prev_date is not None:
+#         summary_dict[prev_date] = [max_price, min_price]
+#
+#     return summary_dict
 def get_max_min_price(df):
     # parse column as a datetime
     df['date'] = pd.to_datetime(df['timestamp'])
@@ -101,7 +136,13 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
 
     count = 0
     best_count = 0
-    statistics = [["iteration", "Trading Count", "Buy Error", "Sell Error", "Mean Error", "Fast Period", "Slow Period"]]
+    statistics = {}
+
+    header = ["iteration", "Trading Count", "Buy Error", "Sell Error", "Mean Error", "Fast Period", "Slow Period"]
+    with open(constants.stat_file_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(header)  # writing the header
+
     try:
         for pf in range(fast_ma_period, 300):
             for ps in range(slow_ma_period, 500):
@@ -123,9 +164,8 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
                                                                     last_sale_price=last_sale_price,
                                                                     median_volume=median_volume, ))).run()
                     me = (result.max_errors[0] + result.max_errors[1]) / 2
-                    statistics.append(
-                        [count, result.trading_count, result.max_errors[0], result.max_errors[1], me, pf, ps])
-
+                    statistics[me] = [count, result.trading_count, result.max_errors[0], result.max_errors[1], me, pf,
+                                      ps]
                     if me < mean_error:
                         mean_error = me
                         buy_error = result.max_errors[0]
@@ -135,43 +175,43 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
                             f"count : {count}\nBest errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)}\nslow_ma_period={ps}\nfast_ma_period={pf}")
                     print(f'{count}-{best_count}:::{buy_error},{sell_error}')
                     # print(result.total_return_on_investment)
-                    if count % 2000 == 0:
+                    if count % 2 == 0:
                         write_csv(statistics)
                 elif count == stop_count:
 
                     print(f"Last Count: {count}")
-                    print(f"Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
+                    print(
+                        f"Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
 
                     write_csv(statistics)
 
                     raise Exception("=== Parameter Tuning successfully terminated===")
                 count += 1
-        print(f"Total Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
+        print(
+            f"Total Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
-        print(f"current Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
-        # write_csv(statistics)
+        print(
+            f"current Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
+        write_csv(statistics)
 
 
 def write_csv(statistics):
-    # header = ["ROI", "Dev Factor", "Rsi period", "Rsi low", "Rsi high", "Bollinger Period", "Gain value"]
-    statistics.sort()
-    data = statistics[: len(statistics)//2]
+    sorted_keys = sorted(statistics.keys())[:len(statistics) // 2000]
     with open(constants.stat_file_path, 'a', newline='') as file:
         writer = csv.writer(file)
-        # writer.writerow(header)  # writing the header
-
-        for entry in data:
-            writer.writerow(entry)  # writing each entry as a row
-
+        for key in sorted_keys:
+            writer.writerow(statistics[key])  # writing each entry as a row
     statistics.clear()
+
 
 def sma_cross_v2_config_process(config):
     return get_sma_cross_strategy_v2_optimum_params(**config)
 
 
-def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000, processing_units = 2):
+def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000,
+                 processing_units=2):
     processes = []
     if configurations is None:
         global config
@@ -201,7 +241,7 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
 config = dict(slow_ma_period=3, fast_ma_period=2)
 
 if __name__ == "__main__":
-    import logger_config
-    run_single()
-    # run_parallel(start_count=0, increment=1300)
+    # import logger_config
+    # run_single()
+    run_parallel(start_count=0, increment=1300)
 # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
