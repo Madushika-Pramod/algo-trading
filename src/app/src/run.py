@@ -17,7 +17,7 @@ if __name__ == "__main__":
         import logger_config
         run_single(slow_ma_period=int(args.values[0]), fast_ma_period=int(args.values[1]))
     elif args.run == 'tune':
-        run_parallel(start_count=args.count[0], increment=args.count[1])
+        run_parallel(start_count=args.count[0], increment=args.count[1], processing_units=8)
     elif args.run == 'data':
         import logger_config
         import os

@@ -27,4 +27,4 @@ test = "python -m unittest discover"
 #algo = "pdm run src/app/src/cli_v2.py"
 algo = "pdm run python src/app/src/run.py --run algo"
 tune = "pdm run python src/app/src/run.py --run tune"
-data = "pdm run python src/app/src/run.py --run data"
+data = "pdm run python src/app/src/run.py --run data" #ex: pdm run data

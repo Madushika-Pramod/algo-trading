@@ -171,7 +171,7 @@ def sma_cross_v2_config_process(config):
     return get_sma_cross_strategy_v2_optimum_params(**config)
 
 
-def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000):
+def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000, processing_units = 2):
     processes = []
     if configurations is None:
         global config
@@ -180,7 +180,7 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
         median_volume_min_price = get_median_min(slow_ma_period=config['slow_ma_period'], df=df)
         config['max_min_dic'] = max_min
         config['median_volume_min_price'] = median_volume_min_price
-        for _ in range(2):
+        for _ in range(processing_units):
             config['start_count'] = start_count
             config['stop_count'] = start_count = start_count + increment
             processes.append(multiprocessing.Process(target=config_process, args=(config,)))
