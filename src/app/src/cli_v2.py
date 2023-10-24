@@ -171,6 +171,7 @@ def write_csv(statistics):
             writer.writerow(statistics[key])  # writing each entry as a row
 
     statistics.clear()
+    print('data written to csv')
 
 def sma_cross_v2_config_process(config):
     return get_sma_cross_strategy_v2_optimum_params(**config)
