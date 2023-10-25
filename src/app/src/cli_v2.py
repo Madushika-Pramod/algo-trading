@@ -173,9 +173,15 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
     last_sale_price = None
     median_volume, min_price = get_parameters(slow_ma_period=slow_ma_period)
 
-    count = 0
-    roi_count = 0
-    # statistics = [["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]]
+    count = 1
+    roi_count = 1
+    statistics = {}
+
+    header = ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]
+    with open(constants.stat_file_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(header)  # writing the header
+
     try:
         for pf in range(fast_ma_period, 300):
                 for ps in range(slow_ma_period, 500):
@@ -192,8 +198,8 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
                                                                             fast_ma_period=pf,
                                                                             devfactor=df,
 
-                                                                            # high_low_period=p,
-                                                                            # high_low_tolerance=e,
+                                                                            high_low_period=20,
+                                                                            high_low_tolerance=0.15,
                                                                             # buy_profit_threshold=bgv,
                                                                             # sell_profit_threshold=sgv,
                                                                             buying_power=buying_power,
@@ -201,30 +207,34 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
                                                                             loss_value=loss_value,
                                                                             last_sale_price=last_sale_price,
                                                                             median_volume=median_volume, ))).run()
-                            # statistics.append(
-                            #     [count, result.trading_count, result.average_return_on_investment, ps, p, e,
-                            #      bgv, sgv])
+                            statistics[result.average_return_on_investment] = [count, result.trading_count, result.average_return_on_investment,pf, ps, df]
                             if result.average_return_on_investment > best_roi:
                                 best_roi = result.average_return_on_investment
                                 roi_count = count
                                 print(
                                     f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={ps}\nfast_ma_period={pf}\ndevfactor={df}")
                             print(f'{count}-{roi_count}--{best_roi}')
-                            # print(result.total_return_on_investment)
+                            if count % 2 == 0:
+                                write_csv(statistics)
                         elif count == stop_count:
 
                             print(f"Last Count: {count}")
                             print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
-                            # write_csv(statistics)
+                            write_csv(statistics)
 
                             raise Exception("=== Parameter Tuning successfully terminated===")
                         count += 1
         print(f"Total Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
+        write_csv(statistics)
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
-        # write_csv(statistics)
+        write_csv(statistics)
+    except :
+        print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
+        print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
+        write_csv(statistics)
 
 
 # configurations_for_sma_cross_v2 = [
@@ -254,14 +264,14 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
 
 
 def write_csv(statistics):
-    # header = ["ROI", "Dev Factor", "Rsi period", "Rsi low", "Rsi high", "Bollinger Period", "Gain value"]
-
-    with open(constants.stat_file_path, 'w', newline='') as file:
+    sorted_keys = sorted(statistics.keys())[:len(statistics) // 2]
+    with open(constants.stat_file_path, 'a', newline='') as file:
         writer = csv.writer(file)
-        # writer.writerow(header)  # writing the header
+        for key in sorted_keys:
+            writer.writerow(statistics[key])  # writing each entry as a row
 
-        for entry in statistics:
-            writer.writerow(entry)  # writing each entry as a row
+    statistics.clear()
+    print('data written to csv')
 
 
 def sma_cross_v2_config_process(config):
@@ -294,8 +304,8 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
 config = dict(slow_ma_period=8, fast_ma_period=2, devfactor=3)
 
 if __name__ == "__main__":
-    import logger_config
-    run_single()
-    # run_parallel(start_count=5000, increment=100)
+    # import logger_config
+    # run_single()
+    run_parallel(start_count=1, increment=100)
 # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
 
