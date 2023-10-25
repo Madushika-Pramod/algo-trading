@@ -214,7 +214,7 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
                                 print(
                                     f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={ps}\nfast_ma_period={pf}\ndevfactor={df}")
                             print(f'{count}-{roi_count}--{best_roi}')
-                            if count % 2 == 0:
+                            if count % 2000 == 0:
                                 write_csv(statistics)
                         elif count == stop_count:
 
