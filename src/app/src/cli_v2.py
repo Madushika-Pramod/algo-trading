@@ -108,7 +108,7 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
         writer = csv.writer(file)
         writer.writerow(header)  # writing the header
     try:
-        for pf in range(fast_ma_period, 300):
+        for pf in range(fast_ma_period, 500):
             for ps in range(slow_ma_period, 500):
                 if pf > ps:
                     continue
@@ -204,7 +204,7 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
     logging.info('All functions have finished executing')
 
 
-config = dict(slow_ma_period=3, fast_ma_period=2)
+config = dict(slow_ma_period=301, fast_ma_period=300)
 
 if __name__ == "__main__":
     # import logger_config
