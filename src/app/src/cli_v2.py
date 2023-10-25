@@ -18,7 +18,7 @@ def run_single(live=False):
     # todo don't forget to delete following in Colab
     slow_ma_period = 64
     fast_ma_period = 56
-    devfactor = 0.5
+    devfactor = 2
     # high_low_period = 8
     # high_low_tolerance = 0.5
     # buy_profit_threshold = 3.5
@@ -291,7 +291,7 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
     logging.info('All functions have finished executing')
 
 
-config = dict(slow_ma_period=8, fast_ma_period=2, devfactor=2)
+config = dict(slow_ma_period=8, fast_ma_period=2, devfactor=3)
 
 if __name__ == "__main__":
     import logger_config
