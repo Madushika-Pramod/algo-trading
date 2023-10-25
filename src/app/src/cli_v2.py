@@ -283,7 +283,7 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
     processes = []
     if configurations is None:
         global config
-        for _ in range(8):
+        for _ in range(7):
             config['start_count'] = start_count
             config['stop_count'] = start_count = start_count + increment
             processes.append(multiprocessing.Process(target=config_process, args=(config,)))
