@@ -99,8 +99,8 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
     last_sale_price = None
     median_volume, min_price = median_volume_min_price
 
-    count = 0
-    best_count = 0
+    count = 1
+    best_count = 1
     statistics = {}
 
     header = ["iteration", "Trading Count", "Buy Error", "Sell Error", "Mean Error", "Fast Period", "Slow Period"]
