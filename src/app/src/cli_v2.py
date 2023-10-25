@@ -177,8 +177,8 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
     roi_count = 0
     # statistics = [["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]]
     try:
-        for pf in range(fast_ma_period, 31):
-                for ps in range(slow_ma_period, 100):
+        for pf in range(fast_ma_period, 300):
+                for ps in range(slow_ma_period, 500):
                     if pf > ps:
                         continue
                     for yy in range(devfactor, 6):
