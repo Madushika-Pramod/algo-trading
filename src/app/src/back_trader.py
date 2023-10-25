@@ -147,7 +147,6 @@ class BacktraderStrategy:
         # roi = (endcash - startcash) / startcash
 
         # print('ROI not from strategy: {:.2f}%'.format(100.0 * roi))
-
         # self.cerebro.plot(style='candle')
         # self.cerebro.plot()
         # strat = strategies[0]
