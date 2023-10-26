@@ -151,7 +151,7 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
                     raise Exception("=== Parameter Tuning successfully terminated===")
                 count += 1
         print(f"Total Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
-
+        write_csv(statistics)
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
@@ -164,7 +164,7 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
 
 
 def write_csv(statistics):
-    sorted_keys = sorted(statistics.keys())[:len(statistics)//2]
+    sorted_keys = sorted(statistics.keys(), reverse=True)[:len(statistics)//2]
     with open(constants.stat_file_path, 'a', newline='') as file:
         writer = csv.writer(file)
         for key in sorted_keys:
