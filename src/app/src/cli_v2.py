@@ -102,9 +102,10 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
     count = 1
     best_count = 1
     statistics = {}
+    file_path = constants.stat_file_path()
 
     header = ["iteration", "Trading Count", "Buy Error", "Sell Error", "Mean Error", "Fast Period", "Slow Period"]
-    with open(constants.stat_file_path, 'w', newline='') as file:
+    with open(file_path, 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(header)  # writing the header
     try:
@@ -140,32 +141,32 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
                     print(f'{count}-{best_count}:::{buy_error},{sell_error}')
                     # print(result.total_return_on_investment)
                     if count % 2000 == 0:
-                        write_csv(statistics)
+                        write_csv(statistics, file_path)
                 elif count == stop_count:
 
                     print(f"Last Count: {count}")
                     print(f"Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
 
-                    write_csv(statistics)
+                    write_csv(statistics, file_path)
 
                     raise Exception("=== Parameter Tuning successfully terminated===")
                 count += 1
         print(f"Total Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
-        write_csv(statistics)
+        write_csv(statistics, file_path)
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
-        write_csv(statistics)
+        write_csv(statistics, file_path)
 
     except:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best errors(buy,sell): {round(buy_error, 3)},{round(sell_error, 3)} at count : {best_count}")
-        write_csv(statistics)
+        write_csv(statistics, file_path)
 
 
-def write_csv(statistics):
-    sorted_keys = sorted(statistics.keys(), reverse=True)[:len(statistics)//2]
-    with open(constants.stat_file_path, 'a', newline='') as file:
+def write_csv(statistics, file_path):
+    sorted_keys = sorted(statistics.keys(), reverse=True)[:len(statistics) // 2]
+    with open(file_path, 'a', newline='') as file:
         writer = csv.writer(file)
         for key in sorted_keys:
             writer.writerow(statistics[key])  # writing each entry as a row

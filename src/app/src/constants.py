@@ -33,18 +33,18 @@ period_in_days = 10
 # Get the directory of the current file
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 _parent_dir = os.path.dirname(os.path.dirname(_current_dir))
-file_id = datetime.now()
-stat_file_path = os.path.join(_parent_dir, 'datas', f'stat{file_id}.csv')
+file_id = lambda: datetime.now()
+stat_file_path = lambda: os.path.join(_parent_dir, 'datas', f'stat{file_id()}.csv')
 # tick_file_path = os.path.join(_parent_dir, 'datas', f'tick{file_id}.csv')
 csv_file_path = os.path.join(_parent_dir, 'datas', f'{symbol}{period_in_days}.csv')
 crypto_file_path = os.path.join(_parent_dir, 'datas', f'crypto{period_in_days}.csv')
 
 # csv_file_path = os.path.join(_parent_dir, 'datas', 'data.csv')
 tick_file_path = os.path.join(_parent_dir, 'datas', 'tick.csv')
-trading_view_row_data_file_path = os.path.join(_parent_dir, 'datas', f'trading_view{file_id}.txt')
-trading_view_file_path = os.path.join(_parent_dir, 'datas', f'tw_{symbol}{period_in_days}{file_id}.csv')
+trading_view_row_data_file_path = os.path.join(_parent_dir, 'datas', f'trading_view{file_id()}.txt')
+trading_view_file_path = os.path.join(_parent_dir, 'datas', f'tw_{symbol}{period_in_days}{file_id()}.csv')
 
-mama_file_path = os.path.join(_parent_dir, 'datas', f'MAMA{file_id}.csv')
+mama_file_path = os.path.join(_parent_dir, 'datas', f'MAMA{file_id()}.csv')
 
 data_download = 0
 # time_for_rate_limit = 3
