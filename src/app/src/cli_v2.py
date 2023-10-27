@@ -176,9 +176,10 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
     count = 1
     roi_count = 1
     statistics = {}
+    file_path = constants.stat_file_path()
 
     header = ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]
-    with open(constants.stat_file_path, 'w', newline='') as file:
+    with open(file_path, 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(header)  # writing the header
 
@@ -214,27 +215,27 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
                                 print(
                                     f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={ps}\nfast_ma_period={pf}\ndevfactor={df}")
                             print(f'{count}-{roi_count}--{best_roi}')
-                            if count % 2000 == 0:
-                                write_csv(statistics)
+                            if count % 2 == 0:
+                                write_csv(statistics, file_path)
                         elif count == stop_count:
 
                             print(f"Last Count: {count}")
                             print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
-                            write_csv(statistics)
+                            write_csv(statistics, file_path)
 
                             raise Exception("=== Parameter Tuning successfully terminated===")
                         count += 1
         print(f"Total Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
-        write_csv(statistics)
+        write_csv(statistics, file_path)
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
-        write_csv(statistics)
+        write_csv(statistics, file_path)
     except :
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
-        write_csv(statistics)
+        write_csv(statistics, file_path)
 
 
 # configurations_for_sma_cross_v2 = [
@@ -263,9 +264,9 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
 # ]
 
 
-def write_csv(statistics):
+def write_csv(statistics, file_path):
     sorted_keys = sorted(statistics.keys(), reverse=True)[:len(statistics) // 2]
-    with open(constants.stat_file_path, 'a', newline='') as file:
+    with open(file_path, 'a', newline='') as file:
         writer = csv.writer(file)
         for key in sorted_keys:
             writer.writerow(statistics[key])  # writing each entry as a row
