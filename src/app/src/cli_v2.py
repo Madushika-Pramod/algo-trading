@@ -265,11 +265,13 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
 
 
 def write_csv(statistics, file_path):
-    sorted_keys = sorted(statistics.keys(), reverse=True)[:len(statistics) // 2]
+    # sorted_keys = sorted(statistics.keys(), reverse=True)[:len(statistics) // 2]
     with open(file_path, 'a', newline='') as file:
         writer = csv.writer(file)
-        for key in sorted_keys:
-            writer.writerow(statistics[key])  # writing each entry as a row
+        # for key in sorted_keys:
+        #     writer.writerow(statistics[key])  # writing each entry as a row
+        for key in statistics.values():
+            writer.writerow(key)  # writing each entry as a row
 
     statistics.clear()
     print('data written to csv')
