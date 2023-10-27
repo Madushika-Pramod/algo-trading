@@ -265,11 +265,13 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
 
 
 def write_csv(statistics, file_path):
-    sorted_keys = sorted(statistics.keys(), reverse=True)[:len(statistics) // 2]
+    # sorted_keys = sorted(statistics.keys(), reverse=False)[:len(statistics) // 2]
     with open(file_path, 'a', newline='') as file:
         writer = csv.writer(file)
-        for key in sorted_keys:
-            writer.writerow(statistics[key])  # writing each entry as a row
+        for key in statistics.values():
+            writer.writerow(key)
+        # for key in sorted_keys:
+        #     writer.writerow(statistics[key])  # writing each entry as a row
 
     statistics.clear()
     print('data written to csv')
@@ -279,12 +281,12 @@ def sma_cross_v2_config_process(config):
     return get_sma_cross_strategy_v2_optimum_params(**config)
 
 
-def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000):
+def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000, processing_units=2):
 
     processes = []
     if configurations is None:
         global config
-        for _ in range(7):
+        for _ in range(processing_units):
             config['start_count'] = start_count
             config['stop_count'] = start_count = start_count + increment
             processes.append(multiprocessing.Process(target=config_process, args=(config,)))

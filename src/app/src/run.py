@@ -18,7 +18,7 @@ if __name__ == "__main__":
         run_single(buy_profit_threshold=args.values[0], slow_ma_period=int(args.values[1]), high_low_period=int(args.values[2]), high_low_tolerance=args.values[3],
                sell_profit_threshold=args.values[4])
     elif args.run == 'tune':
-        run_parallel(start_count=args.count[0], increment=args.count[1])
+        run_parallel(start_count=args.count[0], increment=args.count[1], processing_units=7)
     elif args.run == 'data':
         import logger_config
         import os
@@ -31,3 +31,4 @@ if __name__ == "__main__":
 # pdm run python src/app/src/run.py --run algo --values 1 15 21 0.5 3
 
 # pdm run python src/app/src/run.py --run tune --count 1000 4
+# pdm run tune --count 1000 -2000
