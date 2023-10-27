@@ -108,8 +108,8 @@ def get_sma_cross_strategy_v2_optimum_params(max_min_dic=None, median_volume_min
         writer = csv.writer(file)
         writer.writerow(header)  # writing the header
     try:
-        for pf in range(fast_ma_period, 500):
-            for ps in range(slow_ma_period, 500):
+        for pf in range(fast_ma_period, 600):
+            for ps in range(slow_ma_period, 600):
                 if pf > ps:
                     continue
 
