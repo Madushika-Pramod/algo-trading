@@ -81,7 +81,7 @@ class DataHandler:
 
 
 class BacktraderStrategy:
-    def __init__(self, live, cash=constants.cash, ):
+    def __init__(self, live, cash=constants.cash, file_path=constants.csv_file_path):
         self.live = live
         self.cash = cash
         # self.strategy_class = strategy_class
@@ -89,7 +89,7 @@ class BacktraderStrategy:
 
         # simulating
         # self.df = DataHandler().load_data()  #generate_data()
-        self.df = DataHandler(file_path=constants.csv_file_path).load_data()  #generate_data()
+        self.df = DataHandler(file_path=file_path).load_data()  #generate_data()
 
         # self.cerebro.cheat_on_close = True  # can execute Market orders on the close of the current bar
         self.cerebro.broker.setcommission(commission=constants.commission)

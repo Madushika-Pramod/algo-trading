@@ -14,7 +14,6 @@ from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 
 def run_single(live=False):
-
     # todo don't forget to delete following in Colab
     slow_ma_period = 64
     fast_ma_period = 56
@@ -166,12 +165,13 @@ def get_parameters(slow_ma_period=None):
     return median, min_value
 
 
-def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period=None,devfactor=None,start_count=None,stop_count=None):
+def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period=None, devfactor=None, start_count=None,
+                                             stop_count=None):
     best_roi = 0
     buying_power = 800
     loss_value = 15
     last_sale_price = None
-    median_volume, min_price = get_parameters(slow_ma_period=slow_ma_period)
+    median_volume, min_price = get_parameters(slow_ma_period=slow_ma_period)  # todo
 
     count = 1
     roi_count = 1
@@ -185,46 +185,48 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
 
     try:
         for pf in range(fast_ma_period, 300):
-                for ps in range(slow_ma_period, 500):
-                    if pf > ps:
-                        continue
-                    for yy in range(devfactor, 6):
-                        df = yy / 2
+            for ps in range(slow_ma_period, 500):
+                if pf > ps:
+                    continue
+                for yy in range(devfactor, 6):
+                    df = yy / 2
 
-                        if stop_count > count >= start_count:
-                            result = BacktraderStrategy(live=False
-                                                        ).add_strategy((SmaCrossStrategy,
-                                                                        dict(
-                                                                            slow_ma_period=ps,
-                                                                            fast_ma_period=pf,
-                                                                            devfactor=df,
+                    if stop_count > count >= start_count:
+                        result = BacktraderStrategy(live=False
+                                                    ).add_strategy((SmaCrossStrategy,
+                                                                    dict(
+                                                                        slow_ma_period=ps,
+                                                                        fast_ma_period=pf,
+                                                                        devfactor=df,
 
-                                                                            high_low_period=20,
-                                                                            high_low_tolerance=0.15,
-                                                                            # buy_profit_threshold=bgv,
-                                                                            # sell_profit_threshold=sgv,
-                                                                            buying_power=buying_power,
-                                                                            min_price=min_price,
-                                                                            loss_value=loss_value,
-                                                                            last_sale_price=last_sale_price,
-                                                                            median_volume=median_volume, ))).run()
-                            statistics[result.average_return_on_investment] = [count, result.trading_count, result.average_return_on_investment,pf, ps, df]
-                            if result.average_return_on_investment > best_roi:
-                                best_roi = result.average_return_on_investment
-                                roi_count = count
-                                print(
-                                    f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={ps}\nfast_ma_period={pf}\ndevfactor={df}")
-                            print(f'{count}-{roi_count}--{best_roi}')
-                            if count % 4000 == 0:
-                                write_csv(statistics, file_path)
-                        elif count == stop_count:
-
-                            print(f"Last Count: {count}")
-                            print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
+                                                                        high_low_period=20,
+                                                                        high_low_tolerance=0.15,
+                                                                        # buy_profit_threshold=bgv,
+                                                                        # sell_profit_threshold=sgv,
+                                                                        buying_power=buying_power,
+                                                                        min_price=min_price,
+                                                                        loss_value=loss_value,
+                                                                        last_sale_price=last_sale_price,
+                                                                        median_volume=median_volume, ))).run()
+                        statistics[result.average_return_on_investment] = [count, result.trading_count,
+                                                                           result.average_return_on_investment, pf, ps,
+                                                                           df]
+                        if result.average_return_on_investment > best_roi:
+                            best_roi = result.average_return_on_investment
+                            roi_count = count
+                            print(
+                                f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={ps}\nfast_ma_period={pf}\ndevfactor={df}")
+                        print(f'{count}-{roi_count}--{best_roi}')
+                        if count % 4000 == 0:
                             write_csv(statistics, file_path)
+                    elif count == stop_count:
 
-                            raise Exception("=== Parameter Tuning successfully terminated===")
-                        count += 1
+                        print(f"Last Count: {count}")
+                        print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
+                        write_csv(statistics, file_path)
+
+                        raise Exception("=== Parameter Tuning successfully terminated===")
+                    count += 1
         print(f"Total Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
         write_csv(statistics, file_path)
 
@@ -232,10 +234,81 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
         write_csv(statistics, file_path)
-    except :
+    except:
         print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
         print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
         write_csv(statistics, file_path)
+
+
+def test_sma_cross_strategy_v2_optimum_params(input_file_path, out_put_file_path, data_file_path, start_count=None,
+                                              stop_count=None):
+    df = pd.read_csv(input_file_path)
+    df = df[['Roi', 'Fast Period', 'Slow Period', 'devfactor']]
+    values = df.values.tolist()
+
+    best_roi = 0
+    buying_power = 800
+    loss_value = 15
+    last_sale_price = None
+    median_volume, min_price = get_parameters(slow_ma_period=10)
+    statistics = {}
+
+    count = 1
+    roi_count = 1
+
+    try:
+        for data in values:
+            if stop_count > count >= start_count:
+
+                result = BacktraderStrategy(False, file_path=data_file_path).add_strategy((SmaCrossStrategy,
+                                                                                           dict(
+                                                                                               slow_ma_period=data[2],
+                                                                                               fast_ma_period=data[1],
+                                                                                               devfactor=data[3],
+
+                                                                                               high_low_period=20,
+                                                                                               high_low_tolerance=0.15,
+                                                                                               # buy_profit_threshold=bgv,
+                                                                                               # sell_profit_threshold=sgv,
+                                                                                               buying_power=buying_power,
+                                                                                               min_price=min_price,
+                                                                                               loss_value=loss_value,
+                                                                                               last_sale_price=last_sale_price,
+                                                                                               median_volume=median_volume, ))).run()
+                statistics[result.average_return_on_investment] = [count, result.trading_count,
+                                                                   result.average_return_on_investment, data[1],
+                                                                   data[2],
+                                                                   data[3]]
+                if result.average_return_on_investment > data[0]:
+                    print(f'xxx BIG ROI xxx {result.average_return_on_investment} at count {count}')
+
+                if result.average_return_on_investment > best_roi:
+                    best_roi = result.average_return_on_investment
+                    roi_count = count
+                    print(
+                        f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={data[2]}\nfast_ma_period={data[1]}\ndevfactor={data[3]}")
+                print(f'{count}-{roi_count}--{best_roi}')
+
+            elif count == stop_count:
+
+                print(f"Last Count: {count}")
+                print(f"Best ROI: {best_roi * 100}% at count : {roi_count}")
+                write_csv(statistics, out_put_file_path)
+
+                raise Exception("=== Parameter Tuning successfully terminated===")
+
+            count += 1
+        print(f"Total Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
+        write_csv(statistics, out_put_file_path)
+
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
+        print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
+        write_csv(statistics, out_put_file_path)
+    except:
+        print("KeyboardInterrupt received. Performing cleanup...save following data if you can't find tuned parameters")
+        print(f"current Count: {count}-Best ROI: {best_roi * 100}% at count : {roi_count}")
+        write_csv(statistics, out_put_file_path)
 
 
 # configurations_for_sma_cross_v2 = [
@@ -281,17 +354,17 @@ def sma_cross_v2_config_process(config):
     return get_sma_cross_strategy_v2_optimum_params(**config)
 
 
-def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000, processing_units=2):
-
+def run_parallel(config_process=sma_cross_v2_config_process, configurations=None, start_count=0, increment=1000,
+                 processing_units=2):
     processes = []
     if configurations is None:
         global config
-        for _ in range(processing_units):
-            config['start_count'] = start_count
-            config['stop_count'] = start_count = start_count + increment
-            processes.append(multiprocessing.Process(target=config_process, args=(config,)))
-            config = config.copy()
-    # processes = [multiprocessing.Process(target=config_process, args=(config,)) for config in configurations]
+        configurations = config
+    for _ in range(processing_units):
+        configurations['start_count'] = start_count
+        configurations['stop_count'] = start_count = start_count + increment
+        processes.append(multiprocessing.Process(target=config_process, args=(configurations,)))
+        configurations = configurations.copy()
 
     # Start processes
     for p in processes:
@@ -311,4 +384,3 @@ if __name__ == "__main__":
     # run_single()
     run_parallel(start_count=1, increment=100)
 # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
-
