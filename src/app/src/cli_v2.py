@@ -175,13 +175,9 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
 
     count = 1
     roi_count = 1
-    statistics = {}
+    statistics = {'0': ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]}
     file_path = constants.stat_file_path()
-
-    header = ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]
-    with open(file_path, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(header)  # writing the header
+    write_csv(statistics, file_path, mode='w')
 
     try:
         for pf in range(fast_ma_period, 300):
@@ -251,7 +247,9 @@ def test_sma_cross_strategy_v2_optimum_params(input_file_path, out_put_file_path
     loss_value = 15
     last_sale_price = None
     median_volume, min_price = get_parameters(slow_ma_period=10)
-    statistics = {}
+
+    statistics = {'0': ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]}
+    write_csv(statistics, out_put_file_path, mode='w')
 
     count = 1
     roi_count = 1
@@ -337,9 +335,9 @@ def test_sma_cross_strategy_v2_optimum_params(input_file_path, out_put_file_path
 # ]
 
 
-def write_csv(statistics, file_path):
+def write_csv(statistics, file_path, mode='a'):
     # sorted_keys = sorted(statistics.keys(), reverse=True)[:len(statistics) // 2]
-    with open(file_path, 'a', newline='') as file:
+    with open(file_path, mode, newline='') as file:
         writer = csv.writer(file)
         # for key in sorted_keys:
         #     writer.writerow(statistics[key])  # writing each entry as a row
