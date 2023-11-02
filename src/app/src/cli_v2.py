@@ -15,14 +15,15 @@ from strategies.src.sma.sma_cross_strategy import SmaCrossStrategy
 
 def run_single(live=False):
     # todo don't forget to delete following in Colab
-    slow_ma_period = 64
-    fast_ma_period = 56
-    devfactor = 2
+    slow_ma_period = 142
+    fast_ma_period = 141
+    devfactor = 2.0
     # high_low_period = 8
     # high_low_tolerance = 0.5
     # buy_profit_threshold = 3.5
     # sell_profit_threshold = 3.5
-    median_volume, min_price = get_parameters(slow_ma_period=slow_ma_period)
+    median_volume, min_price = get_parameters(slow_ma_period=slow_ma_period, file_path='/Users/madushika/PycharmProjects/algo-trading/TSLA10.csv')
+
     strategy = (
         SmaCrossStrategy,
         dict(
@@ -127,7 +128,7 @@ def run_single(live=False):
 
     # strategy = (DemoStrategy, {})
 
-    result = BacktraderStrategy(live).add_strategy(strategy).run()
+    result = BacktraderStrategy(live, file_path='/Users/madushika/PycharmProjects/algo-trading/TSLA10.csv').add_strategy(strategy).run()
     logging.info(
         f"Number of Trades: {result.trading_count}\nReturn on investment: {round(result.average_return_on_investment * 100, 3)}%")
 
@@ -135,7 +136,8 @@ def run_single(live=False):
     #     f"Number of Trades: {result.state.trading_count}\nReturn on investment: {round(result.state.total_return_on_investment * 100, 3)}%")
 
 
-def get_parameters(slow_ma_period=None):
+def get_parameters(slow_ma_period=None, file_path=constants.csv_file_path):
+    print(file_path)
     def get_stop_point(column):
         # here we get sma values
         _min_value = column.iloc[0]
@@ -151,7 +153,7 @@ def get_parameters(slow_ma_period=None):
                 return i
         return len(column)
 
-    df = pd.read_csv(constants.csv_file_path)
+    df = pd.read_csv(file_path)
     close = df['close'].rolling(window=slow_ma_period).mean()  # get sma
 
     close = close[slow_ma_period - 1:]
@@ -236,18 +238,17 @@ def get_sma_cross_strategy_v2_optimum_params(slow_ma_period=None, fast_ma_period
         write_csv(statistics, file_path)
 
 
-def test_sma_cross_strategy_v2_optimum_params(input_file_path, out_put_file_path, data_file_path, start_count=None,
+def test_sma_cross_strategy_v2_optimum_params(input_file_path=None, out_put_file_path=None, data_file_path=None, start_count=None,
                                               stop_count=None):
     df = pd.read_csv(input_file_path)
-    df = df[['Roi', 'Fast Period', 'Slow Period', 'devfactor']]
-    values = df.values.tolist()
 
+    values = df.values.tolist()
     best_roi = 0
     buying_power = 800
     loss_value = 15
     last_sale_price = None
-    median_volume, min_price = get_parameters(slow_ma_period=10)
-
+    median_volume, min_price = get_parameters(slow_ma_period=int(df['Slow Period'].mode()), file_path=data_file_path)
+    print(median_volume, min_price)
     statistics = {'0': ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]}
     write_csv(statistics, out_put_file_path, mode='w')
 
@@ -260,8 +261,8 @@ def test_sma_cross_strategy_v2_optimum_params(input_file_path, out_put_file_path
 
                 result = BacktraderStrategy(False, file_path=data_file_path).add_strategy((SmaCrossStrategy,
                                                                                            dict(
-                                                                                               slow_ma_period=data[2],
-                                                                                               fast_ma_period=data[1],
+                                                                                               slow_ma_period=int(data[2]),
+                                                                                               fast_ma_period=int(data[1]),
                                                                                                devfactor=data[3],
 
                                                                                                high_low_period=20,
@@ -285,7 +286,7 @@ def test_sma_cross_strategy_v2_optimum_params(input_file_path, out_put_file_path
                     roi_count = count
                     print(
                         f"count : {count}\nBest ROI: {round(best_roi * 100, 3)}%\nslow_ma_period={data[2]}\nfast_ma_period={data[1]}\ndevfactor={data[3]}")
-                print(f'{count}-{roi_count}--{best_roi}')
+                print(f'{best_roi * 100}%         __ {result.average_return_on_investment}__{roi_count}_  {count}')
 
             elif count == stop_count:
 
@@ -377,8 +378,35 @@ def run_parallel(config_process=sma_cross_v2_config_process, configurations=None
 
 config = dict(slow_ma_period=8, fast_ma_period=2, devfactor=3)
 
+
+def test_config_process(config):
+    return test_sma_cross_strategy_v2_optimum_params(**config)
+
+
 if __name__ == "__main__":
+    3
+    # result = BacktraderStrategy(False, file_path='/Users/madushika/PycharmProjects/algo-trading/TSLA10.csv').add_strategy((SmaCrossStrategy,
+    #                                                                            dict(
+    #                                                                                slow_ma_period=142,
+    #                                                                                fast_ma_period=141,
+    #                                                                                devfactor=2.0,
+    #
+    #                                                                                high_low_period=20,
+    #                                                                                high_low_tolerance=0.15,
+    #                                                                                # buy_profit_threshold=bgv,
+    #                                                                                # sell_profit_threshold=sgv,
+    #                                                                                buying_power=800,
+    #                                                                                min_price=199,
+    #                                                                                loss_value=20,
+    #                                                                                last_sale_price=None,
+    #                                                                                median_volume=8129.5, ))).run()
+    # print(result.average_return_on_investment)
+    # test_sma_cross_strategy_v2_optimum_params(input_file_path='/Users/madushika/PycharmProjects/algo-trading/trained.csv',out_put_file_path='/Users/madushika/PycharmProjects/algo-trading/tested.csv',data_file_path='/Users/madushika/PycharmProjects/algo-trading/TSLA10.csv', stop_count=1160,start_count=0)
+
+
+
     # import logger_config
     # run_single()
-    run_parallel(start_count=1, increment=100)
+    # run_parallel(start_count=1, increment=100)
 # run_parallel(sma_cross_v2_config_process, configurations_for_sma_cross_v2)
+# pdm run test --count 0 1160 --paths /Users/madushika/PycharmProjects/algo-trading/trained.csv /Users/madushika/PycharmProjects/algo-trading/tested.csv /Users/madushika/PycharmProjects/algo-trading/TSLA10.csv

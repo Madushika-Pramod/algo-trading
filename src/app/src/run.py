@@ -1,13 +1,12 @@
 from app.src import constants
-from app.src.cli_v2 import run_single, run_parallel, test_sma_cross_strategy_v2_optimum_params
+from app.src.cli_v2 import run_single, run_parallel, test_config_process
 import argparse
 
 from broker.src.alpaca_data import AlpacaHistoricalData
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('--run', choices=['algo', 'tune', 'data'])
+    parser.add_argument('--run', choices=['algo', 'tune', 'data', 'test'])
     parser.add_argument('--values', type=float, nargs=5)
     parser.add_argument('--count', type=int, nargs=2)
     parser.add_argument('--paths', type=str, nargs=3)
@@ -34,14 +33,10 @@ if __name__ == "__main__":
         configurations = dict(input_file_path=args.paths[0], out_put_file_path=args.paths[1],
                               data_file_path=args.paths[2])
 
-
-        def config_process(config):
-            return test_sma_cross_strategy_v2_optimum_params(**config)
-
-
-        run_parallel(config_process=config_process, configurations=configurations, start_count=args.count[0],
+        run_parallel(config_process=test_config_process, configurations=configurations, start_count=args.count[0],
                      increment=args.count[1], processing_units=2)
 
+'sssss'
 # buy_profit_threshold, slow_ma_period, high_low_period, high_low_tolerance, sell_profit_threshold
 # pdm run python src/app/src/run.py --run algo --values 1 15 21 0.5 3
 

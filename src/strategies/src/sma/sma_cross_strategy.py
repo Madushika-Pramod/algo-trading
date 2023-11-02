@@ -23,9 +23,9 @@ class BuySellIndicator(bt.Indicator):
 class SmaCrossStrategy(bt.Strategy):
     params = dict(
 
-        slow_ma_period=5,  # Period for the slow moving average
-        fast_ma_period=2,
-        devfactor=1,
+        slow_ma_period=None,  # Period for the slow moving average
+        fast_ma_period=None,
+        devfactor=None,
 
         high_low_period=20,  # Period for tracking highest and lowest prices
         high_low_tolerance=0.15,  # Tolerance for approximating high or low prices
