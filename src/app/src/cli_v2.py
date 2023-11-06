@@ -137,7 +137,6 @@ def run_single(live=False):
 
 
 def get_parameters(slow_ma_period=None, file_path=constants.csv_file_path):
-    print(file_path)
     def get_stop_point(column):
         # here we get sma values
         _min_value = column.iloc[0]
@@ -247,8 +246,7 @@ def test_sma_cross_strategy_v2_optimum_params(input_file_path=None, out_put_file
     buying_power = 800
     loss_value = 15
     last_sale_price = None
-    median_volume, min_price = get_parameters(slow_ma_period=int(df['Slow Period'].mode()), file_path=data_file_path)
-    print(median_volume, min_price)
+    median_volume, min_price = get_parameters(slow_ma_period=int(df['Slow Period'].mode().min()), file_path=data_file_path)
     statistics = {'0': ["iteration", "Trading Count", "Roi", "Fast Period", "Slow Period", "devfactor"]}
     write_csv(statistics, out_put_file_path, mode='w')
 
